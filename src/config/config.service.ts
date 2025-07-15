@@ -30,7 +30,7 @@ export class ConfigService {
     }
 
     getMongoDbUri() {
-        return this.getValue("MONGODB_URL");
+        return this.getValue("MONGODB_URI");
     }
 
     getJWTSecretKey() {
