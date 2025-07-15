@@ -30,7 +30,7 @@ export class ConfigService {
     }
 
     getMongoDbUri() {
-        return this.getValue("MONGODB_URI");
+        return this.getValue("MONGODB_URI");        
     }
 
     getJWTSecretKey() {
@@ -41,8 +41,16 @@ export class ConfigService {
         return this.getValue("JWT_EXPIRES_IN");
     }
 
-    REDIS_HOST
-    REDIS_PORT
-    REDIS_PASSWORD
+    getRedisHost() {
+        return this.getValue("REDIS_HOST", true);
+    }
+
+    getRedisPort() {
+        return this.getValue("REDIS_PORT", true);
+    }
+
+    getRedisPassword() {
+        return this.getValue("REDIS_PASSWORD", true);
+    }
 
 }
