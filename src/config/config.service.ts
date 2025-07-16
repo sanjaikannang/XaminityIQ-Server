@@ -53,4 +53,12 @@ export class ConfigService {
         return this.getValue("REDIS_PASSWORD", true);
     }
 
+    getJwtRefreshSecretKey() {
+        return this.getValue("JWT_REFRESH_SECRET_KEY", true);
+    } 
+
+    getJwtRefreshExpiry() {
+        return this.getValue("JWT_REFRESH_EXPIRY_IN", true);
+    }
+
 }
