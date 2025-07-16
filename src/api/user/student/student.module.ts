@@ -4,9 +4,7 @@ import { ConfigService } from 'src/config/config.service';
 import { User, UserSchema } from 'src/schemas/user.schema';
 
 @Module({
-    imports: [
-        MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    ],
+    imports: [],
     controllers: [],
     providers: [
         ConfigService,
@@ -15,4 +13,4 @@ import { User, UserSchema } from 'src/schemas/user.schema';
         ConfigService,
     ],
 })
-export class AuthModule { }
+export class StudentModule { }
