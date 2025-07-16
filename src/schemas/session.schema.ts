@@ -36,3 +36,9 @@ export class Session {
 }
 
 export const SessionSchema = SchemaFactory.createForClass(Session);
+
+// Define Indexes
+SessionSchema.index({ userId: 1 });
+SessionSchema.index({ sessionId: 1 });
+SessionSchema.index({ refreshToken: 1 });
+SessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
