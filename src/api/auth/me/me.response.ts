@@ -1,6 +1,6 @@
 import { UserRole } from "src/utils/enum";
 
-export class LoginResponse {
+export class MeResponse {
 
     success: boolean;
     message: string;
@@ -10,12 +10,10 @@ export class LoginResponse {
             email: string;
             role: UserRole;
             isFirstLogin: boolean;
+            lastLogin: Date;
+            createdAt: Date;
         };
-        tokens: {
-            accessToken: string;
-            refreshToken: string;
-        };
-        sessionId: string;
+        profile: any; // Will be Faculty, Student, or Admin profile
     };
-    
+
 }
