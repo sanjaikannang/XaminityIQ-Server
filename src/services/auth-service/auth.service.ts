@@ -161,7 +161,8 @@ export class AuthService {
         return { message: 'Password changed successfully' };
     }
 
-    
+
+    // Reset Password API Endpoint
     async resetPassword(email: string) {
         const user = await this.userRepositoryService.findUserByEmail(email);
         if (!user) {
@@ -174,15 +175,15 @@ export class AuthService {
         const hashedPassword = await this.passwordService.hashPassword(newPassword);
 
         // Update user with new password and set first login flag
-        await this.userRepositoryService.updateUser(user._id.toString(), {
+        await this.userRepositoryService.updateUser((user._id as Types.ObjectId).toString(), {
             password: hashedPassword,
             isFirstLogin: true,
             isPasswordReset: true,
         });
 
         // Invalidate all sessions
-        await this.sessionService.deleteAllUserSessions(user._id.toString());
-        await this.sessionRepositoryService.deactivateAllUserSessions(user._id.toString());
+        await this.sessionService.deleteAllUserSessions((user._id as Types.ObjectId).toString(),);
+        await this.sessionRepositoryService.deactivateAllUserSessions((user._id as Types.ObjectId).toString(),);
 
         // In a real application, you would send this password via email
         // For now, we'll return it in the response (remove this in production)
