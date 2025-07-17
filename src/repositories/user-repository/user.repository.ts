@@ -13,7 +13,7 @@ export class UserRepositoryService {
         @InjectModel('Admin') private adminModel: Model<any>,
     ) { }
 
-    // User Operations
+    // Find user by email
     async findUserByEmail(email: string): Promise<UserDocument | null> {
         return this.userModel.findOne({ email, isActive: true }).exec();
     }

@@ -69,4 +69,22 @@ export class SessionRepositoryService {
         }).exec();
     }
 
+    // Get tokens by session ID
+    async getTokensBySessionId(sessionId: string): Promise<{ accessToken: string; refreshToken: string } | null> {
+        const session = await this.sessionModel.findOne({
+            sessionId: sessionId,
+            isActive: true,
+            expiresAt: { $gt: new Date() }
+        }).exec();
+
+        if (!session) {
+            return null;
+        }
+
+        return {
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+        };
+    }
+
 }

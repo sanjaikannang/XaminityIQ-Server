@@ -1,6 +1,7 @@
-import { Injectable, UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PasswordService } from './password.service';
 import { JwtService } from './jwt.service';
+import { Types } from "mongoose";
 import { SessionService } from './session.service';
 import { LoginRequest } from 'src/api/auth/login/login.request';
 import { RefreshTokenRequest } from 'src/api/auth/refresh-token/refresh-token.request';
@@ -18,7 +19,9 @@ export class AuthService {
         private readonly sessionRepositoryService: SessionRepositoryService,
     ) { }
 
-    async login(loginData: LoginRequest, userAgent: string, ipAddress: string) {
+
+    // Login API Endpoint
+    async loginAPI(loginData: LoginRequest, userAgent: string, ipAddress: string) {
         const { email, password } = loginData;
 
         // Find user by email
@@ -34,17 +37,28 @@ export class AuthService {
         }
 
         // Generate tokens
-        const sessionId = await this.createUserSession(user, userAgent, ipAddress);
+        const sessionId = await this.sessionService.createUserSession(user, userAgent, ipAddress);
+
+        // Get the tokens from the session
+        const tokens = await this.sessionRepositoryService.getTokensBySessionId(sessionId);
+
+        if (!tokens) {
+            throw new UnauthorizedException('Failed to create session');
+        }
 
         // Update last login
-        await this.userRepositoryService.updateLastLogin(user._id.toString());
+        await this.userRepositoryService.updateLastLogin((user._id as Types.ObjectId).toString());
 
         return {
             user: {
-                id: user._id.toString(),
+                id: (user._id as Types.ObjectId).toString(),
                 email: user.email,
                 role: user.role,
                 isFirstLogin: user.isFirstLogin,
+            },
+            tokens: {
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
             },
             sessionId,
         };

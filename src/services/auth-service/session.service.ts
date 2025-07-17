@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
 import { UserRole } from 'src/utils/enum';
-import { ConfigService } from 'src/config/config.service';
+import { ulid } from 'ulid';
+import { Types } from 'mongoose';
+import { UserDocument } from 'src/schemas/user.schema';
+import { JwtService } from './jwt.service';
+import { SessionRepositoryService } from 'src/repositories/session-repository/session.repository';
 
 export interface RedisSession {
     userId: string;
@@ -23,16 +27,55 @@ export interface RedisSession {
 export class SessionService {
     private readonly sessionTTL: number;
     private readonly maxSessionsPerUser: number = 3;
+    private readonly jwtService: JwtService;
+    private readonly sessionRepository: SessionRepositoryService;
 
     constructor(
         @InjectRedis() private readonly redis: Redis,
-        private readonly configService: ConfigService,
-    ) {
-        this.sessionTTL = parseInt(this.configService.get<string>('SESSION_TTL') || '3600');
+    ) { }
+
+
+    // Create user session and generate tokens
+    async createUserSession(user: UserDocument, userAgent: string, ipAddress: string): Promise<string> {
+        const sessionId = ulid();
+
+        // Generate JWT tokens
+        const payload = {
+            sub: (user._id as Types.ObjectId).toString(),
+            email: user.email,
+            role: user.role,
+            sessionId: sessionId,
+        };
+
+        const accessToken = this.jwtService.generateAccessToken(payload);
+
+        const refreshToken = this.jwtService.generateRefreshToken(payload);
+
+        // Calculate expiration date (7 days from now)
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+
+        // Create session document
+        const sessionData = {
+            userId: (user._id as Types.ObjectId).toString(),
+            sessionId: sessionId,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            userAgent: userAgent,
+            ipAddress: ipAddress,
+            expiresAt: expiresAt,
+            isActive: true,
+            lastActivity: new Date(),
+        };
+
+        // Save session to database
+        await this.sessionRepository.createSession(sessionData);        
+
+        return sessionId;
     }
 
     async createSession(sessionData: Omit<RedisSession, 'sessionId' | 'createdAt' | 'lastActivity'>): Promise<string> {
-        const sessionId = uuidv4();
+        const sessionId = ulid();
         const now = Date.now();
 
         const session: RedisSession = {
