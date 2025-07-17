@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpStatus, BadRequestException } from '@nestjs/common';
 import { Response } from 'express';
 import { RefreshTokenRequest } from './refresh-token.request';
 import { RefreshTokenResponse } from './refresh-token.response';
@@ -12,7 +12,7 @@ export class RefreshTokenController {
     async refreshToken(
         @Body() refreshTokenData: RefreshTokenRequest,
         @Res() res: Response,
-    ): Promise<void> {
+    ) {
         try {
             const tokens = await this.authService.refreshToken(refreshTokenData);
 
@@ -22,13 +22,13 @@ export class RefreshTokenController {
                 data: tokens,
             };
 
-            res.status(HttpStatus.OK).json(response);
+            return response;
+
         } catch (error) {
-            const response: RefreshTokenResponse = {
+            throw new BadRequestException({
                 success: false,
                 message: error.message || 'Token refresh failed',
-            };
-            res.status(HttpStatus.UNAUTHORIZED).json(response);
+            })
         }
     }
 }

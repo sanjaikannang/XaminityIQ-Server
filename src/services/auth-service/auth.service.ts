@@ -64,6 +64,8 @@ export class AuthService {
         };
     }
 
+
+    // Refresh Token API Endpoint
     async refreshToken(refreshData: RefreshTokenRequest) {
         const { refreshToken, sessionId } = refreshData;
 
