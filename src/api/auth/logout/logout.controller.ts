@@ -1,4 +1,4 @@
-import { Controller, Post, Req, Res, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Post, Req, Res, HttpStatus, UseGuards, BadRequestException } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { LogoutResponse } from './logout.response';
 import { AuthService } from 'src/services/auth-service/auth.service';
@@ -10,9 +10,11 @@ export class LogoutController {
 
     @Post('logout')
     @UseGuards(JwtAuthGuard)
-    async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
+    async logout(
+        @Req() req: Request,
+    ) {
         try {
-            const sessionId = req.user?.sessionId;
+            const sessionId = (req as any).user?.sessionId;
 
             await this.authService.logout(sessionId);
 
@@ -21,13 +23,13 @@ export class LogoutController {
                 message: 'Logged out successfully',
             };
 
-            res.status(HttpStatus.OK).json(response);
+            return response;
+
         } catch (error) {
-            const response: LogoutResponse = {
+            throw new BadRequestException({
                 success: false,
                 message: error.message || 'Logout failed',
-            };
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(response);
+            })
         }
     }
 }
