@@ -11,9 +11,8 @@ export class MeResponse {
             role: UserRole;
             isFirstLogin: boolean;
             lastLogin: Date;
-            createdAt: Date;
         };
-        profile: any; // Will be Faculty, Student, or Admin profile
+        profile: any;
     };
 
 }

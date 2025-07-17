@@ -187,13 +187,17 @@ export class AuthService {
         };
     }
 
+
+    // Logout API Endpoint
     async logout(sessionId: string) {
         await this.sessionService.deleteSession(sessionId);
         await this.sessionRepositoryService.deactivateSession(sessionId);
         return { message: 'Logged out successfully' };
     }
 
-    async getMe(userId: string) {
+
+    // GetMe API Endpoint
+    async getMeAPI(userId: string) {
         const userWithProfile = await this.userRepositoryService.getUserWithProfile(userId);
         if (!userWithProfile) {
             throw new UnauthorizedException('User not found');
@@ -203,10 +207,11 @@ export class AuthService {
 
         return {
             user: {
-                id: user._id.toString(),
+                id: (user._id as Types.ObjectId).toString(),
                 email: user.email,
                 role: user.role,
                 isFirstLogin: user.isFirstLogin,
+                lastLogin: user.lastLogin,
             },
             profile: {
                 firstName: profile.firstName,
