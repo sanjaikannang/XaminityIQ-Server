@@ -119,7 +119,9 @@ export class AuthService {
         }
     }
 
-    async changePassword(userId: string, changePasswordData: ChangePasswordRequest) {
+
+    // Change Password API Endpoint
+    async changePasswordAPI(userId: string, changePasswordData: ChangePasswordRequest) {
         const { currentPassword, newPassword, confirmPassword } = changePasswordData;
 
         if (newPassword !== confirmPassword) {
@@ -157,6 +159,7 @@ export class AuthService {
         return { message: 'Password changed successfully' };
     }
 
+    
     async resetPassword(email: string) {
         const user = await this.userRepositoryService.findUserByEmail(email);
         if (!user) {
