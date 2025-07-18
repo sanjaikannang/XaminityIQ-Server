@@ -158,7 +158,7 @@ export class SessionService {
                 }),
             );
 
-            const validSessions = sessions.filter(Boolean);
+            const validSessions = sessions.filter(Boolean) as { id: string, createdAt: number }[];
             validSessions.sort((a, b) => a.createdAt - b.createdAt);
 
             // Remove oldest sessions
