@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
 import { UserRole } from 'src/utils/enum';
+import { Document, Types } from 'mongoose';
 
 export type UserDocument = User & Document;
 
@@ -22,11 +22,20 @@ export class User {
     @Prop({ default: false })
     isEmailVerified: boolean;
 
+    @Prop({ default: true })
+    isFirstLogin: boolean;  // Force password change on first login
+
     @Prop({ default: false })
     isPasswordReset: boolean;
 
     @Prop()
     lastLogin: Date;
+
+    @Prop()
+    lastPasswordChange: Date;
+
+    @Prop({ type: Types.ObjectId, ref: 'User' })
+    createdBy: Types.ObjectId;
 
 }
 
