@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, Res, UseGuards, BadRequestException } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { MeResponse } from './me.response';
 import { AuthService } from 'src/services/auth-service/auth.service';
@@ -10,11 +10,14 @@ export class MeController {
 
     @Get('me')
     @UseGuards(JwtAuthGuard)
-    async getMe(@Req() req: Request, @Res() res: Response): Promise<void> {
+    async getMe(
+        @Req() req: Request,
+        @Res() res: Response
+    ) {
         try {
-            const userId = req.user?.sub;
+            const userId = (req as any).user?.sub;
 
-            const userProfile = await this.authService.getMe(userId);
+            const userProfile = await this.authService.getMeAPI(userId);
 
             const response: MeResponse = {
                 success: true,
@@ -22,13 +25,12 @@ export class MeController {
                 data: userProfile,
             };
 
-            res.status(HttpStatus.OK).json(response);
+            return response;
         } catch (error) {
-            const response: MeResponse = {
+            throw new BadRequestException({
                 success: false,
                 message: error.message || 'Failed to retrieve user profile',
-            };
-            res.status(HttpStatus.UNAUTHORIZED).json(response);
+            })
         }
     }
 }

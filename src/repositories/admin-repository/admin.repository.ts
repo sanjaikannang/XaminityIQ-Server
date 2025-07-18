@@ -14,4 +14,9 @@ export class AdminRepositoryService {
         return admin.save();
     }
 
+
+    async findByUserId(userId: string): Promise<AdminDocument | null> {
+        return this.adminModel.findOne({ userId }).exec();
+    }
+
 }

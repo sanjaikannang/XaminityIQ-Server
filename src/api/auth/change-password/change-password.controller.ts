@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, Res, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Req, Res, HttpStatus, UseGuards, BadRequestException } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ChangePasswordRequest } from './change-password.request';
 import { ChangePasswordResponse } from './change-password.response';
@@ -15,26 +15,24 @@ export class ChangePasswordController {
         @Body() changePasswordData: ChangePasswordRequest,
         @Req() req: Request,
         @Res() res: Response,
-    ): Promise<void> {
+    ) {
         try {
-            const userId = req.user?.sub;
+            const userId = (req as any).user?.sub;
 
-            await this.authService.changePassword(userId, changePasswordData);
+            await this.authService.changePasswordAPI(userId, changePasswordData);
 
             const response: ChangePasswordResponse = {
                 success: true,
                 message: 'Password changed successfully',
             };
 
-            res.status(HttpStatus.OK).json(response);
+            return response;
+
         } catch (error) {
-            const response: ChangePasswordResponse = {
+            throw new BadRequestException({
                 success: false,
                 message: error.message || 'Password change failed',
-            };
-
-            const statusCode = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
-            res.status(statusCode).json(response);
+            })
         }
     }
 }

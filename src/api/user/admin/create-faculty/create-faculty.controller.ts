@@ -1,12 +1,18 @@
-import { Controller, Post, Body, Req, Res, HttpStatus, UseGuards } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
 import { CreateFacultyRequest } from './create-faculty.request';
 import { CreateFacultyResponse } from './create-faculty.response';
 import { UserRole } from 'src/utils/enum';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { RoleGuard } from 'src/guards/role.guard';
+import { Roles } from 'src/decorators/roles.decorator';
+import { AdminService } from 'src/services/user-service/admin/admin.service';
 
 @Controller('admin')
 export class CreateFacultyController {
-    constructor(private readonly authService: AuthService) { }
+    constructor(
+        private readonly adminService: AdminService
+    ) { }
 
     @Post('faculty/create')
     @UseGuards(JwtAuthGuard, RoleGuard)
@@ -14,12 +20,11 @@ export class CreateFacultyController {
     async createFaculty(
         @Body() createFacultyData: CreateFacultyRequest,
         @Req() req: Request,
-        @Res() res: Response,
-    ): Promise<void> {
+    ) {
         try {
-            const adminId = req.user?.sub;
+            const adminId = (req as any).user?.sub;
 
-            const result = await this.authService.createFacultyUser(adminId, createFacultyData);
+            const result = await this.adminService.createFacultyUserAPI(adminId, createFacultyData);
 
             const response: CreateFacultyResponse = {
                 success: true,
@@ -27,15 +32,14 @@ export class CreateFacultyController {
                 data: result,
             };
 
-            res.status(HttpStatus.CREATED).json(response);
+            return response;
+
         } catch (error) {
-            const response: CreateFacultyResponse = {
+            ({
                 success: false,
                 message: error.message || 'Failed to create faculty',
-            };
+            });
 
-            const statusCode = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
-            res.status(statusCode).json(response);
         }
     }
 }

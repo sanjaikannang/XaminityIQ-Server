@@ -1,6 +1,7 @@
-import { Injectable, UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PasswordService } from './password.service';
 import { JwtService } from './jwt.service';
+import { Types } from "mongoose";
 import { SessionService } from './session.service';
 import { LoginRequest } from 'src/api/auth/login/login.request';
 import { RefreshTokenRequest } from 'src/api/auth/refresh-token/refresh-token.request';
@@ -18,7 +19,9 @@ export class AuthService {
         private readonly sessionRepositoryService: SessionRepositoryService,
     ) { }
 
-    async login(loginData: LoginRequest, userAgent: string, ipAddress: string) {
+
+    // Login API Endpoint
+    async loginAPI(loginData: LoginRequest, userAgent: string, ipAddress: string) {
         const { email, password } = loginData;
 
         // Find user by email
@@ -34,22 +37,35 @@ export class AuthService {
         }
 
         // Generate tokens
-        const sessionId = await this.createUserSession(user, userAgent, ipAddress);
+        const sessionId = await this.sessionService.createUserSession(user, userAgent, ipAddress);
+
+        // Get the tokens from the session
+        const tokens = await this.sessionRepositoryService.getTokensBySessionId(sessionId);
+
+        if (!tokens) {
+            throw new UnauthorizedException('Failed to create session');
+        }
 
         // Update last login
-        await this.userRepositoryService.updateLastLogin(user._id.toString());
+        await this.userRepositoryService.updateLastLogin((user._id as Types.ObjectId).toString());
 
         return {
             user: {
-                id: user._id.toString(),
+                id: (user._id as Types.ObjectId).toString(),
                 email: user.email,
                 role: user.role,
                 isFirstLogin: user.isFirstLogin,
+            },
+            tokens: {
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
             },
             sessionId,
         };
     }
 
+
+    // Refresh Token API Endpoint
     async refreshToken(refreshData: RefreshTokenRequest) {
         const { refreshToken, sessionId } = refreshData;
 
@@ -105,7 +121,9 @@ export class AuthService {
         }
     }
 
-    async changePassword(userId: string, changePasswordData: ChangePasswordRequest) {
+
+    // Change Password API Endpoint
+    async changePasswordAPI(userId: string, changePasswordData: ChangePasswordRequest) {
         const { currentPassword, newPassword, confirmPassword } = changePasswordData;
 
         if (newPassword !== confirmPassword) {
@@ -143,6 +161,8 @@ export class AuthService {
         return { message: 'Password changed successfully' };
     }
 
+
+    // Reset Password API Endpoint
     async resetPassword(email: string) {
         const user = await this.userRepositoryService.findUserByEmail(email);
         if (!user) {
@@ -155,15 +175,15 @@ export class AuthService {
         const hashedPassword = await this.passwordService.hashPassword(newPassword);
 
         // Update user with new password and set first login flag
-        await this.userRepositoryService.updateUser(user._id.toString(), {
+        await this.userRepositoryService.updateUser((user._id as Types.ObjectId).toString(), {
             password: hashedPassword,
             isFirstLogin: true,
             isPasswordReset: true,
         });
 
         // Invalidate all sessions
-        await this.sessionService.deleteAllUserSessions(user._id.toString());
-        await this.sessionRepositoryService.deactivateAllUserSessions(user._id.toString());
+        await this.sessionService.deleteAllUserSessions((user._id as Types.ObjectId).toString(),);
+        await this.sessionRepositoryService.deactivateAllUserSessions((user._id as Types.ObjectId).toString(),);
 
         // In a real application, you would send this password via email
         // For now, we'll return it in the response (remove this in production)
@@ -173,13 +193,17 @@ export class AuthService {
         };
     }
 
+
+    // Logout API Endpoint
     async logout(sessionId: string) {
         await this.sessionService.deleteSession(sessionId);
         await this.sessionRepositoryService.deactivateSession(sessionId);
         return { message: 'Logged out successfully' };
     }
 
-    async getMe(userId: string) {
+
+    // GetMe API Endpoint
+    async getMeAPI(userId: string) {
         const userWithProfile = await this.userRepositoryService.getUserWithProfile(userId);
         if (!userWithProfile) {
             throw new UnauthorizedException('User not found');
@@ -189,10 +213,11 @@ export class AuthService {
 
         return {
             user: {
-                id: user._id.toString(),
+                id: (user._id as Types.ObjectId).toString(),
                 email: user.email,
                 role: user.role,
                 isFirstLogin: user.isFirstLogin,
+                lastLogin: user.lastLogin,
             },
             profile: {
                 firstName: profile.firstName,
