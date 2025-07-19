@@ -23,6 +23,9 @@ import { SessionService } from 'src/services/auth-service/session.service';
 import { CreateFacultyController } from './create-faculty/create-faculty.controller';
 import { CreateStudentController } from './create-student/create-student.controller';
 
+// Modules
+import { ServiceModule } from 'src/services/service.module';
+
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -32,6 +35,7 @@ import { CreateStudentController } from './create-student/create-student.control
             { name: Student.name, schema: StudentSchema },
             { name: Admin.name, schema: AdminSchema },
         ]),
+        ServiceModule
     ],
     controllers: [
         CreateFacultyController,
