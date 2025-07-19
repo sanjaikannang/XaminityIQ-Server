@@ -27,6 +27,9 @@ import { MeController } from './me/me.controller';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/guards/role.guard';
 
+// Modules
+import { RepositoryModule } from 'src/repositories/repository.module';
+
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -36,6 +39,7 @@ import { RoleGuard } from 'src/guards/role.guard';
             { name: Student.name, schema: StudentSchema },
             { name: Admin.name, schema: AdminSchema },
         ]),
+        RepositoryModule
     ],
     controllers: [
         LoginController,
