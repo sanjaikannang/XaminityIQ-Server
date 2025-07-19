@@ -42,6 +42,6 @@ export class User {
 export const UserSchema = SchemaFactory.createForClass(User);
 
 // Define indexes
-UserSchema.index({ email: 1 });
+// UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1, isActive: 1 });
 UserSchema.index({ lastLogin: 1 });

@@ -15,13 +15,18 @@ import { User, UserSchema } from 'src/schemas/user.schema';
 // Services
 import { ConfigService } from 'src/config/config.service';
 import { AuthService } from 'src/services/auth-service/auth.service';
-import { JwtService } from 'src/services/auth-service/jwt.service';
+import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
 import { SessionService } from 'src/services/auth-service/session.service';
 
 // Controllers
 import { CreateFacultyController } from './create-faculty/create-faculty.controller';
 import { CreateStudentController } from './create-student/create-student.controller';
+
+// Modules
+import { ServiceModule } from 'src/services/service.module';
+import { RepositoryModule } from 'src/repositories/repository.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
     imports: [
@@ -32,6 +37,17 @@ import { CreateStudentController } from './create-student/create-student.control
             { name: Student.name, schema: StudentSchema },
             { name: Admin.name, schema: AdminSchema },
         ]),
+        JwtModule.registerAsync({
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+                secret: configService.getJWTSecretKey(),
+                signOptions: {
+                    expiresIn: configService.getJWTExpiresIn(),
+                },
+            }),
+        }),
+        ServiceModule,
+        RepositoryModule
     ],
     controllers: [
         CreateFacultyController,
@@ -40,7 +56,7 @@ import { CreateStudentController } from './create-student/create-student.control
     providers: [
         ConfigService,
         AuthService,
-        JwtService,
+        AuthJwtService,
         SessionService,
         PasswordService,
         JwtAuthGuard,
@@ -49,7 +65,7 @@ import { CreateStudentController } from './create-student/create-student.control
     exports: [
         ConfigService,
         AuthService,
-        JwtService,
+        AuthJwtService,
         SessionService,
         JwtAuthGuard,
         RoleGuard,

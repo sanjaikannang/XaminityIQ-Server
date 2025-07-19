@@ -30,14 +30,14 @@ export class ConfigService {
     }
 
     getMongoDbUri() {
-        return this.getValue("MONGODB_URI");        
+        return this.getValue("MONGODB_URI");
     }
 
     getJWTSecretKey() {
         return this.getValue("JWT_SECRET_KEY");
     }
 
-    getJWTExpiresIn(){
+    getJWTExpiresIn() {
         return this.getValue("JWT_EXPIRES_IN");
     }
 
@@ -55,7 +55,7 @@ export class ConfigService {
 
     getJwtRefreshSecretKey() {
         return this.getValue("JWT_REFRESH_SECRET_KEY", true);
-    } 
+    }
 
     getJwtRefreshExpiry() {
         return this.getValue("JWT_REFRESH_EXPIRY_IN", true);

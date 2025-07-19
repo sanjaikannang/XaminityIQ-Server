@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 
 // Schemas
@@ -11,7 +12,7 @@ import { User, UserSchema } from 'src/schemas/user.schema';
 // Services
 import { ConfigService } from 'src/config/config.service';
 import { AuthService } from 'src/services/auth-service/auth.service';
-import { JwtService } from 'src/services/auth-service/jwt.service';
+import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 import { SessionService } from 'src/services/auth-service/session.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
 
@@ -27,6 +28,9 @@ import { MeController } from './me/me.controller';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/guards/role.guard';
 
+// Modules
+import { RepositoryModule } from 'src/repositories/repository.module';
+
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -36,6 +40,16 @@ import { RoleGuard } from 'src/guards/role.guard';
             { name: Student.name, schema: StudentSchema },
             { name: Admin.name, schema: AdminSchema },
         ]),
+        RepositoryModule,
+        JwtModule.registerAsync({
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+                secret: configService.getJWTSecretKey(),
+                signOptions: {
+                    expiresIn: configService.getJWTExpiresIn(),
+                },
+            }),
+        }),
     ],
     controllers: [
         LoginController,
@@ -48,7 +62,7 @@ import { RoleGuard } from 'src/guards/role.guard';
     providers: [
         ConfigService,
         AuthService,
-        JwtService,
+        AuthJwtService,
         SessionService,
         PasswordService,
         JwtAuthGuard,
@@ -57,7 +71,7 @@ import { RoleGuard } from 'src/guards/role.guard';
     exports: [
         ConfigService,
         AuthService,
-        JwtService,
+        AuthJwtService,
         SessionService,
         JwtAuthGuard,
         RoleGuard,

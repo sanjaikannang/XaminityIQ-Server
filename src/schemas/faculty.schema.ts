@@ -134,6 +134,6 @@ export const FacultySchema = SchemaFactory.createForClass(Faculty);
 
 // Define indexes
 FacultySchema.index({ userId: 1 });
-FacultySchema.index({ facultyId: 1 });
+// FacultySchema.index({ facultyId: 1 });
 FacultySchema.index({ status: 1 });
 FacultySchema.index({ 'professionalInfo.department': 1 });

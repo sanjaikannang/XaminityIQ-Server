@@ -1,21 +1,38 @@
 import { Module } from "@nestjs/common";
-import { RepositoryModule } from "src/repositories/repository.module";
+import { JwtModule } from "@nestjs/jwt";
+import { RedisModule } from "@nestjs-modules/ioredis";
+
+// Services
 import { AuthService } from "./auth-service/auth.service";
-import { JwtService } from "./auth-service/jwt.service";
+import { AuthJwtService } from "./auth-service/jwt.service";
 import { PasswordService } from "./auth-service/password.service";
 import { SessionService } from "./auth-service/session.service";
 import { AdminService } from "./user-service/admin/admin.service";
 import { FacultyService } from "./user-service/faculty/faculty.service";
 import { StudentService } from "./user-service/student/student.service";
+import { ConfigService } from "src/config/config.service";
+
+// Modules
+import { ConfigModule } from "src/config/config.module";
+import { RepositoryModule } from "src/repositories/repository.module";
 
 @Module({
     imports: [
-        RepositoryModule
+        RepositoryModule,
+        ConfigModule,
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.getJWTSecretKey(),
+                signOptions: { expiresIn: configService.getJWTExpiresIn() },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [],
     providers: [
         AuthService,
-        JwtService,
+        AuthJwtService,
         PasswordService,
         SessionService,
         AdminService,
@@ -25,7 +42,7 @@ import { StudentService } from "./user-service/student/student.service";
     exports: [
         AuthService,
         PasswordService,
-        JwtService,
+        AuthJwtService,
         SessionService,
         AdminService,
         FacultyService,

@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PasswordService } from './password.service';
-import { JwtService } from './jwt.service';
+import { AuthJwtService } from './jwt.service';
 import { Types } from "mongoose";
 import { SessionService } from './session.service';
 import { LoginRequest } from 'src/api/auth/login/login.request';
@@ -14,7 +14,7 @@ export class AuthService {
     constructor(
         private readonly userRepositoryService: UserRepositoryService,
         private readonly passwordService: PasswordService,
-        private readonly jwtService: JwtService,
+        private readonly jwtService: AuthJwtService,
         private readonly sessionService: SessionService,
         private readonly sessionRepositoryService: SessionRepositoryService,
     ) { }
