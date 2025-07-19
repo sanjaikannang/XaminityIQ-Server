@@ -28,14 +28,6 @@ import { RepositoryModule } from "src/repositories/repository.module";
             }),
             inject: [ConfigService],
         }),
-        RedisModule.forRootAsync({
-            imports: [ConfigModule],
-            useFactory: async (configService: ConfigService) => ({
-                type: 'single',
-                url: `redis://:${configService.getRedisPassword()}@${configService.getRedisHost()}:${configService.getRedisPort()}`,
-            }),
-            inject: [ConfigService],
-        }),
     ],
     controllers: [],
     providers: [
