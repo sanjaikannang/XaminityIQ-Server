@@ -12,12 +12,14 @@ import { StudentService } from "./user-service/student/student.service";
 // Modules
 import { ConfigModule } from "src/config/config.module";
 import { RepositoryModule } from "src/repositories/repository.module";
+import { JwtModule } from "@nestjs/jwt";
 
 
 @Module({
     imports: [
         RepositoryModule,
-        ConfigModule
+        ConfigModule,
+        JwtModule.register({})
     ],
     controllers: [],
     providers: [
