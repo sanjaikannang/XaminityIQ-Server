@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JwtService as NestJwtService } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from 'src/config/config.service';
 import { UserRole } from 'src/utils/enum';
 
@@ -15,7 +15,7 @@ export interface JwtPayload {
 export class AuthJwtService {
     constructor(
         private readonly configService: ConfigService,
-        private readonly jwtService: NestJwtService,
+        private readonly jwtService: JwtService,
     ) { }
 
     generateAccessToken(payload: Omit<JwtPayload, 'type'>): string {

@@ -26,6 +26,7 @@ import { CreateStudentController } from './create-student/create-student.control
 // Modules
 import { ServiceModule } from 'src/services/service.module';
 import { RepositoryModule } from 'src/repositories/repository.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
     imports: [
@@ -36,6 +37,15 @@ import { RepositoryModule } from 'src/repositories/repository.module';
             { name: Student.name, schema: StudentSchema },
             { name: Admin.name, schema: AdminSchema },
         ]),
+        JwtModule.registerAsync({
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+                secret: configService.getJWTSecretKey(),
+                signOptions: {
+                    expiresIn: configService.getJWTExpiresIn(),
+                },
+            }),
+        }),
         ServiceModule,
         RepositoryModule
     ],
