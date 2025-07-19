@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 
 // Schemas
@@ -39,7 +40,16 @@ import { RepositoryModule } from 'src/repositories/repository.module';
             { name: Student.name, schema: StudentSchema },
             { name: Admin.name, schema: AdminSchema },
         ]),
-        RepositoryModule
+        RepositoryModule,
+        JwtModule.registerAsync({
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+                secret: configService.getJWTSecretKey(),
+                signOptions: {
+                    expiresIn: configService.getJWTExpiresIn(),
+                },
+            }),
+        }),
     ],
     controllers: [
         LoginController,
