@@ -5,7 +5,7 @@ import { UserRole } from 'src/utils/enum';
 import { ulid } from 'ulid';
 import { Types } from 'mongoose';
 import { UserDocument } from 'src/schemas/user.schema';
-import { JwtService } from './jwt.service';
+import { AuthJwtService } from './jwt.service';
 import { SessionRepositoryService } from 'src/repositories/session-repository/session.repository';
 
 export interface RedisSession {
@@ -25,13 +25,13 @@ export interface RedisSession {
 
 @Injectable()
 export class SessionService {
-    private readonly sessionTTL: number;
+    private readonly sessionTTL: number = 7 * 24 * 60 * 60; // 7 days in seconds
     private readonly maxSessionsPerUser: number = 3;
-    private readonly jwtService: JwtService;
-    private readonly sessionRepository: SessionRepositoryService;
 
     constructor(
         @InjectRedis() private readonly redis: Redis,
+        private readonly jwtService: AuthJwtService,
+        private readonly sessionRepository: SessionRepositoryService,
     ) { }
 
 
@@ -69,7 +69,7 @@ export class SessionService {
         };
 
         // Save session to database
-        await this.sessionRepository.createSession(sessionData);        
+        await this.sessionRepository.createSession(sessionData);
 
         return sessionId;
     }
