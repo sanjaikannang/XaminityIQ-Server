@@ -25,6 +25,7 @@ import { CreateStudentController } from './create-student/create-student.control
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
+import { RepositoryModule } from 'src/repositories/repository.module';
 
 @Module({
     imports: [
@@ -35,7 +36,8 @@ import { ServiceModule } from 'src/services/service.module';
             { name: Student.name, schema: StudentSchema },
             { name: Admin.name, schema: AdminSchema },
         ]),
-        ServiceModule
+        ServiceModule,
+        RepositoryModule
     ],
     controllers: [
         CreateFacultyController,
