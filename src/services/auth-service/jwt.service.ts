@@ -12,7 +12,7 @@ export interface JwtPayload {
 }
 
 @Injectable()
-export class JwtService {
+export class AuthJwtService {
     constructor(
         private readonly configService: ConfigService,
         private readonly jwtService: NestJwtService,

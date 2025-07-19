@@ -12,7 +12,7 @@ import { User, UserSchema } from 'src/schemas/user.schema';
 // Services
 import { ConfigService } from 'src/config/config.service';
 import { AuthService } from 'src/services/auth-service/auth.service';
-import { JwtService } from 'src/services/auth-service/jwt.service';
+import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 import { SessionService } from 'src/services/auth-service/session.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
 
@@ -62,7 +62,7 @@ import { RepositoryModule } from 'src/repositories/repository.module';
     providers: [
         ConfigService,
         AuthService,
-        JwtService,
+        AuthJwtService,
         SessionService,
         PasswordService,
         JwtAuthGuard,
@@ -71,7 +71,7 @@ import { RepositoryModule } from 'src/repositories/repository.module';
     exports: [
         ConfigService,
         AuthService,
-        JwtService,
+        AuthJwtService,
         SessionService,
         JwtAuthGuard,
         RoleGuard,

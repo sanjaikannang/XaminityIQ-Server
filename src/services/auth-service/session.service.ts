@@ -5,7 +5,7 @@ import { UserRole } from 'src/utils/enum';
 import { ulid } from 'ulid';
 import { Types } from 'mongoose';
 import { UserDocument } from 'src/schemas/user.schema';
-import { JwtService } from './jwt.service';
+import { AuthJwtService } from './jwt.service';
 import { SessionRepositoryService } from 'src/repositories/session-repository/session.repository';
 
 export interface RedisSession {
@@ -27,7 +27,7 @@ export interface RedisSession {
 export class SessionService {
     private readonly sessionTTL: number;
     private readonly maxSessionsPerUser: number = 3;
-    private readonly jwtService: JwtService;
+    private readonly jwtService: AuthJwtService;
     private readonly sessionRepository: SessionRepositoryService;
 
     constructor(
