@@ -151,8 +151,8 @@ export const StudentSchema = SchemaFactory.createForClass(Student);
 
 // Define indexes
 StudentSchema.index({ userId: 1 });
-StudentSchema.index({ studentId: 1 });
-StudentSchema.index({ rollNumber: 1 });
+// StudentSchema.index({ studentId: 1 });
+// StudentSchema.index({ rollNumber: 1 });
 StudentSchema.index({ "academicInfo.course": 1, "academicInfo.branch": 1 });
 StudentSchema.index({ "academicInfo.batch": 1 });
 StudentSchema.index({ status: 1 });
