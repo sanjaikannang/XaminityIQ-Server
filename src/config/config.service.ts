@@ -61,4 +61,12 @@ export class ConfigService {
         return this.getValue("JWT_REFRESH_EXPIRY_IN", true);
     }
 
+    getInitialAdminEmail() {
+        return this.getValue("INITIAL_ADMIN_EMAIL", true);
+    }
+
+    getInitialAdminPassword() {
+        return this.getValue("INITIAL_ADMIN_PASSWORD", true);
+    }
+
 }

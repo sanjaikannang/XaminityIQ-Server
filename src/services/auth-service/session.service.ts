@@ -48,7 +48,6 @@ export class SessionService {
         };
 
         const accessToken = this.jwtService.generateAccessToken(payload);
-
         const refreshToken = this.jwtService.generateRefreshToken(payload);
 
         // Calculate expiration date (7 days from now)
