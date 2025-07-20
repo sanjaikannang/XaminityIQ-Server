@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -10,7 +10,12 @@ export class PasswordService {
     }
 
     async comparePassword(password: string, hash: string): Promise<boolean> {
-        return bcrypt.compare(password, hash);
+        try {
+            const isMatch = await bcrypt.compare(password, hash);
+            return isMatch;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to compare password', error);
+        }
     }
 
     generateRandomPassword(length: number = 12): string {

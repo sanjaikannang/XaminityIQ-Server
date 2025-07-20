@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Session, SessionDocument } from 'src/schemas/session.schema';
@@ -9,6 +9,8 @@ export class SessionRepositoryService {
         @InjectModel(Session.name) private sessionModel: Model<SessionDocument>,
     ) { }
 
+
+    // Create a new session
     async createSession(sessionData: {
         userId: string;
         sessionId: string;
@@ -18,11 +20,17 @@ export class SessionRepositoryService {
         ipAddress: string;
         expiresAt: Date;
     }): Promise<SessionDocument> {
-        const session = new this.sessionModel({
-            ...sessionData,
-            userId: new Types.ObjectId(sessionData.userId),
-        });
-        return session.save();
+        try {
+            const session = new this.sessionModel({
+                ...sessionData,
+                userId: new Types.ObjectId(sessionData.userId),
+            });
+
+            const savedSession = await session.save();
+            return savedSession;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to create session', error);
+        }
     }
 
     async findSessionByToken(refreshToken: string): Promise<SessionDocument | null> {
@@ -71,20 +79,26 @@ export class SessionRepositoryService {
 
     // Get tokens by session ID
     async getTokensBySessionId(sessionId: string): Promise<{ accessToken: string; refreshToken: string } | null> {
-        const session = await this.sessionModel.findOne({
-            sessionId: sessionId,
-            isActive: true,
-            expiresAt: { $gt: new Date() }
-        }).exec();
+        try {
+            const session = await this.sessionModel.findOne({
+                sessionId: sessionId,
+                isActive: true,
+                expiresAt: { $gt: new Date() }
+            }).exec();
 
-        if (!session) {
-            return null;
+            if (!session) {
+                return null;
+            }
+
+            const tokens = {
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+            };
+
+            return tokens;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to get tokens by session ID', error);
         }
-
-        return {
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken,
-        };
     }
 
 }

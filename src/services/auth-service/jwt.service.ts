@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from 'src/config/config.service';
 import { UserRole } from 'src/utils/enum';
@@ -18,24 +18,38 @@ export class AuthJwtService {
         private readonly jwtService: JwtService,
     ) { }
 
+
+    // Generate Access Tokens
     generateAccessToken(payload: Omit<JwtPayload, 'type'>): string {
-        return this.jwtService.sign(
-            { ...payload, type: 'access' },
-            {
-                secret: this.configService.getJWTSecretKey(),
-                expiresIn: this.configService.getJWTExpiresIn(),
-            },
-        );
+        try {
+            const token = this.jwtService.sign(
+                { ...payload, type: 'access' },
+                {
+                    secret: this.configService.getJWTSecretKey(),
+                    expiresIn: this.configService.getJWTExpiresIn(),
+                },
+            );
+            return token;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to generate access token', error);
+        }
     }
 
+
+    // Generate Refresh Tokens
     generateRefreshToken(payload: Omit<JwtPayload, 'type'>): string {
-        return this.jwtService.sign(
-            { ...payload, type: 'refresh' },
-            {
-                secret: this.configService.getJwtRefreshSecretKey(),
-                expiresIn: this.configService.getJwtRefreshExpiry(),
-            },
-        );
+        try {
+            const token = this.jwtService.sign(
+                { ...payload, type: 'refresh' },
+                {
+                    secret: this.configService.getJwtRefreshSecretKey(),
+                    expiresIn: this.configService.getJwtRefreshExpiry(),
+                },
+            );
+            return token;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to generate refresh token', error);
+        }
     }
 
     verifyAccessToken(token: string): JwtPayload {

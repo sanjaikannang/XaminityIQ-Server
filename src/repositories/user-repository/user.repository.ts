@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument } from 'src/schemas/user.schema';
@@ -15,7 +15,12 @@ export class UserRepositoryService {
 
     // Find user by email
     async findUserByEmail(email: string): Promise<UserDocument | null> {
-        return this.userModel.findOne({ email, isActive: true }).exec();
+        try {
+            const user = await this.userModel.findOne({ email, isActive: true }).exec();
+            return user;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to find user by email', error);
+        }
     }
 
     async findUserById(id: string): Promise<UserDocument | null> {
@@ -51,8 +56,24 @@ export class UserRepositoryService {
         ).exec();
     }
 
+    // Update Last Login
     async updateLastLogin(id: string): Promise<void> {
-        await this.userModel.findByIdAndUpdate(id, { lastLogin: new Date() }).exec();
+        try {
+            const updatedUser = await this.userModel.findByIdAndUpdate(
+                id,
+                { lastLogin: new Date() }
+            ).exec();
+
+            // want to check if the user was actually found and updated
+            if (!updatedUser) {
+                throw new NotFoundException(`User with id ${id} not found`);
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to update last login', error);
+        }
     }
 
     async checkEmailExists(email: string): Promise<boolean> {
