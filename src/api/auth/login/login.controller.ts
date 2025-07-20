@@ -14,8 +14,10 @@ export class LoginController {
         @Req() req: Request,
     ) {
         try {
+
             const userAgent = req.headers['user-agent'] || '';
-            const ipAddress = req.ip || req.connection.remoteAddress || '';
+            const ipAddress = req.ip || '';
+            console.log(`User Agent: ${userAgent}, IP Address: ${ipAddress}`);
 
             const result = await this.authService.loginAPI(loginData, userAgent, ipAddress);
 
