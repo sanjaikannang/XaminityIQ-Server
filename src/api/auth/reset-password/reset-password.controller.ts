@@ -14,18 +14,18 @@ export class ResetPasswordController {
         @Res() res: Response,
     ) {
         try {
-            const result = await this.authService.resetPassword(resetPasswordData.email);
+            // const result = await this.authService.resetPassword(resetPasswordData.email);
 
-            const response: ResetPasswordResponse = {
-                success: true,
-                message: result.message,
+            // const response: ResetPasswordResponse = {
+            //     success: true,
+            //     message: result.message,
                 // // In production, don't include the temporary password in response
                 // data: {
                 //     temporaryPassword: result.temporaryPassword,
                 // },
-            };
+            // };
 
-            res.status(HttpStatus.OK).json(response);
+            // res.status(HttpStatus.OK).json(response);
         } catch (error) {
             ({
                 success: false,

@@ -17,15 +17,15 @@ export class MeController {
         try {
             const userId = (req as any).user?.sub;
 
-            const userProfile = await this.authService.getMeAPI(userId);
+            // const userProfile = await this.authService.getMeAPI(userId);
 
-            const response: MeResponse = {
-                success: true,
-                message: 'User profile retrieved successfully',
-                data: userProfile,
-            };
+            // const response: MeResponse = {
+            //     success: true,
+            //     message: 'User profile retrieved successfully',
+            //     data: userProfile,
+            // };
 
-            return response;
+            // return response;
         } catch (error) {
             throw new BadRequestException({
                 success: false,
