@@ -33,16 +33,30 @@ import { RedisModule } from '@nestjs-modules/ioredis';
       useFactory: async (configService: ConfigService) => ({
         type: 'single',
         options: {
-          host: configService.getRedisHost(),
-          port: parseInt(configService.getRedisPort()),
-          password: configService.getRedisPassword(),
+          host: "redis-13245.c264.ap-south-1-1.ec2.redns.redis-cloud.com",
+          port: 13245,
+          password: "D1DTQxZkseU03NgsvqCIIQDWzD2QWtls",
+          username: "default",
           connectTimeout: 10000,
           lazyConnect: true,
+          keepAlive: 1000,
           retryDelayOnFailover: 100,
           maxRetriesPerRequest: 3,
-          tls: {
-            rejectUnauthorized: false,
+          // tls: {
+          //   rejectUnauthorized: false,
+          // },
+
+          // Add error handling
+          onReady: () => {
+            console.log('Redis connected successfully');
           },
+          onError: (error) => {
+            console.error('Redis connection error:', error);
+          },
+          onReconnect: () => {
+            console.log('Redis reconnecting...');
+          },
+
         },
       }),
       inject: [ConfigService],

@@ -14,15 +14,15 @@ export class RefreshTokenController {
         @Res() res: Response,
     ) {
         try {
-            const tokens = await this.authService.refreshToken(refreshTokenData);
+            // const tokens = await this.authService.refreshToken(refreshTokenData);
 
-            const response: RefreshTokenResponse = {
-                success: true,
-                message: 'Token refreshed successfully',
-                data: tokens,
-            };
+            // const response: RefreshTokenResponse = {
+            //     success: true,
+            //     message: 'Token refreshed successfully',
+            //     data: tokens,
+            // };
 
-            return response;
+            // return response;
 
         } catch (error) {
             throw new BadRequestException({

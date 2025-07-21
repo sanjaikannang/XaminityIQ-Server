@@ -14,9 +14,7 @@ export class AuthService {
     constructor(
         private readonly userRepositoryService: UserRepositoryService,
         private readonly passwordService: PasswordService,
-        private readonly jwtService: AuthJwtService,
         private readonly sessionService: SessionService,
-        private readonly sessionRepositoryService: SessionRepositoryService,
     ) { }
 
 
@@ -30,23 +28,28 @@ export class AuthService {
             throw new UnauthorizedException('Invalid email or password');
         }
 
+        // Check if user is active
+        if (!user.isActive) {
+            throw new UnauthorizedException('Account is deactivated');
+        }
+
         // Verify password
         const isPasswordValid = await this.passwordService.comparePassword(password, user.password);
         if (!isPasswordValid) {
             throw new UnauthorizedException('Invalid email or password');
         }
 
-        // Generate tokens
+        // Create session in Redis
         const sessionId = await this.sessionService.createUserSession(user, userAgent, ipAddress);
 
-        // Get the tokens from the session
-        const tokens = await this.sessionRepositoryService.getTokensBySessionId(sessionId);
+        // Get the session data to extract tokens
+        const sessionData = await this.sessionService.getSessionBySessionId(sessionId);
 
-        if (!tokens) {
+        if (!sessionData) {
             throw new UnauthorizedException('Failed to create session');
         }
 
-        // Update last login
+        // Update last login in database
         await this.userRepositoryService.updateLastLogin((user._id as Types.ObjectId).toString());
 
         return {
@@ -57,8 +60,8 @@ export class AuthService {
                 isFirstLogin: user.isFirstLogin,
             },
             tokens: {
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
+                accessToken: sessionData.accessToken,
+                refreshToken: sessionData.refreshToken,
             },
             sessionId,
         };
@@ -66,71 +69,62 @@ export class AuthService {
 
 
     // Refresh Token API Endpoint
-    async refreshToken(refreshData: RefreshTokenRequest) {
-        const { refreshToken, sessionId } = refreshData;
+    async refreshTokenAPI(refreshTokenData: RefreshTokenRequest, userAgent: string, ipAddress: string) {
+        const { refreshToken } = refreshTokenData;
 
-        try {
-            // Verify refresh token
-            const payload = this.jwtService.verifyRefreshToken(refreshToken);
+        const newTokens = await this.sessionService.refreshTokens(refreshToken, userAgent, ipAddress);
 
-            // Check session in Redis
-            const session = await this.sessionService.getSession(sessionId);
-            if (!session || session.refreshToken !== refreshToken) {
-                throw new UnauthorizedException('Invalid session');
-            }
-
-            // Check if session is expired
-            if (session.expiresAt < Date.now()) {
-                await this.sessionService.deleteSession(sessionId);
-                throw new UnauthorizedException('Session expired');
-            }
-
-            // Generate new tokens
-            const newAccessToken = this.jwtService.generateAccessToken({
-                sub: payload.sub,
-                email: payload.email,
-                role: payload.role,
-                sessionId: payload.sessionId,
-            });
-
-            const newRefreshToken = this.jwtService.generateRefreshToken({
-                sub: payload.sub,
-                email: payload.email,
-                role: payload.role,
-                sessionId: payload.sessionId,
-            });
-
-            // Update session
-            await this.sessionService.updateSession(sessionId, {
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken,
-            });
-
-            // Update database session
-            await this.sessionRepositoryService.updateSession(sessionId, {
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken,
-            });
-
-            return {
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken,
-            };
-        } catch (error) {
-            throw new UnauthorizedException('Invalid refresh token');
+        if (!newTokens) {
+            throw new UnauthorizedException('Invalid or expired refresh token');
         }
+
+        return {
+            tokens: newTokens,
+        };
     }
 
 
-    // Change Password API Endpoint
-    async changePasswordAPI(userId: string, changePasswordData: ChangePasswordRequest) {
-        const { currentPassword, newPassword, confirmPassword } = changePasswordData;
+    async logoutAPI(sessionId: string) {
+        await this.sessionService.invalidateSession(sessionId);
 
-        if (newPassword !== confirmPassword) {
-            throw new BadRequestException('New password and confirm password do not match');
+        return {
+            message: 'Logout successful',
+        };
+    }
+
+    // Logout from all devices
+    async logoutAllDevicesAPI(userId: string) {
+        await this.sessionService.invalidateAllUserSessions(userId);
+
+        return {
+            message: 'Logged out from all devices successfully',
+        };
+    }
+
+    // Validate session (for middleware/guards)
+    async validateSession(sessionId: string): Promise<any> {
+        const sessionData = await this.sessionService.getSessionBySessionId(sessionId);
+
+        if (!sessionData) {
+            return null;
         }
 
-        // Find user
+        // Update last activity
+        await this.sessionService.updateLastActivity(sessionId);
+
+        return {
+            userId: sessionData.userId,
+            email: sessionData.email,
+            role: sessionData.role,
+            sessionId: sessionData.sessionId,
+        };
+    }
+
+    // Change Password API Endpoint
+    async changePasswordAPI(userId: string, changePasswordData: ChangePasswordRequest) {
+        const { currentPassword, newPassword } = changePasswordData;
+
+        // Get user
         const user = await this.userRepositoryService.findUserById(userId);
         if (!user) {
             throw new UnauthorizedException('User not found');
@@ -139,93 +133,24 @@ export class AuthService {
         // Verify current password
         const isCurrentPasswordValid = await this.passwordService.comparePassword(currentPassword, user.password);
         if (!isCurrentPasswordValid) {
-            throw new UnauthorizedException('Current password is incorrect');
-        }
-
-        // Validate new password strength
-        const passwordValidation = this.passwordService.validatePasswordStrength(newPassword);
-        if (!passwordValidation.isValid) {
-            throw new BadRequestException(passwordValidation.message);
+            throw new BadRequestException('Current password is incorrect');
         }
 
         // Hash new password
-        const hashedPassword = await this.passwordService.hashPassword(newPassword);
+        const hashedNewPassword = await this.passwordService.hashPassword(newPassword);
 
-        // Update password
-        await this.userRepositoryService.updateUserPassword(userId, hashedPassword);
+        // Update password and related fields
+        // await this.userRepositoryService.updateUserPassword(userId, hashedNewPassword, {
+        //     isFirstLogin: false,
+        //     isPasswordReset: false,
+        //     lastPasswordChange: new Date(),
+        // });
 
-        // Invalidate all other sessions (optional - keep current session)
-        await this.sessionService.deleteAllUserSessions(userId);
-        await this.sessionRepositoryService.deactivateAllUserSessions(userId);
-
-        return { message: 'Password changed successfully' };
-    }
-
-
-    // Reset Password API Endpoint
-    async resetPassword(email: string) {
-        const user = await this.userRepositoryService.findUserByEmail(email);
-        if (!user) {
-            // Don't reveal if email exists or not
-            return { message: 'If the email exists, password reset instructions have been sent' };
-        }
-
-        // Generate new temporary password
-        const newPassword = this.passwordService.generateRandomPassword();
-        const hashedPassword = await this.passwordService.hashPassword(newPassword);
-
-        // Update user with new password and set first login flag
-        await this.userRepositoryService.updateUser((user._id as Types.ObjectId).toString(), {
-            password: hashedPassword,
-            isFirstLogin: true,
-            isPasswordReset: true,
-        });
-
-        // Invalidate all sessions
-        await this.sessionService.deleteAllUserSessions((user._id as Types.ObjectId).toString(),);
-        await this.sessionRepositoryService.deactivateAllUserSessions((user._id as Types.ObjectId).toString(),);
-
-        // In a real application, you would send this password via email
-        // For now, we'll return it in the response (remove this in production)
-        return {
-            message: 'Password has been reset successfully',
-            temporaryPassword: newPassword // Remove this in production
-        };
-    }
-
-
-    // Logout API Endpoint
-    async logout(sessionId: string) {
-        await this.sessionService.deleteSession(sessionId);
-        await this.sessionRepositoryService.deactivateSession(sessionId);
-        return { message: 'Logged out successfully' };
-    }
-
-
-    // GetMe API Endpoint
-    async getMeAPI(userId: string) {
-        const userWithProfile = await this.userRepositoryService.getUserWithProfile(userId);
-        if (!userWithProfile) {
-            throw new UnauthorizedException('User not found');
-        }
-
-        const { user, profile } = userWithProfile;
+        // Invalidate all sessions to force re-login with new password
+        await this.sessionService.invalidateAllUserSessions(userId);
 
         return {
-            user: {
-                id: (user._id as Types.ObjectId).toString(),
-                email: user.email,
-                role: user.role,
-                isFirstLogin: user.isFirstLogin,
-                lastLogin: user.lastLogin,
-            },
-            profile: {
-                firstName: profile.firstName,
-                lastName: profile.lastName,
-                phone: profile.phone,
-                address: profile.address,
-            },
+            message: 'Password changed successfully. Please login again.',
         };
     }
-
 }

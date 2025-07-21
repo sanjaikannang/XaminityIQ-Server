@@ -19,34 +19,35 @@ export class AuthJwtService {
     ) { }
 
 
-    // Generate Access Tokens
-    generateAccessToken(payload: Omit<JwtPayload, 'type'>): string {
+    generateAccessToken(user: { id?: string; _id: any }, sessionId: string): string {
         try {
-            const token = this.jwtService.sign(
-                { ...payload, type: 'access' },
-                {
-                    secret: this.configService.getJWTSecretKey(),
-                    expiresIn: this.configService.getJWTExpiresIn(),
-                },
-            );
-            return token;
+            const payload = {
+                sub: user.id ?? user._id.toString(),
+                sessionId,
+                type: 'access',
+            };
+
+            return this.jwtService.sign(payload, {
+                secret: this.configService.getJWTSecretKey(),
+                expiresIn: this.configService.getJWTExpiresIn(),
+            });
         } catch (error) {
             throw new InternalServerErrorException('Failed to generate access token', error);
         }
     }
 
-
-    // Generate Refresh Tokens
-    generateRefreshToken(payload: Omit<JwtPayload, 'type'>): string {
+    generateRefreshToken(user: { id?: string; _id: any }, sessionId: string): string {
         try {
-            const token = this.jwtService.sign(
-                { ...payload, type: 'refresh' },
-                {
-                    secret: this.configService.getJwtRefreshSecretKey(),
-                    expiresIn: this.configService.getJwtRefreshExpiry(),
-                },
-            );
-            return token;
+            const payload = {
+                sub: user.id ?? user._id.toString(),
+                sessionId,
+                type: 'refresh',
+            };
+
+            return this.jwtService.sign(payload, {
+                secret: this.configService.getJwtRefreshSecretKey(),
+                expiresIn: this.configService.getJwtRefreshExpiry(),
+            });
         } catch (error) {
             throw new InternalServerErrorException('Failed to generate refresh token', error);
         }
