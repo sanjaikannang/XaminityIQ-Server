@@ -28,5 +28,13 @@ export class FacultyRepositoryService {
         return faculty.save();
     }
 
+    async findLastFaculty(): Promise<Faculty | null> {
+        return this.facultyModel
+            .findOne({ facultyId: { $regex: /^FAC\d+$/ } })
+            .sort({ facultyId: -1 }) // This will sort lexicographically, so we need to sort properly below
+            .lean(); // optional if you just want a plain JS object
+    }
+
+
 
 }

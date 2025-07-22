@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Session, SessionDocument } from 'src/schemas/session.schema';
+import { UserDocument } from 'src/schemas/user.schema';
 
 @Injectable()
 export class SessionRepositoryService {
@@ -33,8 +34,50 @@ export class SessionRepositoryService {
         }
     }
 
-    async findSessionByToken(refreshToken: string): Promise<SessionDocument | null> {
+    async updateSessionActivity(sessionId: string, lastActivity: Date): Promise<SessionDocument | null> {
+        return this.sessionModel.findOneAndUpdate(
+            { sessionId },
+            { lastActivity },
+            { new: true }
+        ).exec();
+    }
+
+    async getUserBySessionId(sessionId: string): Promise<UserDocument | null> {
+        // Find the session and populate the user reference
+        const session = await this.sessionModel
+            .findOne({ sessionId, isActive: true })
+            .populate('userId') // This will load the User document
+            .exec();
+
+        if (!session || !session.userId) {
+            return null;
+        }
+
+        return session.userId as unknown as UserDocument;
+    }
+
+    async findActiveSessionsByUserId(userId: string): Promise<SessionDocument[]> {
+        return this.sessionModel.find({
+            userId: new Types.ObjectId(userId),
+            isActive: true,
+            expiresAt: { $gt: new Date() }
+        }).exec();
+    }
+
+    async findSessionByRefreshToken(refreshToken: string): Promise<SessionDocument | null> {
         return this.sessionModel.findOne({ refreshToken, isActive: true }).exec();
+    }
+
+    async deleteExpiredSessions() {
+        return this.sessionModel.deleteMany({ expiresAt: { $lt: new Date() } }).exec();
+    }
+
+    async updateSessionExpiration(sessionId: string, expiresAt: Date): Promise<SessionDocument | null> {
+        return this.sessionModel.findOneAndUpdate(
+            { sessionId },
+            { expiresAt },
+            { new: true }
+        ).exec();
     }
 
     async findSessionById(sessionId: string): Promise<SessionDocument | null> {
@@ -66,14 +109,6 @@ export class SessionRepositoryService {
     async cleanupExpiredSessions(): Promise<void> {
         await this.sessionModel.deleteMany({
             expiresAt: { $lt: new Date() }
-        }).exec();
-    }
-
-    async getActiveSessionCount(userId: string): Promise<number> {
-        return this.sessionModel.countDocuments({
-            userId: new Types.ObjectId(userId),
-            isActive: true,
-            expiresAt: { $gt: new Date() }
         }).exec();
     }
 

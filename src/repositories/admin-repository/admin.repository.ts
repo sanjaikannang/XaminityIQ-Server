@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Admin, AdminDocument } from 'src/schemas/admin.schema';
 
 @Injectable()
@@ -16,7 +16,15 @@ export class AdminRepositoryService {
 
 
     async findByUserId(userId: string): Promise<AdminDocument | null> {
-        return this.adminModel.findOne({ userId }).exec();
+        try {
+            const admin = await this.adminModel.findOne({
+                userId: new Types.ObjectId(userId)
+            }).exec();
+            return admin;
+        } catch (error) {
+            console.error(`Failed to find Admin by userId: ${userId}`, error);
+            throw new Error('Could not retrieve admin by userId.');
+        }
     }
 
 }

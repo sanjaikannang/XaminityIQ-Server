@@ -7,8 +7,9 @@ import { Types } from 'mongoose';
 import { UserDocument } from 'src/schemas/user.schema';
 import { AuthJwtService } from './jwt.service';
 import { SessionRepositoryService } from 'src/repositories/session-repository/session.repository';
+import { SessionDocument } from 'src/schemas/session.schema';
 
-export interface RedisSession {
+export interface SessionData {
     userId: string;
     role: UserRole;
     email: string;
@@ -17,7 +18,7 @@ export interface RedisSession {
     refreshToken: string;
     isFirstLogin: boolean;
     expiresAt: number;
-    createdAt: number;
+    //createdAt: number;
     lastActivity: number;
     userAgent: string;
     ipAddress: string;
@@ -25,11 +26,8 @@ export interface RedisSession {
 
 @Injectable()
 export class SessionService {
-    private readonly sessionTTL: number = 7 * 24 * 60 * 60; // 7 days in seconds
-    private readonly maxSessionsPerUser: number = 3;
 
     constructor(
-        @InjectRedis() private readonly redis: Redis,
         private readonly jwtService: AuthJwtService,
         private readonly sessionRepository: SessionRepositoryService,
     ) { }
@@ -73,99 +71,177 @@ export class SessionService {
         return sessionId;
     }
 
-    async createSession(sessionData: Omit<RedisSession, 'sessionId' | 'createdAt' | 'lastActivity'>): Promise<string> {
-        const sessionId = ulid();
-        const now = Date.now();
 
-        const session: RedisSession = {
-            ...sessionData,
-            sessionId,
-            createdAt: now,
-            lastActivity: now,
-        };
+    // Get session details by session ID
+    async getSession(sessionId: string): Promise<SessionData | null> {
+        try {
+            // Get session from database
+            const dbSession = await this.sessionRepository.findSessionById(sessionId);
 
-        // Check existing sessions for user
-        await this.cleanupOldSessions(sessionData.userId);
-
-        // Store session
-        await this.redis.setex(
-            `session:${sessionId}`,
-            this.sessionTTL,
-            JSON.stringify(session),
-        );
-
-        // Track user sessions
-        await this.redis.sadd(`user_sessions:${sessionData.userId}`, sessionId);
-        await this.redis.expire(`user_sessions:${sessionData.userId}`, this.sessionTTL);
-
-        return sessionId;
-    }
-
-    async getSession(sessionId: string): Promise<RedisSession | null> {
-        const sessionData = await this.redis.get(`session:${sessionId}`);
-        return sessionData ? JSON.parse(sessionData) : null;
-    }
-
-    async updateSession(sessionId: string, updates: Partial<RedisSession>): Promise<void> {
-        const session = await this.getSession(sessionId);
-        if (!session) return;
-
-        const updatedSession = {
-            ...session,
-            ...updates,
-            lastActivity: Date.now(),
-        };
-
-        await this.redis.setex(
-            `session:${sessionId}`,
-            this.sessionTTL,
-            JSON.stringify(updatedSession),
-        );
-    }
-
-    async deleteSession(sessionId: string): Promise<void> {
-        const session = await this.getSession(sessionId);
-        if (session) {
-            await this.redis.del(`session:${sessionId}`);
-            await this.redis.srem(`user_sessions:${session.userId}`, sessionId);
-        }
-    }
-
-    async deleteAllUserSessions(userId: string): Promise<void> {
-        const sessionIds = await this.redis.smembers(`user_sessions:${userId}`);
-
-        if (sessionIds.length > 0) {
-            const pipeline = this.redis.pipeline();
-            sessionIds.forEach(sessionId => {
-                pipeline.del(`session:${sessionId}`);
-            });
-            await pipeline.exec();
-        }
-
-        await this.redis.del(`user_sessions:${userId}`);
-    }
-
-    private async cleanupOldSessions(userId: string): Promise<void> {
-        const sessionIds = await this.redis.smembers(`user_sessions:${userId}`);
-
-        if (sessionIds.length >= this.maxSessionsPerUser) {
-            // Get session details to find oldest
-            const sessions = await Promise.all(
-                sessionIds.map(async (id) => {
-                    const session = await this.getSession(id);
-                    return session ? { id, createdAt: session.createdAt } : null;
-                }),
-            );
-
-            const validSessions = sessions.filter(Boolean) as { id: string, createdAt: number }[];
-            validSessions.sort((a, b) => a.createdAt - b.createdAt);
-
-            // Remove oldest sessions
-            const sessionsToRemove = validSessions.slice(0, validSessions.length - this.maxSessionsPerUser + 1);
-
-            for (const session of sessionsToRemove) {
-                await this.deleteSession(session.id);
+            if (!dbSession || !dbSession.isActive) {
+                return null;
             }
+
+            // Check if session is expired
+            if (dbSession.expiresAt.getTime() < Date.now()) {
+                await this.deleteSession(sessionId);
+                return null;
+            }
+
+            // Update last activity
+            await this.sessionRepository.updateSessionActivity(sessionId, new Date());
+
+            // Get user details for the session
+            const user = await this.sessionRepository.getUserBySessionId(sessionId);
+            if (!user) {
+                return null;
+            }
+
+            // Return session data
+            const sessionData: SessionData = {
+                userId: dbSession.userId.toString(),
+                role: user.role,
+                email: user.email,
+                sessionId: dbSession.sessionId,
+                accessToken: dbSession.accessToken,
+                refreshToken: dbSession.refreshToken,
+                isFirstLogin: user.isFirstLogin || false,
+                expiresAt: dbSession.expiresAt.getTime(),
+                // createdAt: dbSession.createdAt?.getTime() || Date.now(),
+                lastActivity: dbSession.lastActivity?.getTime() || Date.now(),
+                userAgent: dbSession.userAgent,
+                ipAddress: dbSession.ipAddress,
+            };
+
+            return sessionData;
+
+        } catch (error) {
+            console.error('Error getting session:', error);
+            return null;
         }
     }
+
+
+    // Update session with new tokens
+    async updateSession(sessionId: string, updateData: { accessToken: string; refreshToken: string }): Promise<void> {
+        try {
+            await this.sessionRepository.updateSession(sessionId, {
+                accessToken: updateData.accessToken,
+                refreshToken: updateData.refreshToken,
+                lastActivity: new Date(),
+            });
+        } catch (error) {
+            console.error('Error updating session:', error);
+            throw error;
+        }
+    }
+
+
+    // Delete a specific session
+    async deleteSession(sessionId: string): Promise<void> {
+        try {
+            await this.sessionRepository.deactivateSession(sessionId);
+        } catch (error) {
+            console.error('Error deleting session:', error);
+            throw error;
+        }
+    }
+
+
+    // Delete all sessions for a user
+    async deleteAllUserSessions(userId: string): Promise<void> {
+        try {
+            await this.sessionRepository.deactivateAllUserSessions(userId);
+        } catch (error) {
+            console.error('Error deleting all user sessions:', error);
+            throw error;
+        }
+    }
+
+    // Get all active sessions for a user
+    async getUserSessions(userId: string): Promise<SessionDocument[]> {
+        try {
+            return await this.sessionRepository.findActiveSessionsByUserId(userId);
+        } catch (error) {
+            console.error('Error getting user sessions:', error);
+            return [];
+        }
+    }
+
+
+    // Check if session exists and is valid
+    async isSessionValid(sessionId: string): Promise<boolean> {
+        const session = await this.getSession(sessionId);
+        return session !== null;
+    }
+
+
+    // Get session by refresh token (useful for token refresh)
+    async getSessionByRefreshToken(refreshToken: string): Promise<SessionData | null> {
+        try {
+            const dbSession = await this.sessionRepository.findSessionByRefreshToken(refreshToken);
+
+            if (!dbSession || !dbSession.isActive) {
+                return null;
+            }
+
+            // Check if session is expired
+            if (dbSession.expiresAt.getTime() < Date.now()) {
+                await this.deleteSession(dbSession.sessionId);
+                return null;
+            }
+
+            // Get user details
+            const user = await this.sessionRepository.getUserBySessionId(dbSession.sessionId);
+            if (!user) {
+                return null;
+            }
+
+            const sessionData: SessionData = {
+                userId: dbSession.userId.toString(),
+                role: user.role,
+                email: user.email,
+                sessionId: dbSession.sessionId,
+                accessToken: dbSession.accessToken,
+                refreshToken: dbSession.refreshToken,
+                isFirstLogin: user.isFirstLogin || false,
+                expiresAt: dbSession.expiresAt.getTime(),
+                // createdAt: dbSession.createdAt?.getTime() || Date.now(),
+                lastActivity: dbSession.lastActivity?.getTime() || Date.now(),
+                userAgent: dbSession.userAgent,
+                ipAddress: dbSession.ipAddress,
+            };
+
+            return sessionData;
+
+        } catch (error) {
+            console.error('Error getting session by refresh token:', error);
+            return null;
+        }
+    }
+
+
+    // Utility method to clean up expired sessions (can be called by a cron job)
+    async cleanupExpiredSessions(): Promise<void> {
+        try {
+            await this.sessionRepository.deleteExpiredSessions();
+        } catch (error) {
+            console.error('Error cleaning up expired sessions:', error);
+        }
+    }
+
+
+    // Extend session expiration
+    async extendSession(sessionId: string, additionalDays: number = 7): Promise<void> {
+        try {
+            const newExpirationDate = new Date();
+            newExpirationDate.setDate(newExpirationDate.getDate() + additionalDays);
+
+            await this.sessionRepository.updateSessionExpiration(sessionId, newExpirationDate);
+        } catch (error) {
+            console.error('Error extending session:', error);
+            throw error;
+        }
+    }
+
 }
