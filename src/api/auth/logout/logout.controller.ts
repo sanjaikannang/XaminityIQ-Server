@@ -1,5 +1,5 @@
-import { Controller, Post, Req, Res, HttpStatus, UseGuards, BadRequestException } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Controller, Post, Req, UseGuards, BadRequestException } from '@nestjs/common';
+import { Request } from 'express';
 import { LogoutResponse } from './logout.response';
 import { AuthService } from 'src/services/auth-service/auth.service';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';

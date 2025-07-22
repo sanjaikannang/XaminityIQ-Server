@@ -1,5 +1,5 @@
-import { Controller, Post, Body, Req, Res, HttpStatus, UseGuards, BadRequestException } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Controller, Post, Body, Req, UseGuards, BadRequestException } from '@nestjs/common';
+import { Request } from 'express';
 import { ChangePasswordRequest } from './change-password.request';
 import { ChangePasswordResponse } from './change-password.response';
 import { AuthService } from 'src/services/auth-service/auth.service';
@@ -14,7 +14,6 @@ export class ChangePasswordController {
     async changePassword(
         @Body() changePasswordData: ChangePasswordRequest,
         @Req() req: Request,
-        @Res() res: Response,
     ) {
         try {
             const userId = (req as any).user?.sub;

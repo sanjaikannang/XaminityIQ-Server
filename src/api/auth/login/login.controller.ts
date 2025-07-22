@@ -1,5 +1,5 @@
-import { Controller, Post, Body, Req, Res, HttpStatus, BadRequestException } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Controller, Post, Body, Req, BadRequestException } from '@nestjs/common';
+import { Request } from 'express';
 import { LoginRequest } from './login.request';
 import { LoginResponse } from './login.response';
 import { AuthService } from 'src/services/auth-service/auth.service';
@@ -17,7 +17,6 @@ export class LoginController {
 
             const userAgent = req.headers['user-agent'] || '';
             const ipAddress = req.ip || '';
-            console.log(`User Agent: ${userAgent}, IP Address: ${ipAddress}`);
 
             const result = await this.authService.loginAPI(loginData, userAgent, ipAddress);
 
