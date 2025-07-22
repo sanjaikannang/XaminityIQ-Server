@@ -14,7 +14,7 @@ export class CreateFacultyController {
         private readonly adminService: AdminService
     ) { }
 
-    @Post('faculty/create')
+    @Post('/create-faculty')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.ADMIN)
     async createFaculty(
@@ -31,8 +31,8 @@ export class CreateFacultyController {
                 message: 'Faculty created successfully',
                 data: result,
             };
-
-            return response;
+            
+            return response;            
 
         } catch (error) {
             ({

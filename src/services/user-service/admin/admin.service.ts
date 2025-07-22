@@ -7,9 +7,10 @@ import { FacultyRepositoryService } from 'src/repositories/faculty-repository/fa
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
 import { AdminRepositoryService } from 'src/repositories/admin-repository/admin.repository';
 import { PasswordService } from 'src/services/auth-service/password.service';
-import { generateFacultyId, generateStudentId } from 'src/utils/idGenerator';
+import { generateStudentId } from 'src/utils/idGenerator';
 import { CreateStudentRequest } from 'src/api/user/admin/create-student/create-student.request';
 import { Types } from 'mongoose';
+import { ulid } from 'ulid';
 
 @Injectable()
 export class AdminService {
@@ -18,7 +19,7 @@ export class AdminService {
         private readonly facultyRepositoryService: FacultyRepositoryService,
         private readonly studentRepositoryService: StudentRepositoryService,
         private readonly adminRepositoryService: AdminRepositoryService,
-        private readonly passwordService: PasswordService
+        private readonly passwordService: PasswordService,
     ) { }
 
 
@@ -57,7 +58,7 @@ export class AdminService {
             const user = await this.userRepositoryService.createUser(userData);
 
             // Generate faculty ID
-            const facultyId = await generateFacultyId();
+            const facultyId = await this.generateFacultyId();
 
             // Create faculty
             const facultyData = {
@@ -176,6 +177,31 @@ export class AdminService {
             }
             throw new BadRequestException('Failed to create student user: ' + error.message);
         }
+    }
+
+
+    async generateFacultyId(): Promise<string> {
+        const lastFaculty = await this.facultyRepositoryService.findLastFaculty();
+        let nextNumber = 1;
+
+        if (lastFaculty && lastFaculty.facultyId) {
+            const lastNumber = parseInt(lastFaculty.facultyId.replace('FAC', ''));
+            nextNumber = lastNumber + 1;
+        }
+
+        return `FAC${nextNumber.toString().padStart(3, '0')}`;
+    }
+
+    async generateStudentId(): Promise<string> {
+        const lastStudent = await this.studentRepositoryService.findLastStudent();
+        let nextNumber = 1;
+
+        if (lastStudent && lastStudent.studentId) {
+            const lastNumber = parseInt(lastStudent.studentId.replace('STU', ''));
+            nextNumber = lastNumber + 1;
+        }
+
+        return `STU${nextNumber.toString().padStart(3, '0')}`;
     }
 
 }
