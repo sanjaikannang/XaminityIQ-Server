@@ -1,5 +1,4 @@
-import { Controller, Post, Body, Res, HttpStatus, BadRequestException } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
 import { RefreshTokenRequest } from './refresh-token.request';
 import { RefreshTokenResponse } from './refresh-token.response';
 import { AuthService } from 'src/services/auth-service/auth.service';
@@ -11,7 +10,6 @@ export class RefreshTokenController {
     @Post('refresh-token')
     async refreshToken(
         @Body() refreshTokenData: RefreshTokenRequest,
-        @Res() res: Response,
     ) {
         try {
             const tokens = await this.authService.refreshToken(refreshTokenData);

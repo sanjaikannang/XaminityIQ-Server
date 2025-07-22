@@ -1,5 +1,5 @@
-import { Controller, Get, Req, Res, UseGuards, BadRequestException } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Controller, Get, Req, UseGuards, BadRequestException } from '@nestjs/common';
+import { Request } from 'express';
 import { MeResponse } from './me.response';
 import { AuthService } from 'src/services/auth-service/auth.service';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
@@ -12,7 +12,6 @@ export class MeController {
     @UseGuards(JwtAuthGuard)
     async getMe(
         @Req() req: Request,
-        @Res() res: Response
     ) {
         try {
             const userId = (req as any).user?.sub;

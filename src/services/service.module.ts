@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
-import { RedisModule } from "@nestjs-modules/ioredis";
 
 // Services
 import { AuthService } from "./auth-service/auth.service";
