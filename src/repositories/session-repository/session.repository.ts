@@ -121,11 +121,17 @@ export class SessionRepositoryService {
         ).exec();
     }
 
+
+    // Deactivate All Users Session
     async deactivateAllUserSessions(userId: string): Promise<void> {
-        await this.sessionModel.updateMany(
-            { userId: new Types.ObjectId(userId) },
-            { isActive: false }
-        ).exec();
+        try {
+            await this.sessionModel.updateMany(
+                { userId: new Types.ObjectId(userId) },
+                { isActive: false }
+            ).exec();
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to deactivate all user session', error);
+        }
     }
 
     async cleanupExpiredSessions(): Promise<void> {
@@ -134,7 +140,7 @@ export class SessionRepositoryService {
         }).exec();
     }
 
-    
+
     // Get tokens by session ID
     async getTokensBySessionId(sessionId: string): Promise<{ accessToken: string; refreshToken: string } | null> {
         try {

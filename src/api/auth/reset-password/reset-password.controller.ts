@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpStatus, BadRequestException } from '@nestjs/common';
 import { Response } from 'express';
 import { ResetPasswordRequest } from './reset-password.request';
 import { ResetPasswordResponse } from './reset-password.response';
@@ -14,7 +14,7 @@ export class ResetPasswordController {
         @Res() res: Response,
     ) {
         try {
-            const result = await this.authService.resetPassword(resetPasswordData.email);
+            const result = await this.authService.resetPasswordAPI(resetPasswordData.email);
 
             const response: ResetPasswordResponse = {
                 success: true,
@@ -25,12 +25,12 @@ export class ResetPasswordController {
                 // },
             };
 
-            res.status(HttpStatus.OK).json(response);
+            return response;
         } catch (error) {
-            ({
+            throw new BadRequestException({
                 success: false,
-                message: error.message || 'Password reset failed',
-            })
+                message: error.message || 'Login failed',
+            });
         }
     }
 }

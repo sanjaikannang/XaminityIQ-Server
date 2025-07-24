@@ -51,8 +51,14 @@ export class UserRepositoryService {
     }
 
 
+    // Update user
     async updateUser(id: string, updates: Partial<User>): Promise<UserDocument | null> {
-        return this.userModel.findByIdAndUpdate(id, updates, { new: true }).exec();
+        try {
+            const updatedUser = this.userModel.findByIdAndUpdate(id, updates, { new: true }).exec();
+            return updatedUser;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to update user', error);
+        }
     }
 
 

@@ -70,7 +70,7 @@ export class AuthService {
 
 
     // Refresh Token API Endpoint
-    async refreshToken(refreshData: RefreshTokenRequest) {
+    async refreshTokenAPI(refreshData: RefreshTokenRequest) {
         const { refreshToken, sessionId } = refreshData;
 
         try {
@@ -163,34 +163,38 @@ export class AuthService {
 
 
     // Reset Password API Endpoint
-    async resetPassword(email: string) {
-        const user = await this.userRepositoryService.findUserByEmail(email);
-        if (!user) {
-            // Don't reveal if email exists or not
-            return { message: 'If the email exists, password reset instructions have been sent' };
+    async resetPasswordAPI(email: string) {
+        try {
+            const user = await this.userRepositoryService.findUserByEmail(email);
+            if (!user) {
+                // Don't reveal if email exists or not
+                return { message: 'If the email exists, password reset instructions have been sent' };
+            }
+
+            // Generate new temporary password
+            const newPassword = this.passwordService.generateRandomPassword();
+            const hashedPassword = await this.passwordService.hashPassword(newPassword);
+
+            // Update user with new password and set first login flag
+            await this.userRepositoryService.updateUser((user._id as Types.ObjectId).toString(), {
+                password: hashedPassword,
+                isFirstLogin: true,
+                isPasswordReset: true,
+            });
+
+            // Invalidate all sessions
+            await this.sessionService.deleteAllUserSessions((user._id as Types.ObjectId).toString(),);
+            await this.sessionRepositoryService.deactivateAllUserSessions((user._id as Types.ObjectId).toString(),);
+
+            // In a real application, you would send this password via email
+            // For now, we'll return it in the response (remove this in production)
+            return {
+                message: 'Password has been reset successfully',
+                temporaryPassword: newPassword // Remove this in production
+            };
+        } catch (error) {
+            throw new UnauthorizedException('Failed to change password');
         }
-
-        // Generate new temporary password
-        const newPassword = this.passwordService.generateRandomPassword();
-        const hashedPassword = await this.passwordService.hashPassword(newPassword);
-
-        // Update user with new password and set first login flag
-        await this.userRepositoryService.updateUser((user._id as Types.ObjectId).toString(), {
-            password: hashedPassword,
-            isFirstLogin: true,
-            isPasswordReset: true,
-        });
-
-        // Invalidate all sessions
-        await this.sessionService.deleteAllUserSessions((user._id as Types.ObjectId).toString(),);
-        await this.sessionRepositoryService.deactivateAllUserSessions((user._id as Types.ObjectId).toString(),);
-
-        // In a real application, you would send this password via email
-        // For now, we'll return it in the response (remove this in production)
-        return {
-            message: 'Password has been reset successfully',
-            temporaryPassword: newPassword // Remove this in production
-        };
     }
 
 
