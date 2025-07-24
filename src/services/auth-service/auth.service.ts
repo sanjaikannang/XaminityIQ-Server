@@ -73,7 +73,7 @@ export class AuthService {
             // Verify refresh token
             const payload = this.jwtService.verifyRefreshToken(refreshToken);
 
-            // Check session in Redis
+            // Check session
             const session = await this.sessionService.getSession(sessionId);
             if (!session || session.refreshToken !== refreshToken) {
                 throw new UnauthorizedException('Invalid session');
@@ -98,13 +98,7 @@ export class AuthService {
                 email: payload.email,
                 role: payload.role,
                 sessionId: payload.sessionId,
-            });
-
-            // Update session
-            await this.sessionService.updateSession(sessionId, {
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken,
-            });
+            });         
 
             // Update database session
             await this.sessionRepositoryService.updateSession(sessionId, {
