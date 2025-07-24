@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from 'src/config/config.service';
 import { UserRole } from 'src/utils/enum';
@@ -31,7 +31,7 @@ export class AuthJwtService {
             );
             return token;
         } catch (error) {
-            throw new InternalServerErrorException('Failed to generate access token', error);
+            throw new UnauthorizedException('Failed to generate access token', error);
         }
     }
 
@@ -48,23 +48,47 @@ export class AuthJwtService {
             );
             return token;
         } catch (error) {
-            throw new InternalServerErrorException('Failed to generate refresh token', error);
+            throw new UnauthorizedException('Failed to generate refresh token', error);
         }
     }
 
+
+    // Verify Access Token
     verifyAccessToken(token: string): JwtPayload {
-        return this.jwtService.verify(token, {
-            secret: this.configService.getJWTSecretKey(),
-        });
+        try {
+            const payload = this.jwtService.verify(token, {
+                secret: this.configService.getJWTSecretKey(),
+            });
+
+            return payload;
+        } catch (error) {
+            throw new UnauthorizedException('Invalid or expired access token', error);
+        }
     }
 
+
+    // Verify Refresh Token
     verifyRefreshToken(token: string): JwtPayload {
-        return this.jwtService.verify(token, {
-            secret: this.configService.getJwtRefreshSecretKey(),
-        });
+        try {
+            const payload = this.jwtService.verify(token, {
+                secret: this.configService.getJwtRefreshSecretKey(),
+            });
+
+            return payload;
+        } catch (error) {
+            throw new UnauthorizedException('Invalid or expired refresh token', error);
+        }
     }
 
+
+    // Decode Token
     decodeToken(token: string): any {
-        return this.jwtService.decode(token);
+        try {
+            const decodeToken = this.jwtService.decode(token);
+            return decodeToken;
+        } catch (error) {
+            throw new UnauthorizedException('Invalid token', error);
+        }
     }
+    
 }

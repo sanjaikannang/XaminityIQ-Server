@@ -35,25 +35,39 @@ export class SessionRepositoryService {
     }
 
     async updateSessionActivity(sessionId: string, lastActivity: Date): Promise<SessionDocument | null> {
-        return this.sessionModel.findOneAndUpdate(
-            { sessionId },
-            { lastActivity },
-            { new: true }
-        ).exec();
+        try {
+            const updatedSession = await this.sessionModel.findOneAndUpdate(
+                { sessionId },
+                { lastActivity },
+                { new: true }
+            ).exec();
+
+            return updatedSession;
+        } catch (error) {
+            console.error('Error updating session activity:', error);
+            return null;
+        }
     }
 
     async getUserBySessionId(sessionId: string): Promise<UserDocument | null> {
-        // Find the session and populate the user reference
-        const session = await this.sessionModel
-            .findOne({ sessionId, isActive: true })
-            .populate('userId') // This will load the User document
-            .exec();
+        try {
+            // Find the session and populate the user reference
+            const session = await this.sessionModel
+                .findOne({ sessionId, isActive: true })
+                .populate('userId') // This will load the User document
+                .exec();
 
-        if (!session || !session.userId) {
+            if (!session || !session.userId) {
+                return null;
+            }
+
+            const user = session.userId as unknown as UserDocument;
+
+            return user;
+        } catch (error) {
+            console.error('Error getting user by session ID:', error);
             return null;
         }
-
-        return session.userId as unknown as UserDocument;
     }
 
     async findActiveSessionsByUserId(userId: string): Promise<SessionDocument[]> {
@@ -80,8 +94,16 @@ export class SessionRepositoryService {
         ).exec();
     }
 
+
     async findSessionById(sessionId: string): Promise<SessionDocument | null> {
-        return this.sessionModel.findOne({ sessionId, isActive: true }).exec();
+        try {
+            const session = await this.sessionModel.findOne({ sessionId, isActive: true }).exec();
+
+            return session;
+        } catch (error) {
+            console.error('Error finding session by ID:', error);
+            return null;
+        }
     }
 
     async updateSession(sessionId: string, updates: Partial<Session>): Promise<SessionDocument | null> {
@@ -92,18 +114,30 @@ export class SessionRepositoryService {
         ).exec();
     }
 
+
+    // Deactivate Session
     async deactivateSession(sessionId: string): Promise<void> {
-        await this.sessionModel.findOneAndUpdate(
-            { sessionId },
-            { isActive: false }
-        ).exec();
+        try {
+            await this.sessionModel.findOneAndUpdate(
+                { sessionId },
+                { isActive: false }
+            ).exec();
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to deactivate session', error);
+        }
     }
 
+
+    // Deactivate All Users Session
     async deactivateAllUserSessions(userId: string): Promise<void> {
-        await this.sessionModel.updateMany(
-            { userId: new Types.ObjectId(userId) },
-            { isActive: false }
-        ).exec();
+        try {
+            await this.sessionModel.updateMany(
+                { userId: new Types.ObjectId(userId) },
+                { isActive: false }
+            ).exec();
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to deactivate all user session', error);
+        }
     }
 
     async cleanupExpiredSessions(): Promise<void> {
@@ -111,6 +145,7 @@ export class SessionRepositoryService {
             expiresAt: { $lt: new Date() }
         }).exec();
     }
+
 
     // Get tokens by session ID
     async getTokensBySessionId(sessionId: string): Promise<{ accessToken: string; refreshToken: string } | null> {

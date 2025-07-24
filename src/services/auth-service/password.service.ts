@@ -5,10 +5,19 @@ import * as bcrypt from 'bcrypt';
 export class PasswordService {
     private readonly saltRounds = 12;
 
+
+    // Hashing Password
     async hashPassword(password: string): Promise<string> {
-        return bcrypt.hash(password, this.saltRounds);
+        try {
+            const hashedPassword = bcrypt.hash(password, this.saltRounds);
+            return hashedPassword;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to hash password', error);
+        }
     }
 
+
+    // Compare Password 
     async comparePassword(password: string, hash: string): Promise<boolean> {
         try {
             const isMatch = await bcrypt.compare(password, hash);
@@ -18,6 +27,8 @@ export class PasswordService {
         }
     }
 
+
+    // Generate Random Password
     generateRandomPassword(length: number = 12): string {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
         let password = '';
@@ -29,6 +40,8 @@ export class PasswordService {
         return password;
     }
 
+
+    // Validate Password Strength
     validatePasswordStrength(password: string): { isValid: boolean; message: string } {
         if (password.length < 8) {
             return { isValid: false, message: 'Password must be at least 8 characters long' };

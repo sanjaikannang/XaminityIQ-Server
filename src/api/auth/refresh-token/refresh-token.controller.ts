@@ -12,7 +12,7 @@ export class RefreshTokenController {
         @Body() refreshTokenData: RefreshTokenRequest,
     ) {
         try {
-            const tokens = await this.authService.refreshToken(refreshTokenData);
+            const tokens = await this.authService.refreshTokenAPI(refreshTokenData);
 
             const response: RefreshTokenResponse = {
                 success: true,
