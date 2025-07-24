@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PasswordService } from './password.service';
 import { AuthJwtService } from './jwt.service';
 import { Types } from "mongoose";
@@ -22,46 +22,53 @@ export class AuthService {
 
     // Login API Endpoint
     async loginAPI(loginData: LoginRequest, userAgent: string, ipAddress: string) {
-        const { email, password } = loginData;
+        try {
+            const { email, password } = loginData;
 
-        // Find user by email
-        const user = await this.userRepositoryService.findUserByEmail(email);
-        if (!user) {
-            throw new UnauthorizedException('Invalid email or password');
+            // Find user by email
+            const user = await this.userRepositoryService.findUserByEmail(email);
+            if (!user) {
+                throw new UnauthorizedException('Invalid email or password');
+            }
+
+            // Verify password
+            const isPasswordValid = await this.passwordService.comparePassword(password, user.password);
+            if (!isPasswordValid) {
+                throw new UnauthorizedException('Invalid email or password');
+            }
+
+            // Generate tokens
+            const sessionId = await this.sessionService.createUserSession(user, userAgent, ipAddress);
+
+            // Get the tokens from the session
+            const tokens = await this.sessionRepositoryService.getTokensBySessionId(sessionId);
+
+            if (!tokens) {
+                throw new UnauthorizedException('Failed to create session');
+            }
+
+            // Update last login
+            await this.userRepositoryService.updateLastLogin((user._id as Types.ObjectId).toString());
+
+            return {
+                user: {
+                    id: (user._id as Types.ObjectId).toString(),
+                    email: user.email,
+                    role: user.role,
+                    isFirstLogin: user.isFirstLogin,
+                },
+                tokens: {
+                    accessToken: tokens.accessToken,
+                    refreshToken: tokens.refreshToken,
+                },
+                sessionId,
+            };
+        } catch (error) {
+            if (error instanceof UnauthorizedException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Login failed');
         }
-
-        // Verify password
-        const isPasswordValid = await this.passwordService.comparePassword(password, user.password);
-        if (!isPasswordValid) {
-            throw new UnauthorizedException('Invalid email or password');
-        }
-
-        // Generate tokens
-        const sessionId = await this.sessionService.createUserSession(user, userAgent, ipAddress);
-
-        // Get the tokens from the session
-        const tokens = await this.sessionRepositoryService.getTokensBySessionId(sessionId);
-
-        if (!tokens) {
-            throw new UnauthorizedException('Failed to create session');
-        }
-
-        // Update last login
-        await this.userRepositoryService.updateLastLogin((user._id as Types.ObjectId).toString());
-
-        return {
-            user: {
-                id: (user._id as Types.ObjectId).toString(),
-                email: user.email,
-                role: user.role,
-                isFirstLogin: user.isFirstLogin,
-            },
-            tokens: {
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
-            },
-            sessionId,
-        };
     }
 
 
@@ -98,7 +105,7 @@ export class AuthService {
                 email: payload.email,
                 role: payload.role,
                 sessionId: payload.sessionId,
-            });         
+            });
 
             // Update database session
             await this.sessionRepositoryService.updateSession(sessionId, {

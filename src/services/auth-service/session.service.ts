@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { UserRole } from 'src/utils/enum';
 import { ulid } from 'ulid';
 import { Types } from 'mongoose';
@@ -32,41 +32,48 @@ export class SessionService {
 
     // Create user session and generate tokens
     async createUserSession(user: UserDocument, userAgent: string, ipAddress: string): Promise<string> {
-        const sessionId = ulid();
+        try {
+            const sessionId = ulid();
 
-        // Generate JWT tokens
-        const payload = {
-            sub: (user._id as Types.ObjectId).toString(),
-            email: user.email,
-            role: user.role,
-            sessionId: sessionId,
-        };
+            // Generate JWT tokens
+            const payload = {
+                sub: (user._id as Types.ObjectId).toString(),
+                email: user.email,
+                role: user.role,
+                sessionId: sessionId,
+            };
 
-        const accessToken = this.jwtService.generateAccessToken(payload);
-        const refreshToken = this.jwtService.generateRefreshToken(payload);
+            const accessToken = this.jwtService.generateAccessToken(payload);
+            const refreshToken = this.jwtService.generateRefreshToken(payload);
 
-        // Calculate expiration date (7 days from now)
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
+            // Calculate expiration date (7 days from now)
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7);
 
-        // Create session document
-        const sessionData = {
-            userId: (user._id as Types.ObjectId).toString(),
-            sessionId: sessionId,
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-            userAgent: userAgent,
-            ipAddress: ipAddress,
-            expiresAt: expiresAt,
-            isActive: true,
-            lastActivity: new Date(),
-        };
+            // Create session document
+            const sessionData = {
+                userId: (user._id as Types.ObjectId).toString(),
+                sessionId: sessionId,
+                accessToken: accessToken,
+                refreshToken: refreshToken,
+                userAgent: userAgent,
+                ipAddress: ipAddress,
+                expiresAt: expiresAt,
+                isActive: true,
+                lastActivity: new Date(),
+            };
 
-        // Save session to database
-        await this.sessionRepositoryService.createSession(sessionData);
+            // Save session to database
+            await this.sessionRepositoryService.createSession(sessionData);
 
-        return sessionId;
+            return sessionId;
+
+        } catch (error) {
+            console.error('Error creating user session:', error);
+            throw new InternalServerErrorException('Failed to create user session');
+        }
     }
+
 
 
     // Get session details by session ID

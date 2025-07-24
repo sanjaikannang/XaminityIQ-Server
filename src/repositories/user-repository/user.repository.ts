@@ -13,6 +13,7 @@ export class UserRepositoryService {
         @InjectModel('Admin') private adminModel: Model<any>,
     ) { }
 
+
     // Find user by email
     async findUserByEmail(email: string): Promise<UserDocument | null> {
         try {
@@ -23,9 +24,11 @@ export class UserRepositoryService {
         }
     }
 
+    
     async findUserById(id: string): Promise<UserDocument | null> {
         return this.userModel.findById(id).exec();
     }
+
 
     async createUser(userData: {
         email: string;
@@ -40,9 +43,11 @@ export class UserRepositoryService {
         return user.save();
     }
 
+    
     async updateUser(id: string, updates: Partial<User>): Promise<UserDocument | null> {
         return this.userModel.findByIdAndUpdate(id, updates, { new: true }).exec();
     }
+
 
     async updateUserPassword(id: string, password: string): Promise<UserDocument | null> {
         return this.userModel.findByIdAndUpdate(
@@ -55,6 +60,7 @@ export class UserRepositoryService {
             { new: true }
         ).exec();
     }
+
 
     // Update Last Login
     async updateLastLogin(id: string): Promise<void> {
@@ -76,10 +82,12 @@ export class UserRepositoryService {
         }
     }
 
+
     async checkEmailExists(email: string): Promise<boolean> {
         const user = await this.userModel.findOne({ email }).exec();
         return !!user;
     }
+
 
     async getUserProfile(userId: string, role: UserRole): Promise<any> {
         const objectId = new Types.ObjectId(userId);
@@ -96,6 +104,7 @@ export class UserRepositoryService {
         }
     }
 
+
     async getUserWithProfile(id: string): Promise<{
         user: UserDocument;
         profile: any;
@@ -106,6 +115,7 @@ export class UserRepositoryService {
         const profile = await this.getUserProfile(id, user.role);
         return { user, profile };
     }
+
 
     async findUsersByRole(role: UserRole): Promise<UserDocument[]> {
         return this.userModel.find({ role, isActive: true }).exec();
