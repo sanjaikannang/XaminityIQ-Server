@@ -10,7 +10,7 @@ import { PasswordService } from 'src/services/auth-service/password.service';
 import { generateStudentId } from 'src/utils/idGenerator';
 import { CreateStudentRequest } from 'src/api/user/admin/create-student/create-student.request';
 import { Types } from 'mongoose';
-import { ulid } from 'ulid';
+
 
 @Injectable()
 export class AdminService {

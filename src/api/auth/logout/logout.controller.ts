@@ -16,7 +16,7 @@ export class LogoutController {
         try {
             const sessionId = (req as any).user?.sessionId;
 
-            await this.authService.logout(sessionId);
+            await this.authService.logoutAPI(sessionId);
 
             const response: LogoutResponse = {
                 success: true,
