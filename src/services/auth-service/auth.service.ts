@@ -199,10 +199,19 @@ export class AuthService {
 
 
     // Logout API Endpoint
-    async logout(sessionId: string) {
-        await this.sessionService.deleteSession(sessionId);
-        await this.sessionRepositoryService.deactivateSession(sessionId);
-        return { message: 'Logged out successfully' };
+    async logoutAPI(sessionId: string) {
+        try {
+
+            await this.sessionService.deleteSession(sessionId);
+            await this.sessionRepositoryService.deactivateSession(sessionId);
+
+            return { 
+                message: 'Logged out successfully' 
+            };
+            
+        } catch (error) {
+            throw new UnauthorizedException('Failed to logout');
+        }
     }
 
 

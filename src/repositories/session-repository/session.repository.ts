@@ -114,11 +114,17 @@ export class SessionRepositoryService {
         ).exec();
     }
 
+
+    // Deactivate Session
     async deactivateSession(sessionId: string): Promise<void> {
-        await this.sessionModel.findOneAndUpdate(
-            { sessionId },
-            { isActive: false }
-        ).exec();
+        try {
+            await this.sessionModel.findOneAndUpdate(
+                { sessionId },
+                { isActive: false }
+            ).exec();
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to deactivate session', error);
+        }
     }
 
 
