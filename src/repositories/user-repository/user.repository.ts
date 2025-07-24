@@ -37,17 +37,22 @@ export class UserRepositoryService {
     }
 
 
+    // Create User
     async createUser(userData: {
         email: string;
         password: string;
         role: UserRole;
         createdBy?: string;
     }): Promise<UserDocument> {
-        const user = new this.userModel({
-            ...userData,
-            createdBy: userData.createdBy ? new Types.ObjectId(userData.createdBy) : undefined,
-        });
-        return user.save();
+        try {
+            const user = new this.userModel({
+                ...userData,
+                createdBy: userData.createdBy ? new Types.ObjectId(userData.createdBy) : undefined,
+            });
+            return user.save();
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to create user', error);
+        }
     }
 
 
@@ -62,6 +67,7 @@ export class UserRepositoryService {
     }
 
 
+    // Update user password
     async updateUserPassword(id: string, password: string): Promise<UserDocument | null> {
         try {
             const updatedPassword = this.userModel.findByIdAndUpdate(
@@ -102,12 +108,18 @@ export class UserRepositoryService {
     }
 
 
+    // Check email exists
     async checkEmailExists(email: string): Promise<boolean> {
-        const user = await this.userModel.findOne({ email }).exec();
-        return !!user;
+        try {
+            const user = await this.userModel.findOne({ email }).exec();
+            return !!user;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to check email exist', error);
+        }
     }
 
 
+    // Get user profile
     async getUserProfile(userId: string, role: UserRole): Promise<any> {
         const objectId = new Types.ObjectId(userId);
 
@@ -124,20 +136,31 @@ export class UserRepositoryService {
     }
 
 
+    // get User Profile 
     async getUserWithProfile(id: string): Promise<{
         user: UserDocument;
         profile: any;
     } | null> {
-        const user = await this.findUserById(id);
-        if (!user) return null;
+        try {
+            const user = await this.findUserById(id);
+            if (!user) return null;
 
-        const profile = await this.getUserProfile(id, user.role);
-        return { user, profile };
+            const profile = await this.getUserProfile(id, user.role);
+            return { user, profile };
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to get user profile data', error);
+        }
     }
 
 
+    // Find user by Role
     async findUsersByRole(role: UserRole): Promise<UserDocument[]> {
-        return this.userModel.find({ role, isActive: true }).exec();
+        try {
+            const user = this.userModel.find({ role, isActive: true }).exec();
+            return user;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to update user password', error);
+        }
     }
 
 }

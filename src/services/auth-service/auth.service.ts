@@ -205,10 +205,10 @@ export class AuthService {
             await this.sessionService.deleteSession(sessionId);
             await this.sessionRepositoryService.deactivateSession(sessionId);
 
-            return { 
-                message: 'Logged out successfully' 
+            return {
+                message: 'Logged out successfully'
             };
-            
+
         } catch (error) {
             throw new UnauthorizedException('Failed to logout');
         }
@@ -217,28 +217,32 @@ export class AuthService {
 
     // GetMe API Endpoint
     async getMeAPI(userId: string) {
-        const userWithProfile = await this.userRepositoryService.getUserWithProfile(userId);
-        if (!userWithProfile) {
-            throw new UnauthorizedException('User not found');
+        try {
+            const userWithProfile = await this.userRepositoryService.getUserWithProfile(userId);
+            if (!userWithProfile) {
+                throw new UnauthorizedException('User not found');
+            }
+
+            const { user, profile } = userWithProfile;
+
+            return {
+                user: {
+                    id: (user._id as Types.ObjectId).toString(),
+                    email: user.email,
+                    role: user.role,
+                    isFirstLogin: user.isFirstLogin,
+                    lastLogin: user.lastLogin,
+                },
+                profile: {
+                    firstName: profile.firstName,
+                    lastName: profile.lastName,
+                    phone: profile.phone,
+                    address: profile.address,
+                },
+            };
+        } catch (error) {
+            throw new UnauthorizedException('Failed to get user data');
         }
-
-        const { user, profile } = userWithProfile;
-
-        return {
-            user: {
-                id: (user._id as Types.ObjectId).toString(),
-                email: user.email,
-                role: user.role,
-                isFirstLogin: user.isFirstLogin,
-                lastLogin: user.lastLogin,
-            },
-            profile: {
-                firstName: profile.firstName,
-                lastName: profile.lastName,
-                phone: profile.phone,
-                address: profile.address,
-            },
-        };
     }
 
 }
