@@ -5,11 +5,18 @@ import * as bcrypt from 'bcrypt';
 export class PasswordService {
     private readonly saltRounds = 12;
 
+
+    // Hashing Password
     async hashPassword(password: string): Promise<string> {
-        return bcrypt.hash(password, this.saltRounds);
+        try {
+            const hashedPassword = bcrypt.hash(password, this.saltRounds);
+            return hashedPassword;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to hash password', error);
+        }
     }
 
-    
+
     // Compare Password 
     async comparePassword(password: string, hash: string): Promise<boolean> {
         try {
@@ -33,7 +40,7 @@ export class PasswordService {
         return password;
     }
 
-    
+
     // Validate Password Strength
     validatePasswordStrength(password: string): { isValid: boolean; message: string } {
         if (password.length < 8) {

@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { User, UserDocument } from 'src/schemas/user.schema';
 import { UserRole } from 'src/utils/enum';
 
+
 @Injectable()
 export class UserRepositoryService {
     constructor(
@@ -24,9 +25,15 @@ export class UserRepositoryService {
         }
     }
 
-    
+
+    // Find user by id
     async findUserById(id: string): Promise<UserDocument | null> {
-        return this.userModel.findById(id).exec();
+        try {
+            const user = this.userModel.findById(id).exec();
+            return user;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to find user by Id', error);
+        }
     }
 
 
@@ -43,22 +50,28 @@ export class UserRepositoryService {
         return user.save();
     }
 
-    
+
     async updateUser(id: string, updates: Partial<User>): Promise<UserDocument | null> {
         return this.userModel.findByIdAndUpdate(id, updates, { new: true }).exec();
     }
 
 
     async updateUserPassword(id: string, password: string): Promise<UserDocument | null> {
-        return this.userModel.findByIdAndUpdate(
-            id,
-            {
-                password,
-                isFirstLogin: false,
-                lastPasswordChange: new Date(),
-            },
-            { new: true }
-        ).exec();
+        try {
+            const updatedPassword = this.userModel.findByIdAndUpdate(
+                id,
+                {
+                    password,
+                    isFirstLogin: false,
+                    lastPasswordChange: new Date(),
+                },
+                { new: true }
+            ).exec();
+
+            return updatedPassword;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to update user password', error);
+        }
     }
 
 

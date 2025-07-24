@@ -64,10 +64,7 @@ export class AuthService {
                 sessionId,
             };
         } catch (error) {
-            if (error instanceof UnauthorizedException) {
-                throw error;
-            }
-            throw new InternalServerErrorException('Login failed');
+            throw new UnauthorizedException('Login failed');
         }
     }
 
@@ -125,41 +122,43 @@ export class AuthService {
 
     // Change Password API Endpoint
     async changePasswordAPI(userId: string, changePasswordData: ChangePasswordRequest) {
-        const { currentPassword, newPassword, confirmPassword } = changePasswordData;
+        try {
+            const { currentPassword, newPassword, confirmPassword } = changePasswordData;
 
-        if (newPassword !== confirmPassword) {
-            throw new BadRequestException('New password and confirm password do not match');
+            if (newPassword !== confirmPassword) {
+                throw new BadRequestException('New password and confirm password do not match');
+            }
+
+            // Find user
+            const user = await this.userRepositoryService.findUserById(userId);
+            if (!user) {
+                throw new UnauthorizedException('User not found');
+            }
+
+            // Verify current password
+            const isCurrentPasswordValid = await this.passwordService.comparePassword(currentPassword, user.password);
+            if (!isCurrentPasswordValid) {
+                throw new UnauthorizedException('Current password is incorrect');
+            }
+
+            // Validate new password strength
+            const passwordValidation = this.passwordService.validatePasswordStrength(newPassword);
+            if (!passwordValidation.isValid) {
+                throw new BadRequestException(passwordValidation.message);
+            }
+
+            // Hash new password
+            const hashedPassword = await this.passwordService.hashPassword(newPassword);
+
+            // Update password
+            await this.userRepositoryService.updateUserPassword(userId, hashedPassword);
+
+            return {
+                message: 'Password changed successfully'
+            };
+        } catch (error) {
+            throw new UnauthorizedException('Failed to change password');
         }
-
-        // Find user
-        const user = await this.userRepositoryService.findUserById(userId);
-        if (!user) {
-            throw new UnauthorizedException('User not found');
-        }
-
-        // Verify current password
-        const isCurrentPasswordValid = await this.passwordService.comparePassword(currentPassword, user.password);
-        if (!isCurrentPasswordValid) {
-            throw new UnauthorizedException('Current password is incorrect');
-        }
-
-        // Validate new password strength
-        const passwordValidation = this.passwordService.validatePasswordStrength(newPassword);
-        if (!passwordValidation.isValid) {
-            throw new BadRequestException(passwordValidation.message);
-        }
-
-        // Hash new password
-        const hashedPassword = await this.passwordService.hashPassword(newPassword);
-
-        // Update password
-        await this.userRepositoryService.updateUserPassword(userId, hashedPassword);
-
-        // Invalidate all other sessions (optional - keep current session)
-        await this.sessionService.deleteAllUserSessions(userId);
-        await this.sessionRepositoryService.deactivateAllUserSessions(userId);
-
-        return { message: 'Password changed successfully' };
     }
 
 
