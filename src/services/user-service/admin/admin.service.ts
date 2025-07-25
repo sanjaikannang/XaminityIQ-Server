@@ -7,7 +7,6 @@ import { FacultyRepositoryService } from 'src/repositories/faculty-repository/fa
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
 import { AdminRepositoryService } from 'src/repositories/admin-repository/admin.repository';
 import { PasswordService } from 'src/services/auth-service/password.service';
-import { generateStudentId } from 'src/utils/idGenerator';
 import { CreateStudentRequest } from 'src/api/user/admin/create-student/create-student.request';
 import { Types } from 'mongoose';
 
@@ -138,7 +137,7 @@ export class AdminService {
             const user = await this.userRepositoryService.createUser(userData);
 
             // Generate student ID
-            const studentId = await generateStudentId();
+            const studentId = await this.generateStudentId();
 
             // Create student
             const studentData = {
