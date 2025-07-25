@@ -9,12 +9,8 @@ export class AdminRepositoryService {
         @InjectModel(Admin.name) private adminModel: Model<AdminDocument>,
     ) { }
 
-    async createAdminProfile(adminData: any): Promise<AdminDocument> {
-        const admin = new this.adminModel(adminData);
-        return admin.save();
-    }
 
-
+    // Find user by Id
     async findByUserId(userId: string): Promise<AdminDocument | null> {
         try {
             const admin = await this.adminModel.findOne({

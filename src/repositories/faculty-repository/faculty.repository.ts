@@ -10,11 +10,8 @@ export class FacultyRepositoryService {
         @InjectModel(Faculty.name) private facultyModel: Model<FacultyDocument>,
     ) { }
 
-    async createFacultyProfile(facultyData: any): Promise<FacultyDocument> {
-        const faculty = new this.facultyModel(facultyData);
-        return faculty.save();
-    }
 
+    // Create Faculty User
     async createUser(facultyData: {
         userId: string;
         facultyId: string;
@@ -28,13 +25,14 @@ export class FacultyRepositoryService {
         return faculty.save();
     }
 
+
+    // Find Last Faculty
     async findLastFaculty(): Promise<Faculty | null> {
         return this.facultyModel
             .findOne({ facultyId: { $regex: /^FAC\d+$/ } })
             .sort({ facultyId: -1 }) // This will sort lexicographically, so we need to sort properly below
             .lean(); // optional if you just want a plain JS object
     }
-
 
 
 }
