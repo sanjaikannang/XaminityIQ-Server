@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Faculty } from 'src/schemas/faculty.schema';
@@ -11,10 +11,6 @@ export class StudentRepositoryService {
         @InjectModel(Student.name) private studentModel: Model<StudentDocument>,
     ) { }
 
-    async createStudentProfile(studentData: any): Promise<StudentDocument> {
-        const student = new this.studentModel(studentData);
-        return student.save();
-    }
 
     // Create a new student
     async createUser(studentData: {
@@ -27,20 +23,40 @@ export class StudentRepositoryService {
         academicInfo: any;
         status?: Status;
     }): Promise<StudentDocument> {
-        const student = new this.studentModel(studentData);
-        return student.save();
+        try {
+            const student = new this.studentModel(studentData);
+
+            return student.save();
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to create user', error);
+        }
     }
+
 
     // Find student by roll number
     async findByRollNumber(rollNumber: string): Promise<StudentDocument | null> {
-        return this.studentModel.findOne({ rollNumber }).exec();
+        try {
+            const user = this.studentModel.findOne({ rollNumber }).exec();
+
+            return user;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to find user by rollnumber', error);
+        }
     }
 
+
+    // Find last student
     async findLastStudent(): Promise<Student | null> {
-        return this.studentModel
-            .findOne({ studentId: { $regex: /^STU\d+$/ } })
-            .sort({ studentId: -1 }) // This will sort lexicographically, so we need to sort properly below
-            .lean(); // optional if you just want a plain JS object
+        try {
+            const lastStudent = this.studentModel
+                .findOne({ studentId: { $regex: /^STU\d+$/ } })
+                .sort({ studentId: -1 }) // This will sort lexicographically, so we need to sort properly below
+                .lean(); // optional if you just want a plain JS object   
+
+            return lastStudent;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to find last student', error);
+        }
     }
 
 

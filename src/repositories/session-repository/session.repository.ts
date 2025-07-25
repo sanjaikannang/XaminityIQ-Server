@@ -34,6 +34,8 @@ export class SessionRepositoryService {
         }
     }
 
+
+    // Update Session Activity
     async updateSessionActivity(sessionId: string, lastActivity: Date): Promise<SessionDocument | null> {
         try {
             const updatedSession = await this.sessionModel.findOneAndUpdate(
@@ -44,11 +46,12 @@ export class SessionRepositoryService {
 
             return updatedSession;
         } catch (error) {
-            console.error('Error updating session activity:', error);
-            return null;
+            throw new InternalServerErrorException('Failed to update session activity', error);
         }
     }
 
+
+    // Get User by session Id
     async getUserBySessionId(sessionId: string): Promise<UserDocument | null> {
         try {
             // Find the session and populate the user reference
@@ -65,53 +68,92 @@ export class SessionRepositoryService {
 
             return user;
         } catch (error) {
-            console.error('Error getting user by session ID:', error);
-            return null;
+            throw new InternalServerErrorException('Failed to get user by session Id', error);
         }
     }
 
+
+    // Find Active session by userId
     async findActiveSessionsByUserId(userId: string): Promise<SessionDocument[]> {
-        return this.sessionModel.find({
-            userId: new Types.ObjectId(userId),
-            isActive: true,
-            expiresAt: { $gt: new Date() }
-        }).exec();
+        try {
+            const activity = await this.sessionModel.find({
+                userId: new Types.ObjectId(userId),
+                isActive: true,
+                expiresAt: { $gt: new Date() }
+            }).exec();
+
+            return activity;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to find active session by user Id', error);
+        }
     }
 
+
+    // Fine session by refresh token
     async findSessionByRefreshToken(refreshToken: string): Promise<SessionDocument | null> {
-        return this.sessionModel.findOne({ refreshToken, isActive: true }).exec();
+        try {
+            const session = await this.sessionModel.findOne({ refreshToken, isActive: true }).exec();
+
+            return session;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to find session by refresh token', error);
+        }
     }
 
+
+    // Delete expired session
     async deleteExpiredSessions() {
-        return this.sessionModel.deleteMany({ expiresAt: { $lt: new Date() } }).exec();
+        try {
+            const deletedSession = await this.sessionModel.deleteMany({ expiresAt: { $lt: new Date() } }).exec();
+
+            return deletedSession;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to delete expired session', error);
+        }
     }
 
+
+    // Update session expiration
     async updateSessionExpiration(sessionId: string, expiresAt: Date): Promise<SessionDocument | null> {
-        return this.sessionModel.findOneAndUpdate(
-            { sessionId },
-            { expiresAt },
-            { new: true }
-        ).exec();
+        try {
+            const updatedSession = await this.sessionModel.findOneAndUpdate(
+                { sessionId },
+                { expiresAt },
+                { new: true }
+            ).exec();
+
+            return updatedSession;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to update session expirstion', error);
+        }
     }
 
 
+    // Find Session by Id
     async findSessionById(sessionId: string): Promise<SessionDocument | null> {
         try {
             const session = await this.sessionModel.findOne({ sessionId, isActive: true }).exec();
 
             return session;
         } catch (error) {
-            console.error('Error finding session by ID:', error);
-            return null;
+            throw new InternalServerErrorException('Failed to find session', error);
         }
     }
 
+
+    // Update Session
     async updateSession(sessionId: string, updates: Partial<Session>): Promise<SessionDocument | null> {
-        return this.sessionModel.findOneAndUpdate(
-            { sessionId },
-            { ...updates, lastActivity: new Date() },
-            { new: true }
-        ).exec();
+        try {
+            const updatedSession = await this.sessionModel.findOneAndUpdate(
+                { sessionId },
+                { ...updates, lastActivity: new Date() },
+                { new: true }
+            ).exec();
+
+            return updatedSession;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to update session', error);
+        }
     }
 
 
@@ -140,10 +182,18 @@ export class SessionRepositoryService {
         }
     }
 
-    async cleanupExpiredSessions(): Promise<void> {
-        await this.sessionModel.deleteMany({
-            expiresAt: { $lt: new Date() }
-        }).exec();
+
+    // Cleanup expired session
+    async cleanupExpiredSessions() {
+        try {
+            const cleanedExpiredSession = await this.sessionModel.deleteMany({
+                expiresAt: { $lt: new Date() }
+            }).exec();
+
+            return cleanedExpiredSession;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to cleanup expired session', error);
+        }
     }
 
 
