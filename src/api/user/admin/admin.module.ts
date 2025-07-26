@@ -24,6 +24,8 @@ import { CreateFacultyController } from './create-faculty/create-faculty.control
 import { CreateStudentController } from './create-student/create-student.controller';
 import { DeleteFacultyController } from './delete-faculty/delete-faculty.controller';
 import { DeleteStudentController } from './delete-student/delete-student.controller';
+import { GetAllFacultyController } from './get-all-faculty/get-all-faculty.controller';
+
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -56,7 +58,8 @@ import { JwtModule } from '@nestjs/jwt';
         CreateFacultyController,
         CreateStudentController,
         DeleteFacultyController,
-        DeleteStudentController
+        DeleteStudentController,
+        GetAllFacultyController
     ],
     providers: [
         ConfigService,

@@ -52,4 +52,41 @@ export class FacultyRepositoryService {
     }
 
 
+    // Get All Faculty
+    async getAllFaculty(page: number = 1, limit: number = 10) {
+        const skip = (page - 1) * limit;
+
+        try {
+            // Get paginated faculty data with user information
+            const faculty = await this.facultyModel
+                .find()
+                .populate({
+                    path: 'userId',
+                    select: 'email role isActive isEmailVerified lastLogin createdAt'
+                })
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 })
+                .lean()
+                .exec();
+
+            // Get total count for pagination
+            const totalCount = await this.facultyModel.countDocuments().exec();
+
+            const totalPages = Math.ceil(totalCount / limit);
+
+            return {
+                faculty,
+                totalCount,
+                currentPage: page,
+                totalPages,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1
+            };
+        } catch (error) {
+            throw new Error(`Failed to fetch faculty data: ${error.message}`);
+        }
+    }
+
+
 }
