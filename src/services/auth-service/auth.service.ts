@@ -178,32 +178,24 @@ export class AuthService {
 
     // GetMe API Endpoint
     async getMeAPI(userId: string) {
-        try {
-            const userWithProfile = await this.userRepositoryService.getUserWithProfile(userId);
-            if (!userWithProfile) {
-                throw new UnauthorizedException('User not found');
-            }
 
-            const { user, profile } = userWithProfile;
+        const userWithProfile = await this.userRepositoryService.getUserWithProfile(userId);
 
-            return {
-                user: {
-                    id: (user._id as Types.ObjectId).toString(),
-                    email: user.email,
-                    role: user.role,
-                    isFirstLogin: user.isFirstLogin,
-                    lastLogin: user.lastLogin,
-                },
-                profile: {
-                    firstName: profile.firstName,
-                    lastName: profile.lastName,
-                    phone: profile.phone,
-                    address: profile.address,
-                },
-            };
-        } catch (error) {
-            throw new UnauthorizedException('Failed to get user data');
+        if (!userWithProfile) {
+            throw new UnauthorizedException('User not found');
         }
+
+        const { user } = userWithProfile;
+
+        return {
+            user: {
+                id: (user._id as Types.ObjectId).toString(),
+                email: user.email,
+                role: user.role,
+                isFirstLogin: user.isFirstLogin,
+                lastLogin: user.lastLogin,
+            },
+        };
     }
 
 }
