@@ -1,6 +1,6 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Faculty } from 'src/schemas/faculty.schema';
 import { Student, StudentDocument } from 'src/schemas/student.schema';
 import { Status } from 'src/utils/enum';
@@ -104,6 +104,38 @@ export class StudentRepositoryService {
             };
         } catch (error) {
             throw new Error(`Failed to fetch students: ${error.message}`);
+        }
+    }
+
+
+    // Get Student
+    async getStudent(id: string) {
+        try {
+            // Validate if the provided ID is a valid MongoDB ObjectId
+            if (!Types.ObjectId.isValid(id)) {
+                throw new NotFoundException('Invalid student ID format');
+            }
+
+            // Find student by _id and populate userId
+            const student = await this.studentModel
+                .findById(id)
+                .populate('userId', '_id email role isActive isEmailVerified lastLogin createdAt')
+                .exec();
+
+            if (!student) {
+                throw new NotFoundException('Student not found');
+            }
+
+            // Return in array format to match the existing service logic
+            return {
+                students: [student]
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new Error(`Failed to fetch student: ${error.message}`);
         }
     }
 

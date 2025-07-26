@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Faculty, FacultyDocument } from 'src/schemas/faculty.schema';
 import { Status } from 'src/utils/enum';
 
@@ -88,5 +88,36 @@ export class FacultyRepositoryService {
         }
     }
 
+
+    // Get Faculty
+    async getFaculty(id: string) {
+        try {
+            // Validate if the provided ID is a valid MongoDB ObjectId
+            if (!Types.ObjectId.isValid(id)) {
+                throw new NotFoundException('Invalid faculty ID format');
+            }
+
+            // Find faculty by _id and populate userId
+            const faculty = await this.facultyModel
+                .findById(id)
+                .populate('userId', '_id email role isActive isEmailVerified lastLogin createdAt')
+                .exec();
+
+            if (!faculty) {
+                throw new NotFoundException('Faculty not found');
+            }
+
+            // Return in array format to match the existing service logic
+            return {
+                faculty: [faculty]
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new Error(`Failed to fetch faculty: ${error.message}`);
+        }
+    }
 
 }
