@@ -14,7 +14,7 @@ export class CreateStudentController {
         private readonly adminService: AdminService
     ) { }
 
-    @Post('student/create')
+    @Post('create-student')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.ADMIN)
     async createStudent(
