@@ -14,7 +14,7 @@ export class CreateFacultyController {
         private readonly adminService: AdminService
     ) { }
 
-    @Post('/create-faculty')
+    @Post('create-faculty')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.ADMIN)
     async createFaculty(

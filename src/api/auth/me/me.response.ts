@@ -12,7 +12,6 @@ export class MeResponse {
             isFirstLogin: boolean;
             lastLogin: Date;
         };
-        profile: any;
     };
 
 }

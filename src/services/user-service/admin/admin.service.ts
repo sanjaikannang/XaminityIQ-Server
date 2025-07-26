@@ -9,6 +9,13 @@ import { AdminRepositoryService } from 'src/repositories/admin-repository/admin.
 import { PasswordService } from 'src/services/auth-service/password.service';
 import { CreateStudentRequest } from 'src/api/user/admin/create-student/create-student.request';
 import { Types } from 'mongoose';
+import { DeleteFacultyRequest } from 'src/api/user/admin/delete-faculty/delete-faculty.request';
+import { DeleteStudentRequest } from 'src/api/user/admin/delete-student/delete-student.request';
+import { SessionRepositoryService } from 'src/repositories/session-repository/session.repository';
+import { GetAllFacultyRequest } from 'src/api/user/admin/get-all-faculty/get-all-faculty.request';
+import { GetAllStudentRequest } from 'src/api/user/admin/get-all-student/get-all-student.request';
+import { GetFacultyRequest } from 'src/api/user/admin/get-faculty/get-faculty.request';
+import { GetStudentRequest } from 'src/api/user/admin/get-student/get-student.request';
 
 
 @Injectable()
@@ -19,6 +26,7 @@ export class AdminService {
         private readonly studentRepositoryService: StudentRepositoryService,
         private readonly adminRepositoryService: AdminRepositoryService,
         private readonly passwordService: PasswordService,
+        private readonly sessionRepositoryService: SessionRepositoryService
     ) { }
 
 
@@ -39,7 +47,7 @@ export class AdminService {
 
             // Generate default password
             const defaultPassword = this.passwordService.generateRandomPassword();
-            const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+            const hashedPassword = await this.passwordService.hashPassword(defaultPassword);
 
             // Create user
             const userData = {
@@ -179,6 +187,7 @@ export class AdminService {
     }
 
 
+    // Generate Faculty ID
     async generateFacultyId(): Promise<string> {
         const lastFaculty = await this.facultyRepositoryService.findLastFaculty();
         let nextNumber = 1;
@@ -191,6 +200,8 @@ export class AdminService {
         return `FAC${nextNumber.toString().padStart(3, '0')}`;
     }
 
+
+    // Generate Student ID
     async generateStudentId(): Promise<string> {
         const lastStudent = await this.studentRepositoryService.findLastStudent();
         let nextNumber = 1;
@@ -201,6 +212,471 @@ export class AdminService {
         }
 
         return `STU${nextNumber.toString().padStart(3, '0')}`;
+    }
+
+
+    // Delete Faculty API Ednpoint
+    async deleteFacultyAPI(adminId: string, deleteFacultyRequest: DeleteFacultyRequest) {
+        try {
+            // Validate admin exists
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Find the faculty record by ID
+            const faculty = await this.facultyRepositoryService.findById(deleteFacultyRequest.id);
+            if (!faculty) {
+                throw new NotFoundException('Faculty not found');
+            }
+
+            // Get the associated user ID
+            const userId = faculty.userId.toString();
+
+            // Delete all user sessions first
+            await this.sessionRepositoryService.deleteByUserId(userId);
+
+            // Delete the faculty record
+            await this.facultyRepositoryService.findByIdAndDelete(deleteFacultyRequest.id);
+
+            // Delete the associated user record
+            const userDeleted = await this.userRepositoryService.deleteById(userId);
+            if (!userDeleted) {
+                throw new BadRequestException('Failed to delete associated user record');
+            }
+
+            return {
+                success: true,
+                message: "Faculty Deleted Successfully"
+            };
+
+        } catch (error) {
+            if (error instanceof ConflictException || error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to delete faculty user: ' + error.message);
+        }
+    }
+
+
+    // Delete Student API Endpoint
+    async deleteStudentAPI(adminId: string, deleteStudentRequest: DeleteStudentRequest) {
+        try {
+            // Validate admin exists
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Find the student record by ID
+            const student = await this.studentRepositoryService.findById(deleteStudentRequest.id);
+            if (!student) {
+                throw new NotFoundException('Student not found');
+            }
+
+            // Get the associated user ID
+            const userId = student.userId.toString();
+
+            // Delete all user sessions first
+            await this.sessionRepositoryService.deleteByUserId(userId);
+
+            // Delete the student record
+            await this.studentRepositoryService.findByIdAndDelete(deleteStudentRequest.id);
+
+            // Delete the associated user record
+            const userDeleted = await this.userRepositoryService.deleteById(userId);
+            if (!userDeleted) {
+                throw new BadRequestException('Failed to delete associated user record');
+            }
+
+            return {
+                success: true,
+                message: "Student Deleted Successfully"
+            };
+
+        } catch (error) {
+            if (error instanceof ConflictException || error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to delete student user: ' + error.message);
+        }
+    }
+
+
+    // Get All Faculty API Endpoint
+    async getAllFacultyAPI(adminId: string, getAllFacultyRequest: GetAllFacultyRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            const { page = 1, limit = 10 } = getAllFacultyRequest;
+
+            // Get faculty data from repository
+            const result = await this.facultyRepositoryService.getAllFaculty(page, limit);
+
+            const facultyData = result.faculty.map((faculty: any) => {
+
+                const userId = faculty.userId || {};
+                const personalInfo = faculty.personalInfo || {};
+                const contactInfo = faculty.contactInfo || {};
+                const professionalInfo = faculty.professionalInfo || {};
+
+                return {
+                    _id: faculty._id,
+                    status: faculty.status,
+                    facultyId: faculty.facultyId,
+                    joiningDate: faculty.joiningDate,
+                    userId: {
+                        _id: userId._id,
+                        email: userId.email,
+                        role: userId.role,
+                        isActive: userId.isActive,
+                        isEmailVerified: userId.isEmailVerified,
+                        lastLogin: userId.lastLogin,
+                        createdAt: userId.createdAt
+                    },
+                    personalInfo: {
+                        photo: personalInfo.photo,
+                        firstName: personalInfo.firstName,
+                        lastName: personalInfo.lastName,
+                        dateOfBirth: personalInfo.dateOfBirth,
+                        gender: personalInfo.gender,
+                        nationality: personalInfo.nationality,
+                        religion: personalInfo.religion,
+                        maritalStatus: personalInfo.maritalStatus
+                    },
+                    contactInfo: {
+                        phone: contactInfo.phone,
+                        permanentAddress: contactInfo.permanentAddress || {},
+                        currentAddress: contactInfo.currentAddress || {}
+                    },
+                    professionalInfo: {
+                        employeeId: professionalInfo.employeeId,
+                        department: professionalInfo.department,
+                        designation: professionalInfo.designation,
+                        qualification: professionalInfo.qualification || [],
+                        experience: professionalInfo.experience || {}
+                    },
+                };
+            });
+
+            return {
+                faculty: facultyData,
+                pagination: {
+                    currentPage: result.currentPage,
+                    totalPages: result.totalPages,
+                    totalCount: result.totalCount,
+                    hasNextPage: result.hasNextPage,
+                    hasPreviousPage: result.hasPrevPage
+                }
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to retrieve faculty data: ' + error.message);
+        }
+    }
+
+
+    // Get All Student API Endpoint
+    async getAllStudentAPI(adminId: string, getAllStudentRequest: GetAllStudentRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            const { page = 1, limit = 10 } = getAllStudentRequest;
+
+            // Get faculty data from repository
+            const result = await this.studentRepositoryService.getAllStudent(page, limit);
+
+            const studentsData = result.students.map((student: any) => {
+
+                const userId = student.userId || {};
+                const personalInfo = student.personalInfo || {};
+                const contactInfo = student.contactInfo || {};
+                const familyInfo = student.familyInfo || {};
+                const academicInfo = student.academicInfo || {};
+
+                return {
+                    _id: student._id,
+                    status: student.status || '',
+                    studentId: student.studentId || '',
+                    rollNumber: student.rollNumber || '',
+                    userId: {
+                        _id: userId._id,
+                        email: userId.email || '',
+                        role: userId.role || '',
+                        isActive: userId.isActive || false,
+                        isEmailVerified: userId.isEmailVerified || false,
+                        lastLogin: userId.lastLogin,
+                        createdAt: userId.createdAt
+                    },
+                    personalInfo: {
+                        photo: personalInfo.photo,
+                        firstName: personalInfo.firstName || '',
+                        lastName: personalInfo.lastName || '',
+                        dateOfBirth: personalInfo.dateOfBirth,
+                        gender: personalInfo.gender || '',
+                        nationality: personalInfo.nationality,
+                        religion: personalInfo.religion
+                    },
+                    contactInfo: {
+                        phone: contactInfo.phone,
+                        permanentAddress: {
+                            street: contactInfo.permanentAddress?.street || '',
+                            city: contactInfo.permanentAddress?.city || '',
+                            state: contactInfo.permanentAddress?.state || '',
+                            zipCode: contactInfo.permanentAddress?.zipCode || '',
+                            country: contactInfo.permanentAddress?.country
+                        },
+                        currentAddress: contactInfo.currentAddress ? {
+                            street: contactInfo.currentAddress.street,
+                            city: contactInfo.currentAddress.city,
+                            state: contactInfo.currentAddress.state,
+                            zipCode: contactInfo.currentAddress.zipCode,
+                            country: contactInfo.currentAddress.country
+                        } : undefined
+                    },
+                    familyInfo: {
+                        father: {
+                            name: familyInfo.father?.name || '',
+                            occupation: familyInfo.father?.occupation,
+                            phone: familyInfo.father?.phone,
+                            email: familyInfo.father?.email
+                        },
+                        mother: {
+                            name: familyInfo.mother?.name || '',
+                            occupation: familyInfo.mother?.occupation,
+                            phone: familyInfo.mother?.phone,
+                            email: familyInfo.mother?.email
+                        },
+                        guardian: familyInfo.guardian ? {
+                            name: familyInfo.guardian.name,
+                            relationship: familyInfo.guardian.relationship,
+                            phone: familyInfo.guardian.phone,
+                            email: familyInfo.guardian.email
+                        } : undefined
+                    },
+                    academicInfo: {
+                        course: academicInfo.course || '',
+                        branch: academicInfo.branch || '',
+                        semester: academicInfo.semester || 1,
+                        section: academicInfo.section,
+                        batch: academicInfo.batch || '',
+                        admissionYear: academicInfo.admissionYear || new Date().getFullYear(),
+                        expectedGraduationYear: academicInfo.expectedGraduationYear
+                    },
+                };
+            }
+            );
+
+            return {
+                students: studentsData,
+                pagination: {
+                    currentPage: result.currentPage,
+                    totalPages: result.totalPages,
+                    totalCount: result.totalCount,
+                    hasNextPage: result.hasNextPage,
+                    hasPreviousPage: result.hasPrevPage
+                }
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to retrieve student data: ' + error.message);
+        }
+    }
+
+
+    // Get Faculty API Endpoint
+    async getFacultyAPI(adminId: string, getFacultyRequest: GetFacultyRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            const { id } = getFacultyRequest;
+
+            // Get faculty data from repository
+            const result = await this.facultyRepositoryService.getFaculty(id);
+
+            const facultyData = result.faculty.map((faculty: any) => {
+
+                const userId = faculty.userId || {};
+                const personalInfo = faculty.personalInfo || {};
+                const contactInfo = faculty.contactInfo || {};
+                const professionalInfo = faculty.professionalInfo || {};
+
+                return {
+                    _id: faculty._id,
+                    status: faculty.status,
+                    facultyId: faculty.facultyId,
+                    joiningDate: faculty.joiningDate,
+                    userId: {
+                        _id: userId._id,
+                        email: userId.email,
+                        role: userId.role,
+                        isActive: userId.isActive,
+                        isEmailVerified: userId.isEmailVerified,
+                        lastLogin: userId.lastLogin,
+                        createdAt: userId.createdAt
+                    },
+                    personalInfo: {
+                        photo: personalInfo.photo,
+                        firstName: personalInfo.firstName,
+                        lastName: personalInfo.lastName,
+                        dateOfBirth: personalInfo.dateOfBirth,
+                        gender: personalInfo.gender,
+                        nationality: personalInfo.nationality,
+                        religion: personalInfo.religion,
+                        maritalStatus: personalInfo.maritalStatus
+                    },
+                    contactInfo: {
+                        phone: contactInfo.phone,
+                        permanentAddress: contactInfo.permanentAddress || {},
+                        currentAddress: contactInfo.currentAddress || {}
+                    },
+                    professionalInfo: {
+                        employeeId: professionalInfo.employeeId,
+                        department: professionalInfo.department,
+                        designation: professionalInfo.designation,
+                        qualification: professionalInfo.qualification || [],
+                        experience: professionalInfo.experience || {}
+                    },
+                };
+            });
+
+            return {
+                faculty: facultyData,
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to retrieve faculty data: ' + error.message);
+        }
+    }
+
+
+    // Get Student API Endpoint
+    async getStudentAPI(adminId: string, getStudentRequest: GetStudentRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            const { id } = getStudentRequest;
+
+            // Get student data from repository
+            const result = await this.studentRepositoryService.getStudent(id);
+
+            // Transform the data to match response format
+            const studentsData = result.students.map((student: any) => {
+
+                const userId = student.userId || {};
+                const personalInfo = student.personalInfo || {};
+                const contactInfo = student.contactInfo || {};
+                const familyInfo = student.familyInfo || {};
+                const academicInfo = student.academicInfo || {};
+
+                return {
+                    _id: student._id,
+                    status: student.status || '',
+                    studentId: student.studentId || '',
+                    rollNumber: student.rollNumber || '',
+                    userId: {
+                        _id: userId._id,
+                        email: userId.email || '',
+                        role: userId.role || '',
+                        isActive: userId.isActive || false,
+                        isEmailVerified: userId.isEmailVerified || false,
+                        lastLogin: userId.lastLogin,
+                        createdAt: userId.createdAt
+                    },
+                    personalInfo: {
+                        photo: personalInfo.photo,
+                        firstName: personalInfo.firstName || '',
+                        lastName: personalInfo.lastName || '',
+                        dateOfBirth: personalInfo.dateOfBirth,
+                        gender: personalInfo.gender || '',
+                        nationality: personalInfo.nationality,
+                        religion: personalInfo.religion
+                    },
+                    contactInfo: {
+                        phone: contactInfo.phone,
+                        permanentAddress: {
+                            street: contactInfo.permanentAddress?.street || '',
+                            city: contactInfo.permanentAddress?.city || '',
+                            state: contactInfo.permanentAddress?.state || '',
+                            zipCode: contactInfo.permanentAddress?.zipCode || '',
+                            country: contactInfo.permanentAddress?.country
+                        },
+                        currentAddress: contactInfo.currentAddress ? {
+                            street: contactInfo.currentAddress.street,
+                            city: contactInfo.currentAddress.city,
+                            state: contactInfo.currentAddress.state,
+                            zipCode: contactInfo.currentAddress.zipCode,
+                            country: contactInfo.currentAddress.country
+                        } : undefined
+                    },
+                    familyInfo: {
+                        father: {
+                            name: familyInfo.father?.name || '',
+                            occupation: familyInfo.father?.occupation,
+                            phone: familyInfo.father?.phone,
+                            email: familyInfo.father?.email
+                        },
+                        mother: {
+                            name: familyInfo.mother?.name || '',
+                            occupation: familyInfo.mother?.occupation,
+                            phone: familyInfo.mother?.phone,
+                            email: familyInfo.mother?.email
+                        },
+                        guardian: familyInfo.guardian ? {
+                            name: familyInfo.guardian.name,
+                            relationship: familyInfo.guardian.relationship,
+                            phone: familyInfo.guardian.phone,
+                            email: familyInfo.guardian.email
+                        } : undefined
+                    },
+                    academicInfo: {
+                        course: academicInfo.course || '',
+                        branch: academicInfo.branch || '',
+                        semester: academicInfo.semester || 1,
+                        section: academicInfo.section,
+                        batch: academicInfo.batch || '',
+                        admissionYear: academicInfo.admissionYear || new Date().getFullYear(),
+                        expectedGraduationYear: academicInfo.expectedGraduationYear
+                    },
+                };
+            }
+            );
+
+            return {
+                students: studentsData,
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to retrieve student data: ' + error.message);
+        }
     }
 
 }

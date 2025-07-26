@@ -221,4 +221,16 @@ export class SessionRepositoryService {
         }
     }
 
+
+    // Delete by userId
+    async deleteByUserId(userId: string): Promise<{ deletedCount: number }> {
+        return await this.sessionModel.deleteMany({ userId }).exec();
+    }
+
+
+    // Find by UserId
+    async findByUserId(userId: string): Promise<SessionDocument[]> {
+        return await this.sessionModel.find({ userId }).exec();
+    }
+
 }
