@@ -3,22 +3,17 @@ import { Request } from 'express';
 import { ChangePasswordRequest } from './change-password.request';
 import { ChangePasswordResponse } from './change-password.response';
 import { AuthService } from 'src/services/auth-service/auth.service';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 
 @Controller('auth')
 export class ChangePasswordController {
     constructor(private readonly authService: AuthService) { }
 
     @Post('change-password')
-    @UseGuards(JwtAuthGuard)
     async changePassword(
         @Body() changePasswordData: ChangePasswordRequest,
-        @Req() req: Request,
     ) {
         try {
-            const userId = (req as any).user?.sub;
-
-            await this.authService.changePasswordAPI(userId, changePasswordData);
+            await this.authService.changePasswordAPI(changePasswordData);
 
             const response: ChangePasswordResponse = {
                 success: true,

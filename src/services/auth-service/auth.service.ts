@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PasswordService } from './password.service';
 import { AuthJwtService } from './jwt.service';
 import { Types } from "mongoose";
@@ -22,50 +22,46 @@ export class AuthService {
 
     // Login API Endpoint
     async loginAPI(loginData: LoginRequest, userAgent: string, ipAddress: string) {
-        try {
-            const { email, password } = loginData;
+        const { email, password } = loginData;
 
-            // Find user by email
-            const user = await this.userRepositoryService.findUserByEmail(email);
-            if (!user) {
-                throw new UnauthorizedException('Invalid email or password');
-            }
-
-            // Verify password
-            const isPasswordValid = await this.passwordService.comparePassword(password, user.password);
-            if (!isPasswordValid) {
-                throw new UnauthorizedException('Invalid email or password');
-            }
-
-            // Generate tokens
-            const sessionId = await this.sessionService.createUserSession(user, userAgent, ipAddress);
-
-            // Get the tokens from the session
-            const tokens = await this.sessionRepositoryService.getTokensBySessionId(sessionId);
-
-            if (!tokens) {
-                throw new UnauthorizedException('Failed to create session');
-            }
-
-            // Update last login
-            await this.userRepositoryService.updateLastLogin((user._id as Types.ObjectId).toString());
-
-            return {
-                user: {
-                    id: (user._id as Types.ObjectId).toString(),
-                    email: user.email,
-                    role: user.role,
-                    isFirstLogin: user.isFirstLogin,
-                },
-                tokens: {
-                    accessToken: tokens.accessToken,
-                    refreshToken: tokens.refreshToken,
-                },
-                sessionId,
-            };
-        } catch (error) {
-            throw new UnauthorizedException('Login failed');
+        // Find user by email
+        const user = await this.userRepositoryService.findUserByEmail(email);
+        if (!user) {
+            throw new UnauthorizedException('Invalid email or password');
         }
+
+        // Verify password
+        const isPasswordValid = await this.passwordService.comparePassword(password, user.password);
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Invalid email or password');
+        }
+
+        // Generate tokens
+        const sessionId = await this.sessionService.createUserSession(user, userAgent, ipAddress);
+
+        // Get the tokens from the session
+        const tokens = await this.sessionRepositoryService.getTokensBySessionId(sessionId);
+
+        if (!tokens) {
+            throw new UnauthorizedException('Failed to create session');
+        }
+
+        // Update last login
+        await this.userRepositoryService.updateLastLogin((user._id as Types.ObjectId).toString());
+
+        return {
+            user: {
+                id: (user._id as Types.ObjectId).toString(),
+                email: user.email,
+                role: user.role,
+                isFirstLogin: user.isFirstLogin,
+            },
+            tokens: {
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+            },
+            sessionId,
+        };
     }
 
 
@@ -121,80 +117,45 @@ export class AuthService {
 
 
     // Change Password API Endpoint
-    async changePasswordAPI(userId: string, changePasswordData: ChangePasswordRequest) {
-        try {
-            const { currentPassword, newPassword, confirmPassword } = changePasswordData;
+    async changePasswordAPI(changePasswordData: ChangePasswordRequest) {
+        const { email, currentPassword, newPassword, confirmPassword } = changePasswordData;
 
-            if (newPassword !== confirmPassword) {
-                throw new BadRequestException('New password and confirm password do not match');
-            }
-
-            // Find user
-            const user = await this.userRepositoryService.findUserById(userId);
-            if (!user) {
-                throw new UnauthorizedException('User not found');
-            }
-
-            // Verify current password
-            const isCurrentPasswordValid = await this.passwordService.comparePassword(currentPassword, user.password);
-            if (!isCurrentPasswordValid) {
-                throw new UnauthorizedException('Current password is incorrect');
-            }
-
-            // Validate new password strength
-            const passwordValidation = this.passwordService.validatePasswordStrength(newPassword);
-            if (!passwordValidation.isValid) {
-                throw new BadRequestException(passwordValidation.message);
-            }
-
-            // Hash new password
-            const hashedPassword = await this.passwordService.hashPassword(newPassword);
-
-            // Update password
-            await this.userRepositoryService.updateUserPassword(userId, hashedPassword);
-
-            return {
-                message: 'Password changed successfully'
-            };
-        } catch (error) {
-            throw new UnauthorizedException('Failed to change password');
+        if (newPassword !== confirmPassword) {
+            throw new BadRequestException('New password and confirm password do not match');
         }
-    }
 
-
-    // Reset Password API Endpoint
-    async resetPasswordAPI(email: string) {
-        try {
-            const user = await this.userRepositoryService.findUserByEmail(email);
-            if (!user) {
-                // Don't reveal if email exists or not
-                return { message: 'If the email exists, password reset instructions have been sent' };
-            }
-
-            // Generate new temporary password
-            const newPassword = this.passwordService.generateRandomPassword();
-            const hashedPassword = await this.passwordService.hashPassword(newPassword);
-
-            // Update user with new password and set first login flag
-            await this.userRepositoryService.updateUser((user._id as Types.ObjectId).toString(), {
-                password: hashedPassword,
-                isFirstLogin: true,
-                isPasswordReset: true,
-            });
-
-            // Invalidate all sessions
-            await this.sessionService.deleteAllUserSessions((user._id as Types.ObjectId).toString(),);
-            await this.sessionRepositoryService.deactivateAllUserSessions((user._id as Types.ObjectId).toString(),);
-
-            // In a real application, you would send this password via email
-            // For now, we'll return it in the response (remove this in production)
-            return {
-                message: 'Password has been reset successfully',
-                temporaryPassword: newPassword // Remove this in production
-            };
-        } catch (error) {
-            throw new UnauthorizedException('Failed to change password');
+        // Find user by email instead of userId
+        const user = await this.userRepositoryService.findUserByEmail(email);
+        if (!user) {
+            throw new UnauthorizedException('User not found');
         }
+
+        // Check if user has already changed password
+        if (!user.isFirstLogin) {
+            throw new BadRequestException('You have already changed your password. Please use the login to access your account.');
+        }
+
+        // Verify current password
+        const isCurrentPasswordValid = await this.passwordService.comparePassword(currentPassword, user.password);
+        if (!isCurrentPasswordValid) {
+            throw new UnauthorizedException('Current password is incorrect');
+        }
+
+        // Validate new password strength
+        const passwordValidation = this.passwordService.validatePasswordStrength(newPassword);
+        if (!passwordValidation.isValid) {
+            throw new BadRequestException(passwordValidation.message);
+        }
+
+        // Hash new password
+        const hashedPassword = await this.passwordService.hashPassword(newPassword);
+
+        // Update password
+        await this.userRepositoryService.updateUserPassword((user._id as Types.ObjectId).toString(), hashedPassword);
+
+        return {
+            message: 'Password changed successfully'
+        };
     }
 
 
@@ -217,32 +178,24 @@ export class AuthService {
 
     // GetMe API Endpoint
     async getMeAPI(userId: string) {
-        try {
-            const userWithProfile = await this.userRepositoryService.getUserWithProfile(userId);
-            if (!userWithProfile) {
-                throw new UnauthorizedException('User not found');
-            }
 
-            const { user, profile } = userWithProfile;
+        const userWithProfile = await this.userRepositoryService.getUserWithProfile(userId);
 
-            return {
-                user: {
-                    id: (user._id as Types.ObjectId).toString(),
-                    email: user.email,
-                    role: user.role,
-                    isFirstLogin: user.isFirstLogin,
-                    lastLogin: user.lastLogin,
-                },
-                profile: {
-                    firstName: profile.firstName,
-                    lastName: profile.lastName,
-                    phone: profile.phone,
-                    address: profile.address,
-                },
-            };
-        } catch (error) {
-            throw new UnauthorizedException('Failed to get user data');
+        if (!userWithProfile) {
+            throw new UnauthorizedException('User not found');
         }
+
+        const { user } = userWithProfile;
+
+        return {
+            user: {
+                id: (user._id as Types.ObjectId).toString(),
+                email: user.email,
+                role: user.role,
+                isFirstLogin: user.isFirstLogin,
+                lastLogin: user.lastLogin,
+            },
+        };
     }
 
 }

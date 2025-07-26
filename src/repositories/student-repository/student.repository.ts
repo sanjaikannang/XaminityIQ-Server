@@ -1,6 +1,6 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Faculty } from 'src/schemas/faculty.schema';
 import { Student, StudentDocument } from 'src/schemas/student.schema';
 import { Status } from 'src/utils/enum';
@@ -59,5 +59,84 @@ export class StudentRepositoryService {
         }
     }
 
+
+    // Find by Id
+    async findById(id: string): Promise<StudentDocument | null> {
+        return await this.studentModel.findById(id).exec();
+    }
+
+
+    // Find By Id and Delete
+    async findByIdAndDelete(id: string): Promise<StudentDocument | null> {
+        return await this.studentModel.findByIdAndDelete(id).exec();
+    }
+
+
+    // Get All Student
+    async getAllStudent(page: number, limit: number) {
+        try {
+            const skip = (page - 1) * limit;
+
+            // Get total count
+            const totalCount = await this.studentModel.countDocuments().exec();
+
+            // Get students with pagination and population
+            const students = await this.studentModel
+                .find()
+                .populate('userId', '_id email role isActive isEmailVerified lastLogin createdAt')
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 }) // Sort by newest first
+                .exec();
+
+            // Calculate pagination info
+            const totalPages = Math.ceil(totalCount / limit);
+            const hasNextPage = page < totalPages;
+            const hasPrevPage = page > 1;
+
+            return {
+                students,
+                currentPage: page,
+                totalPages,
+                totalCount,
+                hasNextPage,
+                hasPrevPage,
+            };
+        } catch (error) {
+            throw new Error(`Failed to fetch students: ${error.message}`);
+        }
+    }
+
+
+    // Get Student
+    async getStudent(id: string) {
+        try {
+            // Validate if the provided ID is a valid MongoDB ObjectId
+            if (!Types.ObjectId.isValid(id)) {
+                throw new NotFoundException('Invalid student ID format');
+            }
+
+            // Find student by _id and populate userId
+            const student = await this.studentModel
+                .findById(id)
+                .populate('userId', '_id email role isActive isEmailVerified lastLogin createdAt')
+                .exec();
+
+            if (!student) {
+                throw new NotFoundException('Student not found');
+            }
+
+            // Return in array format to match the existing service logic
+            return {
+                students: [student]
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new Error(`Failed to fetch student: ${error.message}`);
+        }
+    }
 
 }

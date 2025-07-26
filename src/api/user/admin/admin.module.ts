@@ -22,11 +22,19 @@ import { SessionService } from 'src/services/auth-service/session.service';
 // Controllers
 import { CreateFacultyController } from './create-faculty/create-faculty.controller';
 import { CreateStudentController } from './create-student/create-student.controller';
+import { DeleteFacultyController } from './delete-faculty/delete-faculty.controller';
+import { DeleteStudentController } from './delete-student/delete-student.controller';
+import { GetAllFacultyController } from './get-all-faculty/get-all-faculty.controller';
+import { GetAllStudentController } from './get-all-student/get-all-student.controller';
+import { GetFacultyController } from './get-faculty/get-faculty.controller';
+import { GetStudentController } from './get-student/get-student.controller';
+
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
 import { RepositoryModule } from 'src/repositories/repository.module';
 import { JwtModule } from '@nestjs/jwt';
+
 
 @Module({
     imports: [
@@ -51,7 +59,13 @@ import { JwtModule } from '@nestjs/jwt';
     ],
     controllers: [
         CreateFacultyController,
-        CreateStudentController
+        CreateStudentController,
+        DeleteFacultyController,
+        DeleteStudentController,
+        GetAllFacultyController,
+        GetAllStudentController,
+        GetFacultyController,
+        GetStudentController
     ],
     providers: [
         ConfigService,
