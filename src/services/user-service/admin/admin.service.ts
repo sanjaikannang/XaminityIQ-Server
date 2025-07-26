@@ -13,6 +13,7 @@ import { DeleteFacultyRequest } from 'src/api/user/admin/delete-faculty/delete-f
 import { DeleteStudentRequest } from 'src/api/user/admin/delete-student/delete-student.request';
 import { SessionRepositoryService } from 'src/repositories/session-repository/session.repository';
 import { GetAllFacultyRequest } from 'src/api/user/admin/get-all-faculty/get-all-faculty.request';
+import { GetAllStudentRequest } from 'src/api/user/admin/get-all-student/get-all-student.request';
 
 
 @Injectable()
@@ -376,6 +377,121 @@ export class AdminService {
                 throw error;
             }
             throw new BadRequestException('Failed to retrieve faculty data: ' + error.message);
+        }
+    }
+
+
+    // Get All Student API Endpoint
+    async getAllStudentAPI(adminId: string, getAllStudentRequest: GetAllStudentRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            const { page = 1, limit = 10 } = getAllStudentRequest;
+
+            // Get faculty data from repository
+            const result = await this.studentRepositoryService.getAllStudent(page, limit);
+
+            const studentsData = result.students.map((student: any) => {
+
+                const userId = student.userId || {};
+                const personalInfo = student.personalInfo || {};
+                const contactInfo = student.contactInfo || {};
+                const familyInfo = student.familyInfo || {};
+                const academicInfo = student.academicInfo || {};
+
+                return {
+                    _id: student._id,
+                    status: student.status || '',
+                    studentId: student.studentId || '',
+                    rollNumber: student.rollNumber || '',
+                    userId: {
+                        _id: userId._id,
+                        email: userId.email || '',
+                        role: userId.role || '',
+                        isActive: userId.isActive || false,
+                        isEmailVerified: userId.isEmailVerified || false,
+                        lastLogin: userId.lastLogin,
+                        createdAt: userId.createdAt
+                    },
+                    personalInfo: {
+                        photo: personalInfo.photo,
+                        firstName: personalInfo.firstName || '',
+                        lastName: personalInfo.lastName || '',
+                        dateOfBirth: personalInfo.dateOfBirth,
+                        gender: personalInfo.gender || '',
+                        nationality: personalInfo.nationality,
+                        religion: personalInfo.religion
+                    },
+                    contactInfo: {
+                        phone: contactInfo.phone,
+                        permanentAddress: {
+                            street: contactInfo.permanentAddress?.street || '',
+                            city: contactInfo.permanentAddress?.city || '',
+                            state: contactInfo.permanentAddress?.state || '',
+                            zipCode: contactInfo.permanentAddress?.zipCode || '',
+                            country: contactInfo.permanentAddress?.country
+                        },
+                        currentAddress: contactInfo.currentAddress ? {
+                            street: contactInfo.currentAddress.street,
+                            city: contactInfo.currentAddress.city,
+                            state: contactInfo.currentAddress.state,
+                            zipCode: contactInfo.currentAddress.zipCode,
+                            country: contactInfo.currentAddress.country
+                        } : undefined
+                    },
+                    familyInfo: {
+                        father: {
+                            name: familyInfo.father?.name || '',
+                            occupation: familyInfo.father?.occupation,
+                            phone: familyInfo.father?.phone,
+                            email: familyInfo.father?.email
+                        },
+                        mother: {
+                            name: familyInfo.mother?.name || '',
+                            occupation: familyInfo.mother?.occupation,
+                            phone: familyInfo.mother?.phone,
+                            email: familyInfo.mother?.email
+                        },
+                        guardian: familyInfo.guardian ? {
+                            name: familyInfo.guardian.name,
+                            relationship: familyInfo.guardian.relationship,
+                            phone: familyInfo.guardian.phone,
+                            email: familyInfo.guardian.email
+                        } : undefined
+                    },
+                    academicInfo: {
+                        course: academicInfo.course || '',
+                        branch: academicInfo.branch || '',
+                        semester: academicInfo.semester || 1,
+                        section: academicInfo.section,
+                        batch: academicInfo.batch || '',
+                        admissionYear: academicInfo.admissionYear || new Date().getFullYear(),
+                        expectedGraduationYear: academicInfo.expectedGraduationYear
+                    },
+                };
+            }
+            );
+
+            return {
+                students: studentsData,
+                pagination: {
+                    currentPage: result.currentPage,
+                    totalPages: result.totalPages,
+                    totalCount: result.totalCount,
+                    hasNextPage: result.hasNextPage,
+                    hasPreviousPage: result.hasPrevPage
+                }
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to retrieve student data: ' + error.message);
         }
     }
 

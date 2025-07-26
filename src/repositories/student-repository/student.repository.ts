@@ -72,5 +72,39 @@ export class StudentRepositoryService {
     }
 
 
+    // Get All Student
+    async getAllStudent(page: number, limit: number) {
+        try {
+            const skip = (page - 1) * limit;
+
+            // Get total count
+            const totalCount = await this.studentModel.countDocuments().exec();
+
+            // Get students with pagination and population
+            const students = await this.studentModel
+                .find()
+                .populate('userId', '_id email role isActive isEmailVerified lastLogin createdAt')
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 }) // Sort by newest first
+                .exec();
+
+            // Calculate pagination info
+            const totalPages = Math.ceil(totalCount / limit);
+            const hasNextPage = page < totalPages;
+            const hasPrevPage = page > 1;
+
+            return {
+                students,
+                currentPage: page,
+                totalPages,
+                totalCount,
+                hasNextPage,
+                hasPrevPage,
+            };
+        } catch (error) {
+            throw new Error(`Failed to fetch students: ${error.message}`);
+        }
+    }
 
 }
