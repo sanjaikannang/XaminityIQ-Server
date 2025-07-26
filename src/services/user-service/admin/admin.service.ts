@@ -14,6 +14,7 @@ import { DeleteStudentRequest } from 'src/api/user/admin/delete-student/delete-s
 import { SessionRepositoryService } from 'src/repositories/session-repository/session.repository';
 import { GetAllFacultyRequest } from 'src/api/user/admin/get-all-faculty/get-all-faculty.request';
 import { GetAllStudentRequest } from 'src/api/user/admin/get-all-student/get-all-student.request';
+import { GetFacultyRequest } from 'src/api/user/admin/get-faculty/get-faculty.request';
 
 
 @Injectable()
@@ -492,6 +493,79 @@ export class AdminService {
                 throw error;
             }
             throw new BadRequestException('Failed to retrieve student data: ' + error.message);
+        }
+    }
+
+
+    // Get Faculty API Endpoint
+    async getFacultyAPI(adminId: string, getFacultyRequest: GetFacultyRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            const { id } = getFacultyRequest;
+
+            // Get faculty data from repository
+            const result = await this.facultyRepositoryService.getFaculty(id);
+
+            const facultyData = result.faculty.map((faculty: any) => {
+
+                const userId = faculty.userId || {};
+                const personalInfo = faculty.personalInfo || {};
+                const contactInfo = faculty.contactInfo || {};
+                const professionalInfo = faculty.professionalInfo || {};
+
+                return {
+                    _id: faculty._id,
+                    status: faculty.status,
+                    facultyId: faculty.facultyId,
+                    joiningDate: faculty.joiningDate,
+                    userId: {
+                        _id: userId._id,
+                        email: userId.email,
+                        role: userId.role,
+                        isActive: userId.isActive,
+                        isEmailVerified: userId.isEmailVerified,
+                        lastLogin: userId.lastLogin,
+                        createdAt: userId.createdAt
+                    },
+                    personalInfo: {
+                        photo: personalInfo.photo,
+                        firstName: personalInfo.firstName,
+                        lastName: personalInfo.lastName,
+                        dateOfBirth: personalInfo.dateOfBirth,
+                        gender: personalInfo.gender,
+                        nationality: personalInfo.nationality,
+                        religion: personalInfo.religion,
+                        maritalStatus: personalInfo.maritalStatus
+                    },
+                    contactInfo: {
+                        phone: contactInfo.phone,
+                        permanentAddress: contactInfo.permanentAddress || {},
+                        currentAddress: contactInfo.currentAddress || {}
+                    },
+                    professionalInfo: {
+                        employeeId: professionalInfo.employeeId,
+                        department: professionalInfo.department,
+                        designation: professionalInfo.designation,
+                        qualification: professionalInfo.qualification || [],
+                        experience: professionalInfo.experience || {}
+                    },
+                };
+            });
+
+            return {
+                faculty: facultyData,
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to retrieve faculty data: ' + error.message);
         }
     }
 

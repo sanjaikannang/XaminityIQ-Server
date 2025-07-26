@@ -26,6 +26,7 @@ import { DeleteFacultyController } from './delete-faculty/delete-faculty.control
 import { DeleteStudentController } from './delete-student/delete-student.controller';
 import { GetAllFacultyController } from './get-all-faculty/get-all-faculty.controller';
 import { GetAllStudentController } from './get-all-student/get-all-student.controller';
+import { GetFacultyController } from './get-faculty/get-faculty.controller';
 
 
 // Modules
@@ -61,7 +62,8 @@ import { JwtModule } from '@nestjs/jwt';
         DeleteFacultyController,
         DeleteStudentController,
         GetAllFacultyController,
-        GetAllStudentController
+        GetAllStudentController,
+        GetFacultyController,
     ],
     providers: [
         ConfigService,
