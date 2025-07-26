@@ -39,7 +39,7 @@ export class AdminService {
 
             // Generate default password
             const defaultPassword = this.passwordService.generateRandomPassword();
-            const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+            const hashedPassword = await this.passwordService.hashPassword(defaultPassword);
 
             // Create user
             const userData = {

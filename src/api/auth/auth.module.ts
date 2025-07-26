@@ -21,7 +21,6 @@ import { LoginController } from './login/login.controller';
 import { LogoutController } from './logout/logout.controller';
 import { RefreshTokenController } from './refresh-token/refresh-token.controller';
 import { ChangePasswordController } from './change-password/change-password.controller';
-import { ResetPasswordController } from './reset-password/reset-password.controller';
 import { MeController } from './me/me.controller';
 
 // Guards
@@ -56,7 +55,6 @@ import { RepositoryModule } from 'src/repositories/repository.module';
         LogoutController,
         RefreshTokenController,
         ChangePasswordController,
-        ResetPasswordController,
         MeController,
     ],
     providers: [
