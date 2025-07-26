@@ -35,4 +35,21 @@ export class FacultyRepositoryService {
     }
 
 
+    async findById(id: string): Promise<FacultyDocument | null> {
+        return await this.facultyModel.findById(id).exec();
+    }
+
+    async findByIdAndDelete(id: string): Promise<FacultyDocument | null> {
+        return await this.facultyModel.findByIdAndDelete(id).exec();
+    }
+
+    async findByUserId(userId: string): Promise<FacultyDocument | null> {
+        return await this.facultyModel.findOne({ userId }).exec();
+    }
+
+    async deleteByUserId(userId: string): Promise<FacultyDocument | null> {
+        return await this.facultyModel.findOneAndDelete({ userId }).exec();
+    }
+
+
 }

@@ -60,4 +60,17 @@ export class StudentRepositoryService {
     }
 
 
+    // Find by Id
+    async findById(id: string): Promise<StudentDocument | null> {
+        return await this.studentModel.findById(id).exec();
+    }
+
+
+    // Find By Id and Delete
+    async findByIdAndDelete(id: string): Promise<StudentDocument | null> {
+        return await this.studentModel.findByIdAndDelete(id).exec();
+    }
+
+
+
 }

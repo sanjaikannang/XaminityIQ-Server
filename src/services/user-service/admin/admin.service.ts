@@ -9,6 +9,9 @@ import { AdminRepositoryService } from 'src/repositories/admin-repository/admin.
 import { PasswordService } from 'src/services/auth-service/password.service';
 import { CreateStudentRequest } from 'src/api/user/admin/create-student/create-student.request';
 import { Types } from 'mongoose';
+import { DeleteFacultyRequest } from 'src/api/user/admin/delete-faculty/delete-faculty.request';
+import { DeleteStudentRequest } from 'src/api/user/admin/delete-student/delete-student.request';
+import { SessionRepositoryService } from 'src/repositories/session-repository/session.repository';
 
 
 @Injectable()
@@ -19,6 +22,7 @@ export class AdminService {
         private readonly studentRepositoryService: StudentRepositoryService,
         private readonly adminRepositoryService: AdminRepositoryService,
         private readonly passwordService: PasswordService,
+        private readonly sessionRepositoryService: SessionRepositoryService
     ) { }
 
 
@@ -179,6 +183,7 @@ export class AdminService {
     }
 
 
+    // Generate Faculty ID
     async generateFacultyId(): Promise<string> {
         const lastFaculty = await this.facultyRepositoryService.findLastFaculty();
         let nextNumber = 1;
@@ -191,6 +196,8 @@ export class AdminService {
         return `FAC${nextNumber.toString().padStart(3, '0')}`;
     }
 
+
+    // Generate Student ID
     async generateStudentId(): Promise<string> {
         const lastStudent = await this.studentRepositoryService.findLastStudent();
         let nextNumber = 1;
@@ -203,4 +210,91 @@ export class AdminService {
         return `STU${nextNumber.toString().padStart(3, '0')}`;
     }
 
+
+    // Delete Faculty API Ednpoint
+    async deleteFacultyAPI(adminId: string, deleteFacultyRequest: DeleteFacultyRequest) {
+        try {
+            // Validate admin exists
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Find the faculty record by ID
+            const faculty = await this.facultyRepositoryService.findById(deleteFacultyRequest.id);
+            if (!faculty) {
+                throw new NotFoundException('Faculty not found');
+            }
+
+            // Get the associated user ID
+            const userId = faculty.userId.toString();
+
+            // Delete all user sessions first
+            await this.sessionRepositoryService.deleteByUserId(userId);
+
+            // Delete the faculty record
+            await this.facultyRepositoryService.findByIdAndDelete(deleteFacultyRequest.id);
+
+            // Delete the associated user record
+            const userDeleted = await this.userRepositoryService.deleteById(userId);
+            if (!userDeleted) {
+                throw new BadRequestException('Failed to delete associated user record');
+            }
+
+            return {
+                success: true,
+                message: "Faculty Deleted Successfully"
+            };
+
+        } catch (error) {
+            if (error instanceof ConflictException || error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to delete faculty user: ' + error.message);
+        }
+    }
+
+
+    // Delete Student API Endpoint
+    async deleteStudentAPI(adminId: string, deleteStudentRequest: DeleteStudentRequest) {
+        try {
+            // Validate admin exists
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Find the student record by ID
+            const student = await this.studentRepositoryService.findById(deleteStudentRequest.id);
+            if (!student) {
+                throw new NotFoundException('Student not found');
+            }
+
+            // Get the associated user ID
+            const userId = student.userId.toString();
+
+            // Delete all user sessions first
+            await this.sessionRepositoryService.deleteByUserId(userId);
+
+            // Delete the student record
+            await this.studentRepositoryService.findByIdAndDelete(deleteStudentRequest.id);
+
+            // Delete the associated user record
+            const userDeleted = await this.userRepositoryService.deleteById(userId);
+            if (!userDeleted) {
+                throw new BadRequestException('Failed to delete associated user record');
+            }
+
+            return {
+                success: true,
+                message: "Student Deleted Successfully"
+            };
+
+        } catch (error) {
+            if (error instanceof ConflictException || error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to delete student user: ' + error.message);
+        }
+    }
 }

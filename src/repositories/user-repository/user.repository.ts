@@ -163,4 +163,17 @@ export class UserRepositoryService {
         }
     }
 
+
+    // Find by ID and Delete
+    async findByIdAndDelete(id: string): Promise<UserDocument | null> {
+        return await this.userModel.findByIdAndDelete(id).exec();
+    }
+
+
+    // Delete by ID
+    async deleteById(id: string): Promise<boolean> {
+        const result = await this.userModel.deleteOne({ _id: id }).exec();
+        return result.deletedCount > 0;
+    }
+
 }
