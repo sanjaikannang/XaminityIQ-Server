@@ -42,9 +42,7 @@ export class Exam {
             startDate: { type: Date, required: true },
             endDate: { type: Date, required: true },
             duration: { type: Number, required: true }, // in minutes
-            timeZone: { type: String, default: 'Asia/Kolkata' },
-            allowLateSubmission: { type: Boolean, default: false },
-            lateSubmissionPenalty: { type: Number, default: 0 }, // percentage penalty
+            timeZone: { type: String, default: 'Asia/Kolkata' }          
         },
         required: true
     })
