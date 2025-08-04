@@ -32,3 +32,31 @@ export enum Status {
   GRADUATED = 'Graduated',
   DROPPED = 'Dropped',
 }
+
+export enum ExamMode {
+  AUTO = 'AUTO',
+  PROCTORED = 'PROCTORED'
+}
+
+export enum ExamStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
+}
+
+export enum QuestionType {
+  MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+  SINGLE_CHOICE = 'SINGLE_CHOICE',
+  TRUE_FALSE = 'TRUE_FALSE',
+  FILL_BLANK = 'FILL_BLANK',
+  ESSAY = 'ESSAY',
+  CODING = 'CODING'
+}
+
+export enum DifficultyLevel {
+  EASY = 'EASY',
+  MEDIUM = 'MEDIUM',
+  HARD = 'HARD'
+}

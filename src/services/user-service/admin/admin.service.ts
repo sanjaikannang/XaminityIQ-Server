@@ -16,6 +16,7 @@ import { GetAllFacultyRequest } from 'src/api/user/admin/get-all-faculty/get-all
 import { GetAllStudentRequest } from 'src/api/user/admin/get-all-student/get-all-student.request';
 import { GetFacultyRequest } from 'src/api/user/admin/get-faculty/get-faculty.request';
 import { GetStudentRequest } from 'src/api/user/admin/get-student/get-student.request';
+import { CreateExamRequest } from 'src/api/user/admin/create-exam/create-exam.request';
 
 
 @Injectable()
@@ -677,6 +678,12 @@ export class AdminService {
             }
             throw new BadRequestException('Failed to retrieve student data: ' + error.message);
         }
+    }
+
+
+    // Create Exam API Endpoint
+    async createExamAPI(adminId: string, createExamData: CreateExamRequest) {
+
     }
 
 }
