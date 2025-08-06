@@ -6,11 +6,14 @@ export type CourseDocument = Course & Document;
 
 @Schema({ timestamps: true })
 export class Course {
-    @Prop({ required: true, unique: true })
-    courseCode: string; // e.g., "BSC", "MCA", "BCA"
+    @Prop({ required: true })
+    name: string; // e.g., "B.Sc", "B.Com", "MCA", "BCA"
 
     @Prop({ required: true })
-    courseName: string; // e.g., "Bachelor of Science", "Master of Computer Applications"
+    fullName: string; // e.g., "Bachelor of Science", "Bachelor of Commerce"
+
+    @Prop({ type: Types.ObjectId, ref: 'Batch', required: true })
+    batchId: Types.ObjectId;
 
     @Prop({ required: true, min: 1 })
     totalSemesters: number; // e.g., 6 for BSC, 4 for MCA
@@ -34,6 +37,11 @@ export class Course {
 export const CourseSchema = SchemaFactory.createForClass(Course);
 
 // Indexes
-CourseSchema.index({ courseCode: 1 });
+CourseSchema.index({ name: 1 });
+CourseSchema.index({ batchId: 1 });
 CourseSchema.index({ status: 1 });
 CourseSchema.index({ courseType: 1 });
+
+// Compound indexes
+CourseSchema.index({ batchId: 1, status: 1 });
+CourseSchema.index({ batchId: 1, name: 1 });
