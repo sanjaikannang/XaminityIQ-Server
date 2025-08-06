@@ -5,30 +5,31 @@ import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/roles.decorator';
 import { AdminService } from 'src/services/user-service/admin/admin.service';
-import { GetSectionsByBranchRequest } from './get-sections-by-branch.request';
-import { GetSectionsByBranchResponse } from './get-sections-by-branch.response';
+import { GetCoursesByBatchRequest } from './get-courses-by-batch.request';
+import { GetCoursesByBatchResponse } from './get-courses-by-batch.response';
+
 
 @Controller('admin')
-export class GetSectionsByBranchController {
+export class GetCoursesByBatchController {
     constructor(
         private readonly adminService: AdminService
     ) { }
 
-    @Post('get-sections-by-branch')
+    @Post('get-courses-by-batch')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.ADMIN)
-    async getSectionsByBranch(
-        @Body() getSectionsByBranchData: GetSectionsByBranchRequest,
+    async getCoursesByBatch(
+        @Body() getCoursesByBatchData: GetCoursesByBatchRequest,
         @Req() req: Request,
     ) {
         try {
             const adminId = (req as any).user?.sub;
 
-            const result = await this.adminService.getSectionsByBranchAPI(adminId, getSectionsByBranchData);
+            const result = await this.adminService.getCoursesByBatchAPI(adminId, getCoursesByBatchData);
 
-            const response: GetSectionsByBranchResponse = {
+            const response: GetCoursesByBatchResponse = {
                 success: true,
-                message: 'Sections fetched successfully',
+                message: 'Courses fetched successfully',
                 data: result,
             };
 
@@ -37,7 +38,7 @@ export class GetSectionsByBranchController {
         } catch (error) {
             ({
                 success: false,
-                message: error.message || 'Failed to fetch sections',
+                message: error.message || 'Failed to fetch courses',
             });
 
         }

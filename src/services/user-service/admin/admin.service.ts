@@ -17,6 +17,14 @@ import { GetAllStudentRequest } from 'src/api/user/admin/get-all-student/get-all
 import { GetFacultyRequest } from 'src/api/user/admin/get-faculty/get-faculty.request';
 import { GetStudentRequest } from 'src/api/user/admin/get-student/get-student.request';
 import { CreateExamRequest } from 'src/api/user/admin/create-exam/create-exam.request';
+import { CreateBatchRequest } from 'src/api/user/admin/create-batch/create-batch.request';
+import { CreateCourseRequest } from 'src/api/user/admin/create-course/create-course.request';
+import { CreateBranchRequest } from 'src/api/user/admin/create-branch/create-branch.request';
+import { CreateSectionRequest } from 'src/api/user/admin/create-section/create-section.request';
+import { GetBatchesRequest } from 'src/api/user/admin/get-batches/get-batches.request';
+import { GetBranchesByCourseRequest } from 'src/api/user/admin/get-branches-by-course/get-branches-by-course.request';
+import { GetCoursesByBatchRequest } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.request';
+import { GetSectionsByBranchRequest } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.request';
 
 
 @Injectable()
@@ -684,6 +692,87 @@ export class AdminService {
     // Create Exam API Endpoint
     async createExamAPI(adminId: string, createExamData: CreateExamRequest) {
 
+    }
+
+
+    // Create Batch API Endpoint 
+    async createBatchAPI(adminId: string, createBatchData: CreateBatchRequest) {
+        try {
+
+        } catch (error) {
+
+        }
+    }
+
+
+    // Create Course API Endpoint
+    async createCourseAPI(adminId: string, createCourseData: CreateCourseRequest) {
+        try {
+
+        } catch (error) {
+
+        }
+    }
+
+
+    // Create Branch API Endpoint
+    async createBranchAPI(adminId: string, createBranchData: CreateBranchRequest) {
+        try {
+
+        } catch (error) {
+
+        }
+    }
+
+
+    // Create Section API Endpoint
+    async createSectionAPI(adminId: string, createSectionData: CreateSectionRequest) {
+        try {
+
+        } catch (error) {
+
+        }
+    }
+
+
+    // Get Batches API Endpoint
+    async getBatchesAPI(adminId: string, getBatchesData: GetBatchesRequest) {
+        try {
+
+        } catch (error) {
+
+        }
+
+    }
+
+
+    // Get Branches By Course API Endpoint
+    async getBranchesByCourseAPI(adminId: string, getBranchesByCourseData: GetBranchesByCourseRequest) {
+        try {
+
+        } catch (error) {
+
+        }
+    }
+
+
+    // Get Courses By Batch API Endpoint
+    async getCoursesByBatchAPI(adminId: string, getCoursesByBatchData: GetCoursesByBatchRequest) {
+        try {
+
+        } catch (error) {
+
+        }
+    }
+
+
+    // Get Sections By Branch API Endpoint
+    async getSectionsByBranchAPI(adminId: string, getSectionsByBranchData: GetSectionsByBranchRequest) {
+        try {
+
+        } catch (error) {
+
+        }
     }
 
 }
