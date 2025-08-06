@@ -34,6 +34,14 @@ import { GetStudentController } from './get-student/get-student.controller';
 import { ServiceModule } from 'src/services/service.module';
 import { RepositoryModule } from 'src/repositories/repository.module';
 import { JwtModule } from '@nestjs/jwt';
+import { CreateBatchController } from './create-batch/create-batch.controller';
+import { CreateCourseController } from './create-course/create-course.controller';
+import { CreateBranchController } from './create-branch/create-branch.controller';
+import { CreateSectionController } from './create-section/create-section.controller';
+import { GetBranchesByCourseController } from './get-branches-by-course/get-branches-by-course.controller';
+import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
+import { GetSectionsByBranchController } from './get-sections-by-branch/get-sections-by-branch.controller';
+import { GetBatchesController } from './get-batches/get-batches.controller';
 
 
 @Module({
@@ -65,7 +73,15 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllFacultyController,
         GetAllStudentController,
         GetFacultyController,
-        GetStudentController
+        GetStudentController,
+        CreateBatchController,
+        CreateCourseController,
+        CreateBranchController,
+        CreateSectionController,
+        GetBranchesByCourseController,
+        GetCoursesByBatchController,
+        GetSectionsByBranchController,
+        GetBatchesController
     ],
     providers: [
         ConfigService,
