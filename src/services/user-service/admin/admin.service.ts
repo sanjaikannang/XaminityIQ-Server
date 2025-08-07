@@ -21,10 +21,10 @@ import { CreateBatchRequest } from 'src/api/user/admin/create-batch/create-batch
 import { CreateCourseRequest } from 'src/api/user/admin/create-course/create-course.request';
 import { CreateBranchRequest } from 'src/api/user/admin/create-branch/create-branch.request';
 import { CreateSectionRequest } from 'src/api/user/admin/create-section/create-section.request';
-import { GetBatchesRequest } from 'src/api/user/admin/get-batches/get-batches.request';
 import { GetBranchesByCourseRequest } from 'src/api/user/admin/get-branches-by-course/get-branches-by-course.request';
 import { GetCoursesByBatchRequest } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.request';
 import { GetSectionsByBranchRequest } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.request';
+import { BatchRepositoryService } from 'src/repositories/batch-repository/batch-repository';
 
 
 @Injectable()
@@ -35,7 +35,8 @@ export class AdminService {
         private readonly studentRepositoryService: StudentRepositoryService,
         private readonly adminRepositoryService: AdminRepositoryService,
         private readonly passwordService: PasswordService,
-        private readonly sessionRepositoryService: SessionRepositoryService
+        private readonly sessionRepositoryService: SessionRepositoryService,
+        private readonly batchRepositoryService: BatchRepositoryService
     ) { }
 
 
@@ -698,9 +699,47 @@ export class AdminService {
     // Create Batch API Endpoint 
     async createBatchAPI(adminId: string, createBatchData: CreateBatchRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Generate batch name from years
+            const batchName = `${createBatchData.startYear}-${createBatchData.endYear}`;
+
+            // Check if batch name already exists
+            const existingBatch = await this.batchRepositoryService.findByName(batchName);
+            if (existingBatch) {
+                throw new ConflictException(`Batch with name '${batchName}' already exists`);
+            }
+
+            // Create batch data
+            const batchData = {
+                name: batchName,
+                startYear: createBatchData.startYear,
+                endYear: createBatchData.endYear,
+                createdBy: new Types.ObjectId(adminId)
+            };
+
+            // Create the batch
+            const newBatch = await this.batchRepositoryService.create(batchData);
+
+            // Transform to response format
+            return {
+                _id: (newBatch._id as Types.ObjectId).toString(),
+                name: newBatch.name,
+                startYear: newBatch.startYear,
+                endYear: newBatch.endYear,
+                createdBy: newBatch.createdBy.toString(),
+                status: newBatch.status,
+            };
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to create batch: ' + error.message);
         }
     }
 
@@ -736,11 +775,27 @@ export class AdminService {
 
 
     // Get Batches API Endpoint
-    async getBatchesAPI(adminId: string, getBatchesData: GetBatchesRequest) {
+    async getBatchesAPI(adminId: string) {
         try {
 
-        } catch (error) {
+            const batches = await this.batchRepositoryService.findAllBatches();
 
+            // console.log("Batches fetched successfully", batches);
+
+            const result = batches.map(batch => ({
+                _id: (batch._id as Types.ObjectId).toString(),
+                name: batch.name,
+            }));
+
+            // console.log("Batches fetched successfully", result);
+
+            return result;
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get batchs: ' + error.message);
         }
 
     }

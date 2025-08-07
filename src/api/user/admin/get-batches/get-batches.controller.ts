@@ -1,11 +1,10 @@
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Req, UseGuards, Get } from '@nestjs/common';
 import { Request } from 'express';
 import { UserRole } from 'src/utils/enum';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/roles.decorator';
 import { AdminService } from 'src/services/user-service/admin/admin.service';
-import { GetBatchesRequest } from './get-batches.request';
 import { GetBatchesResponse } from './get-batches.response';
 
 
@@ -15,17 +14,16 @@ export class GetBatchesController {
         private readonly adminService: AdminService
     ) { }
 
-    @Post('get-batches')
+    @Get('get-batches')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.ADMIN)
     async getBatches(
-        @Body() getBatchesData: GetBatchesRequest,
         @Req() req: Request,
     ) {
         try {
             const adminId = (req as any).user?.sub;
 
-            const result = await this.adminService.getBatchesAPI(adminId, getBatchesData);
+            const result = await this.adminService.getBatchesAPI(adminId);
 
             const response: GetBatchesResponse = {
                 success: true,
@@ -36,11 +34,11 @@ export class GetBatchesController {
             return response;
 
         } catch (error) {
-            ({
+            const response: GetBatchesResponse = {
                 success: false,
                 message: error.message || 'Failed to fetch batches',
-            });
-
+            };
+            return response;
         }
     }
 }
