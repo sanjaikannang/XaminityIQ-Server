@@ -35,11 +35,11 @@ export class CreateBatchController {
             return response;
 
         } catch (error) {
-            ({
+            const response: CreateBatchResponse = {
                 success: false,
                 message: error.message || 'Failed to create batch',
-            });
-
+            };
+            return response;
         }
     }
 }
