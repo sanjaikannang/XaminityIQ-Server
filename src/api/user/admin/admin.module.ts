@@ -28,12 +28,6 @@ import { GetAllFacultyController } from './get-all-faculty/get-all-faculty.contr
 import { GetAllStudentController } from './get-all-student/get-all-student.controller';
 import { GetFacultyController } from './get-faculty/get-faculty.controller';
 import { GetStudentController } from './get-student/get-student.controller';
-
-
-// Modules
-import { ServiceModule } from 'src/services/service.module';
-import { RepositoryModule } from 'src/repositories/repository.module';
-import { JwtModule } from '@nestjs/jwt';
 import { CreateBatchController } from './create-batch/create-batch.controller';
 import { CreateCourseController } from './create-course/create-course.controller';
 import { CreateBranchController } from './create-branch/create-branch.controller';
@@ -42,6 +36,12 @@ import { GetBranchesByCourseController } from './get-branches-by-course/get-bran
 import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
 import { GetSectionsByBranchController } from './get-sections-by-branch/get-sections-by-branch.controller';
 import { GetBatchesController } from './get-batches/get-batches.controller';
+
+
+// Modules
+import { ServiceModule } from 'src/services/service.module';
+import { RepositoryModule } from 'src/repositories/repository.module';
+import { JwtModule } from '@nestjs/jwt';
 
 
 @Module({
