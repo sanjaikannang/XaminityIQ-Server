@@ -21,7 +21,6 @@ import { CreateBatchRequest } from 'src/api/user/admin/create-batch/create-batch
 import { CreateCourseRequest } from 'src/api/user/admin/create-course/create-course.request';
 import { CreateBranchRequest } from 'src/api/user/admin/create-branch/create-branch.request';
 import { CreateSectionRequest } from 'src/api/user/admin/create-section/create-section.request';
-import { GetBatchesRequest } from 'src/api/user/admin/get-batches/get-batches.request';
 import { GetBranchesByCourseRequest } from 'src/api/user/admin/get-branches-by-course/get-branches-by-course.request';
 import { GetCoursesByBatchRequest } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.request';
 import { GetSectionsByBranchRequest } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.request';
@@ -776,11 +775,27 @@ export class AdminService {
 
 
     // Get Batches API Endpoint
-    async getBatchesAPI(adminId: string, getBatchesData: GetBatchesRequest) {
+    async getBatchesAPI(adminId: string) {
         try {
 
-        } catch (error) {
+            const batches = await this.batchRepositoryService.findAllBatches();
 
+            // console.log("Batches fetched successfully", batches);
+
+            const result = batches.map(batch => ({
+                _id: (batch._id as Types.ObjectId).toString(),
+                name: batch.name,
+            }));
+
+            // console.log("Batches fetched successfully", result);
+
+            return result;
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get batchs: ' + error.message);
         }
 
     }

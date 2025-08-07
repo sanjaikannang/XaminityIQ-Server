@@ -58,4 +58,21 @@ export class BatchRepositoryService {
         }
     }
 
+
+    // Get all active batches
+    async findAllBatches(): Promise<BatchDocument[]> {
+        try {
+            const batch = await this.batchModel
+                .find({ status: Status.ACTIVE })
+                .select('_id name startYear endYear')
+                .sort({ startYear: 1 })
+                .exec();
+
+            return batch;
+        } catch (error) {
+            console.error("Failed to get batchs", error);
+            throw new Error('Could not get batch');
+        }
+    }
+
 }
