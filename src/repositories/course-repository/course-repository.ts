@@ -11,6 +11,18 @@ export class CourseRepositoryService {
     ) { }
 
 
+    // Find Course by ID
+    async findById(id: string): Promise<CourseDocument | null> {
+        try {
+            const course = await this.courseModel.findById(id).exec();
+            return course;
+        } catch (error) {
+            console.error("Failed to find course by ID", error);
+            throw new Error('Could not find course');
+        }
+    }
+
+
     // Find Course
     async findOne(filter: FilterQuery<CourseDocument>): Promise<CourseDocument | null> {
         try {

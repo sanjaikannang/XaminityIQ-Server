@@ -26,6 +26,7 @@ import { GetCoursesByBatchRequest } from 'src/api/user/admin/get-courses-by-batc
 import { GetSectionsByBranchRequest } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.request';
 import { BatchRepositoryService } from 'src/repositories/batch-repository/batch-repository';
 import { CourseRepositoryService } from 'src/repositories/course-repository/course-repository';
+import { BranchRepositoryService } from 'src/repositories/branch-repository/branch-repository';
 
 
 @Injectable()
@@ -38,7 +39,8 @@ export class AdminService {
         private readonly passwordService: PasswordService,
         private readonly sessionRepositoryService: SessionRepositoryService,
         private readonly batchRepositoryService: BatchRepositoryService,
-        private readonly courseRepositoryService: CourseRepositoryService
+        private readonly courseRepositoryService: CourseRepositoryService,
+        private readonly branchRepositoryService: BranchRepositoryService
     ) { }
 
 
@@ -811,9 +813,68 @@ export class AdminService {
     // Create Branch API Endpoint
     async createBranchAPI(adminId: string, createBranchData: CreateBranchRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Validate course exists and is active
+            const course = await this.courseRepositoryService.findById(createBranchData.courseId);
+            if (!course) {
+                throw new NotFoundException('Course not found');
+            }
+
+            // Convert courseId string to ObjectId for database queries
+            const courseObjectId = new Types.ObjectId(createBranchData.courseId);
+
+            // Check if branch with same name already exists for this course
+            const existingBranchByName = await this.branchRepositoryService.findOne({
+                name: createBranchData.name,
+                courseId: courseObjectId
+            });
+
+            if (existingBranchByName) {
+                throw new BadRequestException(`Branch with name '${createBranchData.name}' already exists for this course`);
+            }
+
+            // Check if branch with same code already exists for this course
+            const existingBranchByCode = await this.branchRepositoryService.findOne({
+                code: createBranchData.code,
+                courseId: courseObjectId
+            });
+
+            if (existingBranchByCode) {
+                throw new BadRequestException(`Branch with code '${createBranchData.code}' already exists for this course`);
+            }
+
+            // Create branch object
+            const branchData = {
+                name: createBranchData.name,
+                code: createBranchData.code,
+                courseId: courseObjectId,
+                createdBy: new Types.ObjectId(adminId),
+                status: Status.ACTIVE
+            };
+
+            // Create branch
+            const createdBranch = await this.branchRepositoryService.create(branchData);
+
+            // Return the created branch data
+            return {
+                _id: (createdBranch._id as Types.ObjectId).toString(),
+                name: createdBranch.name,
+                code: createdBranch.code,
+                courseId: createdBranch.courseId.toString(),
+                createdBy: createdBranch.createdBy.toString(),
+                status: createdBranch.status,
+            };
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to create branch: ' + error.message);
         }
     }
 

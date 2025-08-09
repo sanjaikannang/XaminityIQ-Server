@@ -7,6 +7,7 @@ import { StudentRepositoryService } from "./student-repository/student.repositor
 import { UserRepositoryService } from "./user-repository/user.repository";
 import { BatchRepositoryService } from "./batch-repository/batch-repository";
 import { CourseRepositoryService } from "./course-repository/course-repository";
+import { BranchRepositoryService } from "./branch-repository/branch-repository";
 
 
 // Schemas
@@ -17,6 +18,7 @@ import { Student, StudentSchema } from "src/schemas/student.schema";
 import { User, UserSchema } from "src/schemas/user.schema";
 import { Batch, BatchSchema } from "src/schemas/hierarchy/batch.schema";
 import { Course, CourseSchema } from "src/schemas/hierarchy/course.schema";
+import { Branch, BranchSchema } from "src/schemas/hierarchy/branch.schema";
 
 @Module({
     imports: [
@@ -28,6 +30,7 @@ import { Course, CourseSchema } from "src/schemas/hierarchy/course.schema";
             { name: User.name, schema: UserSchema },
             { name: Batch.name, schema: BatchSchema },
             { name: Course.name, schema: CourseSchema },
+            { name: Branch.name, schema: BranchSchema },
         ]),
     ],
     controllers: [],
@@ -38,7 +41,8 @@ import { Course, CourseSchema } from "src/schemas/hierarchy/course.schema";
         StudentRepositoryService,
         UserRepositoryService,
         BatchRepositoryService,
-        CourseRepositoryService
+        CourseRepositoryService,
+        BranchRepositoryService
     ],
     exports: [
         AdminRepositoryService,
@@ -47,7 +51,8 @@ import { Course, CourseSchema } from "src/schemas/hierarchy/course.schema";
         StudentRepositoryService,
         UserRepositoryService,
         BatchRepositoryService,
-        CourseRepositoryService
+        CourseRepositoryService,
+        BranchRepositoryService
     ],
 })
 export class RepositoryModule { }
