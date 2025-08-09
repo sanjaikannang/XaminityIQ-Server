@@ -38,7 +38,7 @@ export class GetBranchesByCourseController {
         } catch (error) {
             const response: GetBranchesByCourseResponse = {
                 success: false,
-                message: error.message || 'Failed to fetch branches',
+                message: error.message || 'Failed to fetch branches by course',
             };
             return response;
         }

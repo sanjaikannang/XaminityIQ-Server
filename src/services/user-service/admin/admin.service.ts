@@ -30,6 +30,7 @@ import { BranchRepositoryService } from 'src/repositories/branch-repository/bran
 import { SectionRepositoryService } from 'src/repositories/section-repository/section-repository';
 import { CoursesData } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.response';
 import BranchesData from 'src/api/user/admin/get-branches-by-course/get-branches-by-course.response';
+import { SectionData } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.response';
 
 
 @Injectable()
@@ -1057,6 +1058,26 @@ export class AdminService {
             if (!admin) {
                 throw new NotFoundException('Admin not found');
             }
+
+            // Verify branch exists and is active
+            const branch = await this.branchRepositoryService.findById(getSectionsByBranchData.branchId);
+            if (!branch) {
+                throw new NotFoundException('Branch not found');
+            }
+
+            // Get sections by branch ID
+            const sections = await this.sectionRepositoryService.findByBranchId(getSectionsByBranchData.branchId);
+
+            // Transform data to match response format
+            const sectionData: SectionData[] = sections.map(section => ({
+                _id: (section._id as Types.ObjectId).toString(),
+                name: section.name,
+                branchId: section.branchId.toString(),
+                capacity: section.capacity,
+                status: section.status
+            }));
+
+            return sectionData;
 
         } catch (error) {
             if (error instanceof NotFoundException || error instanceof BadRequestException) {
