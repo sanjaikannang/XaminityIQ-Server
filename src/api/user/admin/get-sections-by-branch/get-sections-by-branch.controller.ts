@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Req, UseGuards, Get, Query } from '@nestjs/common';
 import { Request } from 'express';
 import { UserRole } from 'src/utils/enum';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
@@ -14,17 +14,17 @@ export class GetSectionsByBranchController {
         private readonly adminService: AdminService
     ) { }
 
-    @Post('get-sections-by-branch')
+    @Get('get-sections-by-branch')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.ADMIN)
     async getSectionsByBranch(
-        @Body() getSectionsByBranchData: GetSectionsByBranchRequest,
+        @Query() query: GetSectionsByBranchRequest,
         @Req() req: Request,
     ) {
         try {
             const adminId = (req as any).user?.sub;
 
-            const result = await this.adminService.getSectionsByBranchAPI(adminId, getSectionsByBranchData);
+            const result = await this.adminService.getSectionsByBranchAPI(adminId, query);
 
             const response: GetSectionsByBranchResponse = {
                 success: true,
@@ -35,11 +35,11 @@ export class GetSectionsByBranchController {
             return response;
 
         } catch (error) {
-            ({
+            const response: GetSectionsByBranchResponse = {
                 success: false,
-                message: error.message || 'Failed to fetch sections',
-            });
-
+                message: error.message || 'Failed to fetch sections by branch',
+            };
+            return response;
         }
     }
 }
