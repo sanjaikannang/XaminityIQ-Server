@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model } from 'mongoose';
+import { FilterQuery, Model, Types } from 'mongoose';
 import { Branch, BranchDocument } from 'src/schemas/hierarchy/branch.schema';
+import { Status } from 'src/utils/enum';
 
 
 @Injectable()
@@ -45,6 +46,28 @@ export class BranchRepositoryService {
         } catch (error) {
             console.error("Failed to find branch", error);
             throw new Error('Could not find branch');
+        }
+    }
+
+
+    // Find by CourseId
+    async findByCourseId(courseId: string): Promise<BranchDocument[]> {
+        try {
+
+            const branches = await this.branchModel
+                .find({
+                    courseId: new Types.ObjectId(courseId),
+                    status: Status.ACTIVE
+                })
+                .select('_id name code courseId status')
+                .lean()
+                .exec();
+
+            return branches;
+
+        } catch (error) {
+            console.error("Failed to find branch by courseId", error);
+            throw new Error('Could not find branch by courseId');
         }
     }
 

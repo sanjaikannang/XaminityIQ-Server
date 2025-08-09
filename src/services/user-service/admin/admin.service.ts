@@ -29,6 +29,7 @@ import { CourseRepositoryService } from 'src/repositories/course-repository/cour
 import { BranchRepositoryService } from 'src/repositories/branch-repository/branch-repository';
 import { SectionRepositoryService } from 'src/repositories/section-repository/section-repository';
 import { CoursesData } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.response';
+import BranchesData from 'src/api/user/admin/get-branches-by-course/get-branches-by-course.response';
 
 
 @Injectable()
@@ -1000,7 +1001,7 @@ export class AdminService {
             }));
 
             return courseData;
-            
+
         } catch (error) {
             if (error instanceof NotFoundException || error instanceof BadRequestException) {
                 throw error;
@@ -1018,6 +1019,26 @@ export class AdminService {
             if (!admin) {
                 throw new NotFoundException('Admin not found');
             }
+
+            // Verify course exists and is active
+            const course = await this.courseRepositoryService.findById(getBranchesByCourseData.courseId);
+            if (!course) {
+                throw new NotFoundException('Course not found');
+            }
+
+            // Get branches by course ID
+            const branches = await this.branchRepositoryService.findByCourseId(getBranchesByCourseData.courseId);
+
+            // Transform data to match response format
+            const branchData: BranchesData[] = branches.map(branch => ({
+                _id: (branch._id as Types.ObjectId).toString(),
+                name: branch.name,
+                code: branch.code,
+                courseId: branch.courseId.toString(),
+                status: branch.status
+            }));
+
+            return branchData;
 
         } catch (error) {
             if (error instanceof NotFoundException || error instanceof BadRequestException) {
