@@ -27,6 +27,7 @@ import { GetSectionsByBranchRequest } from 'src/api/user/admin/get-sections-by-b
 import { BatchRepositoryService } from 'src/repositories/batch-repository/batch-repository';
 import { CourseRepositoryService } from 'src/repositories/course-repository/course-repository';
 import { BranchRepositoryService } from 'src/repositories/branch-repository/branch-repository';
+import { SectionRepositoryService } from 'src/repositories/section-repository/section-repository';
 
 
 @Injectable()
@@ -40,7 +41,8 @@ export class AdminService {
         private readonly sessionRepositoryService: SessionRepositoryService,
         private readonly batchRepositoryService: BatchRepositoryService,
         private readonly courseRepositoryService: CourseRepositoryService,
-        private readonly branchRepositoryService: BranchRepositoryService
+        private readonly branchRepositoryService: BranchRepositoryService,
+        private readonly sectionRepositoryService: SectionRepositoryService
     ) { }
 
 
@@ -882,9 +884,58 @@ export class AdminService {
     // Create Section API Endpoint
     async createSectionAPI(adminId: string, createSectionData: CreateSectionRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Validate branch exists and is active
+            const branch = await this.branchRepositoryService.findById(createSectionData.branchId);
+            if (!branch) {
+                throw new NotFoundException('Branch not found');
+            }
+
+            // Convert branchId string to ObjectId for database queries
+            const branchObjectId = new Types.ObjectId(createSectionData.branchId);
+
+            // Check if section with same name already exists for this branch
+            const existingSectionByName = await this.sectionRepositoryService.findOne({
+                name: createSectionData.name,
+                branchId: branchObjectId
+            });
+
+            if (existingSectionByName) {
+                throw new BadRequestException(`Section with name '${createSectionData.name}' already exists for this branch`);
+            }
+
+            // Create section object
+            const sectionData = {
+                name: createSectionData.name,
+                branchId: branchObjectId,
+                capacity: createSectionData.capacity,
+                createdBy: new Types.ObjectId(adminId),
+                status: Status.ACTIVE
+            };
+
+            // Create section
+            const createdSection = await this.sectionRepositoryService.create(sectionData);
+
+            // Return the created section data
+            return {
+                _id: (createdSection._id as Types.ObjectId).toString(),
+                name: createdSection.name,
+                branchId: createdSection.branchId.toString(),
+                capacity: createdSection.capacity,
+                createdBy: createdSection.createdBy.toString(),
+                status: createdSection.status,
+            };
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to create section: ' + error.message);
         }
     }
 
@@ -892,17 +943,18 @@ export class AdminService {
     // Get Batches API Endpoint
     async getBatchesAPI(adminId: string) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
 
             const batches = await this.batchRepositoryService.findAllBatches();
-
-            // console.log("Batches fetched successfully", batches);
 
             const result = batches.map(batch => ({
                 _id: (batch._id as Types.ObjectId).toString(),
                 name: batch.name,
             }));
-
-            // console.log("Batches fetched successfully", result);
 
             return result;
 
