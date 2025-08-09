@@ -40,7 +40,7 @@ export enum ExamMode {
 
 export enum ExamStatus {
   DRAFT = 'DRAFT',
-  PUBLISH = 'PUBLISH', 
+  PUBLISH = 'PUBLISH',
 }
 
 export enum AudienceType {
@@ -144,4 +144,12 @@ export enum GradeScale {
   C = 'C',
   D = 'D',
   F = 'F'
+}
+
+export enum CourseType {
+  UG = 'UG',
+  PG = 'PG',
+  DIPLOMA = 'DIPLOMA',
+  PHD = 'PHD',
+  MPhil = 'MPhil',
 }

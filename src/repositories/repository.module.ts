@@ -6,6 +6,7 @@ import { SessionRepositoryService } from "./session-repository/session.repositor
 import { StudentRepositoryService } from "./student-repository/student.repository";
 import { UserRepositoryService } from "./user-repository/user.repository";
 import { BatchRepositoryService } from "./batch-repository/batch-repository";
+import { CourseRepositoryService } from "./course-repository/course-repository";
 
 
 // Schemas
@@ -15,6 +16,7 @@ import { Session, SessionSchema } from "src/schemas/session.schema";
 import { Student, StudentSchema } from "src/schemas/student.schema";
 import { User, UserSchema } from "src/schemas/user.schema";
 import { Batch, BatchSchema } from "src/schemas/hierarchy/batch.schema";
+import { Course, CourseSchema } from "src/schemas/hierarchy/course.schema";
 
 @Module({
     imports: [
@@ -25,6 +27,7 @@ import { Batch, BatchSchema } from "src/schemas/hierarchy/batch.schema";
             { name: Student.name, schema: StudentSchema },
             { name: User.name, schema: UserSchema },
             { name: Batch.name, schema: BatchSchema },
+            { name: Course.name, schema: CourseSchema },
         ]),
     ],
     controllers: [],
@@ -34,7 +37,8 @@ import { Batch, BatchSchema } from "src/schemas/hierarchy/batch.schema";
         SessionRepositoryService,
         StudentRepositoryService,
         UserRepositoryService,
-        BatchRepositoryService
+        BatchRepositoryService,
+        CourseRepositoryService
     ],
     exports: [
         AdminRepositoryService,
@@ -42,7 +46,8 @@ import { Batch, BatchSchema } from "src/schemas/hierarchy/batch.schema";
         SessionRepositoryService,
         StudentRepositoryService,
         UserRepositoryService,
-        BatchRepositoryService
+        BatchRepositoryService,
+        CourseRepositoryService
     ],
 })
 export class RepositoryModule { }

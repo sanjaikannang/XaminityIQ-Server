@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateFacultyRequest } from 'src/api/user/admin/create-faculty/create-faculty.request';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from 'src/utils/enum';
+import { Status, UserRole } from 'src/utils/enum';
 import { UserRepositoryService } from 'src/repositories/user-repository/user.repository';
 import { FacultyRepositoryService } from 'src/repositories/faculty-repository/faculty.repository';
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
@@ -25,6 +25,7 @@ import { GetBranchesByCourseRequest } from 'src/api/user/admin/get-branches-by-c
 import { GetCoursesByBatchRequest } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.request';
 import { GetSectionsByBranchRequest } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.request';
 import { BatchRepositoryService } from 'src/repositories/batch-repository/batch-repository';
+import { CourseRepositoryService } from 'src/repositories/course-repository/course-repository';
 
 
 @Injectable()
@@ -36,7 +37,8 @@ export class AdminService {
         private readonly adminRepositoryService: AdminRepositoryService,
         private readonly passwordService: PasswordService,
         private readonly sessionRepositoryService: SessionRepositoryService,
-        private readonly batchRepositoryService: BatchRepositoryService
+        private readonly batchRepositoryService: BatchRepositoryService,
+        private readonly courseRepositoryService: CourseRepositoryService
     ) { }
 
 
@@ -747,9 +749,61 @@ export class AdminService {
     // Create Course API Endpoint
     async createCourseAPI(adminId: string, createCourseData: CreateCourseRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Validate batch exists and is active
+            const batch = await this.batchRepositoryService.findById(createCourseData.batchId);
+            if (!batch) {
+                throw new NotFoundException('Batch not found');
+            }
+
+            // Check if course with same name already exists for this batch
+            const existingCourse = await this.courseRepositoryService.findOne({
+                name: createCourseData.name,
+                batchId: new Types.ObjectId(createCourseData.batchId)
+            });
+
+            if (existingCourse) {
+                throw new BadRequestException(`Course with name '${createCourseData.name}' already exists for this batch`);
+            }
+
+            // Create course object
+            const courseData = {
+                name: createCourseData.name,
+                fullName: createCourseData.fullName,
+                batchId: new Types.ObjectId(createCourseData.batchId),
+                totalSemesters: createCourseData.totalSemesters,
+                durationYears: createCourseData.durationYears,
+                courseType: createCourseData.courseType,
+                createdBy: new Types.ObjectId(adminId),
+                status: Status.ACTIVE
+            };
+
+            // Create course
+            const createdCourse = await this.courseRepositoryService.create(courseData);
+
+            // Return the created course data
+            return {
+                _id: (createdCourse._id as Types.ObjectId).toString(),
+                name: createdCourse.name,
+                fullName: createdCourse.fullName,
+                batchId: createdCourse.batchId.toString(),
+                totalSemesters: createdCourse.totalSemesters,
+                durationYears: createdCourse.durationYears,
+                courseType: createdCourse.courseType,
+                createdBy: createdCourse.createdBy.toString(),
+                status: createdCourse.status,
+            };
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to create course: ' + error.message);
         }
     }
 
