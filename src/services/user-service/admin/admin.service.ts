@@ -28,6 +28,7 @@ import { BatchRepositoryService } from 'src/repositories/batch-repository/batch-
 import { CourseRepositoryService } from 'src/repositories/course-repository/course-repository';
 import { BranchRepositoryService } from 'src/repositories/branch-repository/branch-repository';
 import { SectionRepositoryService } from 'src/repositories/section-repository/section-repository';
+import { CoursesData } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.response';
 
 
 @Injectable()
@@ -968,22 +969,61 @@ export class AdminService {
     }
 
 
-    // Get Branches By Course API Endpoint
-    async getBranchesByCourseAPI(adminId: string, getBranchesByCourseData: GetBranchesByCourseRequest) {
+    // Get Courses By Batch API Endpoint
+    async getCoursesByBatchAPI(adminId: string, getCoursesByBatchData: GetCoursesByBatchRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
 
+            // Verify batch exists and is active
+            const batch = await this.batchRepositoryService.findById(getCoursesByBatchData.batchId);
+            if (!batch) {
+                throw new NotFoundException('Batch not found');
+            }
+
+            // Get courses by batch ID
+            const courses = await this.courseRepositoryService.findByBatchId(getCoursesByBatchData.batchId);
+
+            // Transform data to match response format
+            const courseData: CoursesData[] = courses.map(course => ({
+                _id: (course._id as Types.ObjectId).toString(),
+                name: course.name,
+                fullName: course.fullName,
+                batchId: course.batchId.toString(),
+                totalSemesters: course.totalSemesters,
+                durationYears: course.durationYears,
+                courseType: course.courseType,
+                status: course.status
+            }));
+
+            return courseData;
+            
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get courses by batch: ' + error.message);
         }
     }
 
 
-    // Get Courses By Batch API Endpoint
-    async getCoursesByBatchAPI(adminId: string, getCoursesByBatchData: GetCoursesByBatchRequest) {
+    // Get Branches By Course API Endpoint
+    async getBranchesByCourseAPI(adminId: string, getBranchesByCourseData: GetBranchesByCourseRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get branches ny course: ' + error.message);
         }
     }
 
@@ -991,9 +1031,17 @@ export class AdminService {
     // Get Sections By Branch API Endpoint
     async getSectionsByBranchAPI(adminId: string, getSectionsByBranchData: GetSectionsByBranchRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get section by branch: ' + error.message);
         }
     }
 
