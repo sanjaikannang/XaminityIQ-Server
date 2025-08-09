@@ -6,6 +6,9 @@ import { SessionRepositoryService } from "./session-repository/session.repositor
 import { StudentRepositoryService } from "./student-repository/student.repository";
 import { UserRepositoryService } from "./user-repository/user.repository";
 import { BatchRepositoryService } from "./batch-repository/batch-repository";
+import { CourseRepositoryService } from "./course-repository/course-repository";
+import { BranchRepositoryService } from "./branch-repository/branch-repository";
+import { SectionRepositoryService } from "./section-repository/section-repository";
 
 
 // Schemas
@@ -15,6 +18,9 @@ import { Session, SessionSchema } from "src/schemas/session.schema";
 import { Student, StudentSchema } from "src/schemas/student.schema";
 import { User, UserSchema } from "src/schemas/user.schema";
 import { Batch, BatchSchema } from "src/schemas/hierarchy/batch.schema";
+import { Course, CourseSchema } from "src/schemas/hierarchy/course.schema";
+import { Branch, BranchSchema } from "src/schemas/hierarchy/branch.schema";
+import { Section, SectionSchema } from "src/schemas/hierarchy/section.schema";
 
 @Module({
     imports: [
@@ -25,6 +31,9 @@ import { Batch, BatchSchema } from "src/schemas/hierarchy/batch.schema";
             { name: Student.name, schema: StudentSchema },
             { name: User.name, schema: UserSchema },
             { name: Batch.name, schema: BatchSchema },
+            { name: Course.name, schema: CourseSchema },
+            { name: Branch.name, schema: BranchSchema },
+            { name: Section.name, schema: SectionSchema }
         ]),
     ],
     controllers: [],
@@ -34,7 +43,10 @@ import { Batch, BatchSchema } from "src/schemas/hierarchy/batch.schema";
         SessionRepositoryService,
         StudentRepositoryService,
         UserRepositoryService,
-        BatchRepositoryService
+        BatchRepositoryService,
+        CourseRepositoryService,
+        BranchRepositoryService,
+        SectionRepositoryService
     ],
     exports: [
         AdminRepositoryService,
@@ -42,7 +54,10 @@ import { Batch, BatchSchema } from "src/schemas/hierarchy/batch.schema";
         SessionRepositoryService,
         StudentRepositoryService,
         UserRepositoryService,
-        BatchRepositoryService
+        BatchRepositoryService,
+        CourseRepositoryService,
+        BranchRepositoryService,
+        SectionRepositoryService
     ],
 })
 export class RepositoryModule { }

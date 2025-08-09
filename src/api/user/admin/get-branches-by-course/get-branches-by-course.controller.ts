@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Req, UseGuards, Get, Query } from '@nestjs/common';
 import { Request } from 'express';
 import { UserRole } from 'src/utils/enum';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
@@ -15,17 +15,17 @@ export class GetBranchesByCourseController {
         private readonly adminService: AdminService
     ) { }
 
-    @Post('get-branches-by-course')
+    @Get('get-branches-by-course')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.ADMIN)
     async getBranchesByCourse(
-        @Body() getBranchesByCourseData: GetBranchesByCourseRequest,
+        @Query() query: GetBranchesByCourseRequest,
         @Req() req: Request,
     ) {
         try {
             const adminId = (req as any).user?.sub;
 
-            const result = await this.adminService.getBranchesByCourseAPI(adminId, getBranchesByCourseData);
+            const result = await this.adminService.getBranchesByCourseAPI(adminId, query);
 
             const response: GetBranchesByCourseResponse = {
                 success: true,
@@ -36,11 +36,11 @@ export class GetBranchesByCourseController {
             return response;
 
         } catch (error) {
-            ({
+            const response: GetBranchesByCourseResponse = {
                 success: false,
-                message: error.message || 'Failed to fetch branches',
-            });
-
+                message: error.message || 'Failed to fetch branches by course',
+            };
+            return response;
         }
     }
 }
