@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { Status } from 'src/utils/enum';
+import { CourseType, Status } from 'src/utils/enum';
 
 export type CourseDocument = Course & Document;
 
@@ -21,7 +21,7 @@ export class Course {
     @Prop({ required: true, min: 1 })
     durationYears: number; // e.g., 3 for BSC, 2 for MCA
 
-    @Prop({ enum: ['UG', 'PG', 'DIPLOMA', 'CERTIFICATE'] })
+    @Prop({ required: true, enum: CourseType })
     courseType: string;
 
     @Prop({ type: Types.ObjectId, ref: 'User', required: true })

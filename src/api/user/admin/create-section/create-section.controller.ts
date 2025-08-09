@@ -36,11 +36,11 @@ export class CreateSectionController {
             return response;
 
         } catch (error) {
-            ({
+            const response: CreateSectionResponse = {
                 success: false,
                 message: error.message || 'Failed to create section',
-            });
-
+            };
+            return response;
         }
     }
 }

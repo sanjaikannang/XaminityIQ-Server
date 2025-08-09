@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateFacultyRequest } from 'src/api/user/admin/create-faculty/create-faculty.request';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from 'src/utils/enum';
+import { Status, UserRole } from 'src/utils/enum';
 import { UserRepositoryService } from 'src/repositories/user-repository/user.repository';
 import { FacultyRepositoryService } from 'src/repositories/faculty-repository/faculty.repository';
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
@@ -25,6 +25,12 @@ import { GetBranchesByCourseRequest } from 'src/api/user/admin/get-branches-by-c
 import { GetCoursesByBatchRequest } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.request';
 import { GetSectionsByBranchRequest } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.request';
 import { BatchRepositoryService } from 'src/repositories/batch-repository/batch-repository';
+import { CourseRepositoryService } from 'src/repositories/course-repository/course-repository';
+import { BranchRepositoryService } from 'src/repositories/branch-repository/branch-repository';
+import { SectionRepositoryService } from 'src/repositories/section-repository/section-repository';
+import { CoursesData } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.response';
+import BranchesData from 'src/api/user/admin/get-branches-by-course/get-branches-by-course.response';
+import { SectionData } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.response';
 
 
 @Injectable()
@@ -36,7 +42,10 @@ export class AdminService {
         private readonly adminRepositoryService: AdminRepositoryService,
         private readonly passwordService: PasswordService,
         private readonly sessionRepositoryService: SessionRepositoryService,
-        private readonly batchRepositoryService: BatchRepositoryService
+        private readonly batchRepositoryService: BatchRepositoryService,
+        private readonly courseRepositoryService: CourseRepositoryService,
+        private readonly branchRepositoryService: BranchRepositoryService,
+        private readonly sectionRepositoryService: SectionRepositoryService
     ) { }
 
 
@@ -747,9 +756,61 @@ export class AdminService {
     // Create Course API Endpoint
     async createCourseAPI(adminId: string, createCourseData: CreateCourseRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Validate batch exists and is active
+            const batch = await this.batchRepositoryService.findById(createCourseData.batchId);
+            if (!batch) {
+                throw new NotFoundException('Batch not found');
+            }
+
+            // Check if course with same name already exists for this batch
+            const existingCourse = await this.courseRepositoryService.findOne({
+                name: createCourseData.name,
+                batchId: new Types.ObjectId(createCourseData.batchId)
+            });
+
+            if (existingCourse) {
+                throw new BadRequestException(`Course with name '${createCourseData.name}' already exists for this batch`);
+            }
+
+            // Create course object
+            const courseData = {
+                name: createCourseData.name,
+                fullName: createCourseData.fullName,
+                batchId: new Types.ObjectId(createCourseData.batchId),
+                totalSemesters: createCourseData.totalSemesters,
+                durationYears: createCourseData.durationYears,
+                courseType: createCourseData.courseType,
+                createdBy: new Types.ObjectId(adminId),
+                status: Status.ACTIVE
+            };
+
+            // Create course
+            const createdCourse = await this.courseRepositoryService.create(courseData);
+
+            // Return the created course data
+            return {
+                _id: (createdCourse._id as Types.ObjectId).toString(),
+                name: createdCourse.name,
+                fullName: createdCourse.fullName,
+                batchId: createdCourse.batchId.toString(),
+                totalSemesters: createdCourse.totalSemesters,
+                durationYears: createdCourse.durationYears,
+                courseType: createdCourse.courseType,
+                createdBy: createdCourse.createdBy.toString(),
+                status: createdCourse.status,
+            };
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to create course: ' + error.message);
         }
     }
 
@@ -757,9 +818,68 @@ export class AdminService {
     // Create Branch API Endpoint
     async createBranchAPI(adminId: string, createBranchData: CreateBranchRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Validate course exists and is active
+            const course = await this.courseRepositoryService.findById(createBranchData.courseId);
+            if (!course) {
+                throw new NotFoundException('Course not found');
+            }
+
+            // Convert courseId string to ObjectId for database queries
+            const courseObjectId = new Types.ObjectId(createBranchData.courseId);
+
+            // Check if branch with same name already exists for this course
+            const existingBranchByName = await this.branchRepositoryService.findOne({
+                name: createBranchData.name,
+                courseId: courseObjectId
+            });
+
+            if (existingBranchByName) {
+                throw new BadRequestException(`Branch with name '${createBranchData.name}' already exists for this course`);
+            }
+
+            // Check if branch with same code already exists for this course
+            const existingBranchByCode = await this.branchRepositoryService.findOne({
+                code: createBranchData.code,
+                courseId: courseObjectId
+            });
+
+            if (existingBranchByCode) {
+                throw new BadRequestException(`Branch with code '${createBranchData.code}' already exists for this course`);
+            }
+
+            // Create branch object
+            const branchData = {
+                name: createBranchData.name,
+                code: createBranchData.code,
+                courseId: courseObjectId,
+                createdBy: new Types.ObjectId(adminId),
+                status: Status.ACTIVE
+            };
+
+            // Create branch
+            const createdBranch = await this.branchRepositoryService.create(branchData);
+
+            // Return the created branch data
+            return {
+                _id: (createdBranch._id as Types.ObjectId).toString(),
+                name: createdBranch.name,
+                code: createdBranch.code,
+                courseId: createdBranch.courseId.toString(),
+                createdBy: createdBranch.createdBy.toString(),
+                status: createdBranch.status,
+            };
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to create branch: ' + error.message);
         }
     }
 
@@ -767,9 +887,58 @@ export class AdminService {
     // Create Section API Endpoint
     async createSectionAPI(adminId: string, createSectionData: CreateSectionRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Validate branch exists and is active
+            const branch = await this.branchRepositoryService.findById(createSectionData.branchId);
+            if (!branch) {
+                throw new NotFoundException('Branch not found');
+            }
+
+            // Convert branchId string to ObjectId for database queries
+            const branchObjectId = new Types.ObjectId(createSectionData.branchId);
+
+            // Check if section with same name already exists for this branch
+            const existingSectionByName = await this.sectionRepositoryService.findOne({
+                name: createSectionData.name,
+                branchId: branchObjectId
+            });
+
+            if (existingSectionByName) {
+                throw new BadRequestException(`Section with name '${createSectionData.name}' already exists for this branch`);
+            }
+
+            // Create section object
+            const sectionData = {
+                name: createSectionData.name,
+                branchId: branchObjectId,
+                capacity: createSectionData.capacity,
+                createdBy: new Types.ObjectId(adminId),
+                status: Status.ACTIVE
+            };
+
+            // Create section
+            const createdSection = await this.sectionRepositoryService.create(sectionData);
+
+            // Return the created section data
+            return {
+                _id: (createdSection._id as Types.ObjectId).toString(),
+                name: createdSection.name,
+                branchId: createdSection.branchId.toString(),
+                capacity: createdSection.capacity,
+                createdBy: createdSection.createdBy.toString(),
+                status: createdSection.status,
+            };
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to create section: ' + error.message);
         }
     }
 
@@ -777,17 +946,18 @@ export class AdminService {
     // Get Batches API Endpoint
     async getBatchesAPI(adminId: string) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
 
             const batches = await this.batchRepositoryService.findAllBatches();
-
-            // console.log("Batches fetched successfully", batches);
 
             const result = batches.map(batch => ({
                 _id: (batch._id as Types.ObjectId).toString(),
                 name: batch.name,
             }));
-
-            // console.log("Batches fetched successfully", result);
 
             return result;
 
@@ -801,22 +971,81 @@ export class AdminService {
     }
 
 
-    // Get Branches By Course API Endpoint
-    async getBranchesByCourseAPI(adminId: string, getBranchesByCourseData: GetBranchesByCourseRequest) {
+    // Get Courses By Batch API Endpoint
+    async getCoursesByBatchAPI(adminId: string, getCoursesByBatchData: GetCoursesByBatchRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Verify batch exists and is active
+            const batch = await this.batchRepositoryService.findById(getCoursesByBatchData.batchId);
+            if (!batch) {
+                throw new NotFoundException('Batch not found');
+            }
+
+            // Get courses by batch ID
+            const courses = await this.courseRepositoryService.findByBatchId(getCoursesByBatchData.batchId);
+
+            // Transform data to match response format
+            const courseData: CoursesData[] = courses.map(course => ({
+                _id: (course._id as Types.ObjectId).toString(),
+                name: course.name,
+                fullName: course.fullName,
+                batchId: course.batchId.toString(),
+                totalSemesters: course.totalSemesters,
+                durationYears: course.durationYears,
+                courseType: course.courseType,
+                status: course.status
+            }));
+
+            return courseData;
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get courses by batch: ' + error.message);
         }
     }
 
 
-    // Get Courses By Batch API Endpoint
-    async getCoursesByBatchAPI(adminId: string, getCoursesByBatchData: GetCoursesByBatchRequest) {
+    // Get Branches By Course API Endpoint
+    async getBranchesByCourseAPI(adminId: string, getBranchesByCourseData: GetBranchesByCourseRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Verify course exists and is active
+            const course = await this.courseRepositoryService.findById(getBranchesByCourseData.courseId);
+            if (!course) {
+                throw new NotFoundException('Course not found');
+            }
+
+            // Get branches by course ID
+            const branches = await this.branchRepositoryService.findByCourseId(getBranchesByCourseData.courseId);
+
+            // Transform data to match response format
+            const branchData: BranchesData[] = branches.map(branch => ({
+                _id: (branch._id as Types.ObjectId).toString(),
+                name: branch.name,
+                code: branch.code,
+                courseId: branch.courseId.toString(),
+                status: branch.status
+            }));
+
+            return branchData;
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get branches ny course: ' + error.message);
         }
     }
 
@@ -824,9 +1053,37 @@ export class AdminService {
     // Get Sections By Branch API Endpoint
     async getSectionsByBranchAPI(adminId: string, getSectionsByBranchData: GetSectionsByBranchRequest) {
         try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Verify branch exists and is active
+            const branch = await this.branchRepositoryService.findById(getSectionsByBranchData.branchId);
+            if (!branch) {
+                throw new NotFoundException('Branch not found');
+            }
+
+            // Get sections by branch ID
+            const sections = await this.sectionRepositoryService.findByBranchId(getSectionsByBranchData.branchId);
+
+            // Transform data to match response format
+            const sectionData: SectionData[] = sections.map(section => ({
+                _id: (section._id as Types.ObjectId).toString(),
+                name: section.name,
+                branchId: section.branchId.toString(),
+                capacity: section.capacity,
+                status: section.status
+            }));
+
+            return sectionData;
 
         } catch (error) {
-
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get section by branch: ' + error.message);
         }
     }
 

@@ -36,11 +36,11 @@ export class CreateBranchController {
             return response;
 
         } catch (error) {
-            ({
+            const response: CreateBranchResponse = {
                 success: false,
                 message: error.message || 'Failed to create branch',
-            });
-
+            };
+            return response;
         }
     }
 }

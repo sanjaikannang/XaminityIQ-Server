@@ -11,6 +11,18 @@ export class BatchRepositoryService {
         @InjectModel(Batch.name) private batchModel: Model<BatchDocument>,
     ) { }
 
+    // Find Batch by ID
+    async findById(id: string): Promise<BatchDocument | null> {
+        try {
+
+            const batch = await this.batchModel.findById(id).exec();
+            return batch;
+
+        } catch (error) {
+            console.error("Failed to find batch by ID", error);
+            throw new Error('Could not find batch by ID');
+        }
+    }
 
     // Find Batch by name
     async findByName(name: string): Promise<BatchDocument | null> {

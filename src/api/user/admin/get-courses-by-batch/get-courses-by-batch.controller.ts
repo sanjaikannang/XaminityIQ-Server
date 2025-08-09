@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Req, UseGuards, Query, Get } from '@nestjs/common';
 import { Request } from 'express';
 import { UserRole } from 'src/utils/enum';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
@@ -15,17 +15,17 @@ export class GetCoursesByBatchController {
         private readonly adminService: AdminService
     ) { }
 
-    @Post('get-courses-by-batch')
+    @Get('get-courses-by-batch')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.ADMIN)
     async getCoursesByBatch(
-        @Body() getCoursesByBatchData: GetCoursesByBatchRequest,
+        @Query() query: GetCoursesByBatchRequest,
         @Req() req: Request,
     ) {
         try {
             const adminId = (req as any).user?.sub;
 
-            const result = await this.adminService.getCoursesByBatchAPI(adminId, getCoursesByBatchData);
+            const result = await this.adminService.getCoursesByBatchAPI(adminId, query);
 
             const response: GetCoursesByBatchResponse = {
                 success: true,
@@ -36,11 +36,11 @@ export class GetCoursesByBatchController {
             return response;
 
         } catch (error) {
-            ({
+            const response: GetCoursesByBatchResponse = {
                 success: false,
                 message: error.message || 'Failed to fetch courses',
-            });
-
+            };
+            return response;
         }
     }
 }

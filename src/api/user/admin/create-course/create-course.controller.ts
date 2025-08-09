@@ -35,11 +35,11 @@ export class CreateCourseController {
             return response;
 
         } catch (error) {
-            ({
+            const response: CreateCourseResponse = {
                 success: false,
                 message: error.message || 'Failed to create course',
-            });
-
+            };
+            return response;
         }
     }
 }
