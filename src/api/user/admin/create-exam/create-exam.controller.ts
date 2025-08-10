@@ -35,11 +35,11 @@ export class CreateExamController {
             return response;
 
         } catch (error) {
-            ({
+            const response: CreateExamResponse = {
                 success: false,
                 message: error.message || 'Failed to create exam',
-            });
-
+            };
+            return response;
         }
     }
 }

@@ -1,26 +1,179 @@
-import { Type } from 'class-transformer';
-import { ExamMode, QuestionType, DifficultyLevel } from 'src/utils/enum';
-import { IsString, IsNumber, IsBoolean, IsEnum, IsOptional, IsArray, ValidateNested, IsDateString, Min, Max, IsNotEmpty } from 'class-validator';
+import { Type } from "class-transformer";
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Min } from "class-validator";
+import { DifficultyLevel, ExamMode, QuestionType } from "src/utils/enum";
 
-export class ExamSchedule {
-    @IsDateString()
-    @IsNotEmpty()
-    startDate: string;
+export class ScheduleDetails {
 
+    // For PROCTORING mode
+    @IsOptional()
     @IsDateString()
-    @IsNotEmpty()
-    endDate: string;
+    examDate?: string;
+
+    @IsOptional()
+    @IsString()
+    startTime?: string;
+
+    @IsOptional()
+    @IsString()
+    endTime?: string;
+
+    // For AUTO mode
+    @IsOptional()
+    @IsDateString()
+    startDate?: string;
+
+    @IsOptional()
+    @IsDateString()
+    endDate?: string;
+
+    // Buffer time
+    @IsOptional()
+    @Type(() => BufferTime)
+    bufferTime?: BufferTime;
+
+}
+
+export class BufferTime {
+
+    @IsNumber()
+    @Min(0)
+    beforeExam: number;
+
+    @IsNumber()
+    @Min(0)
+    afterExam: number;
+
+}
+
+export class QuestionOption {
+
+    @IsString()
+    optionText: string;
+
+    @IsOptional()
+    @IsString()
+    optionImage?: string;
+
+    @IsBoolean()
+    isCorrect: boolean;
+
+}
+
+export class CorrectAnswer {
+
+    @IsString()
+    answerText: string;
+
+    @IsArray()
+    @IsString({ each: true })
+    keywords: string[];
+
+    @IsNumber()
+    @Min(0)
+    marks: number;
+
+}
+
+export class CreateQuestion {
+
+    @IsString()
+    questionText: string;
+
+    @IsOptional()
+    @IsString()
+    questionImage?: string;
+
+    @IsEnum(QuestionType)
+    questionType: QuestionType;
+
+    @IsNumber()
+    @Min(0)
+    marks: number;
 
     @IsNumber()
     @Min(1)
-    duration: number; // in minutes
+    questionOrder: number;
 
-    @IsString()
+    @IsEnum(DifficultyLevel)
+    difficultyLevel: DifficultyLevel;
+
+    // For MCQ questions
     @IsOptional()
-    timeZone?: string = 'Asia/Kolkata';
+    @IsArray()
+    @Type(() => QuestionOption)
+    options?: QuestionOption[];
+
+    // For Short/Long answer questions
+    @IsOptional()
+    @IsArray()
+    @Type(() => CorrectAnswer)
+    correctAnswers?: CorrectAnswer[];
+
+    // For True/False questions
+    @IsOptional()
+    @IsBoolean()
+    correctAnswer?: boolean;
+
+    @IsOptional()
+    @IsString()
+    explanation?: string;
+
 }
 
-export class ExamGrading {
+// DTO for Exam Sections
+export class CreateExamSection {
+
+    @IsString()
+    sectionName: string;
+
+    @IsNumber()
+    @Min(1)
+    sectionOrder: number;
+
+    @IsNumber()
+    @Min(0)
+    sectionMarks: number;
+
+    @IsEnum(QuestionType)
+    questionType: QuestionType;
+
+    @IsNumber()
+    @Min(1)
+    totalQuestions: number;
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    sectionInstructions?: string[];
+
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    timeLimit?: number;
+
+    @IsOptional()
+    @IsBoolean()
+    isOptional?: boolean;
+
+    @IsArray()
+    @Type(() => CreateQuestion)
+    questions: CreateQuestion[];
+
+}
+
+export class CreateExamRequest {
+
+    // Basic Exam Info    
+    @IsString()
+    examTitle: string;
+
+    @IsOptional()
+    @IsString()
+    examDescription?: string;
+
+    @IsString()
+    subject: string;
+
     @IsNumber()
     @Min(1)
     totalMarks: number;
@@ -29,423 +182,46 @@ export class ExamGrading {
     @Min(0)
     passingMarks: number;
 
-    @IsBoolean()
-    @IsOptional()
-    negativeMarking?: boolean = false;
-
-    @IsNumber()
-    @Min(0)
-    @IsOptional()
-    negativeMarkingValue?: number = 0;
-
-    @IsBoolean()
-    @IsOptional()
-    showResultImmediately?: boolean = false;
-
-    @IsBoolean()
-    @IsOptional()
-    showCorrectAnswers?: boolean = false;
-
-    @IsDateString()
-    @IsOptional()
-    resultPublishDate?: string;
-}
-
-export class ExamSettings {
-    @IsBoolean()
-    @IsOptional()
-    randomizeQuestions?: boolean = false;
-
-    @IsBoolean()
-    @IsOptional()
-    randomizeOptions?: boolean = false;
-
     @IsNumber()
     @Min(1)
-    @IsOptional()
-    questionsPerPage?: number = 1;
+    duration: number;
 
-    @IsBoolean()
-    @IsOptional()
-    allowQuestionReview?: boolean = true;
+    @IsEnum({ example: ExamMode.AUTO, enum: ExamMode })
+    examMode: ExamMode;
 
-    @IsBoolean()
     @IsOptional()
-    allowQuestionSkip?: boolean = true;
-
-    @IsBoolean()
-    @IsOptional()
-    showQuestionNumbers?: boolean = true;
-
-    @IsBoolean()
-    @IsOptional()
-    preventCopyPaste?: boolean = true;
-
-    @IsBoolean()
-    @IsOptional()
-    disableRightClick?: boolean = true;
-}
-
-export class ExamProctoring {
     @IsArray()
     @IsString({ each: true })
-    @IsOptional()
-    faculty?: string[]; // Faculty IDs
+    generalInstructions?: string[];
 
-    @IsNumber()
-    @Min(1)
-    @Max(50)
-    @IsOptional()
-    maxStudentsPerProctor?: number = 20;
+    // Target Audience
+    @IsString()
+    batchId: string;
 
-    @IsBoolean()
-    @IsOptional()
-    autoAdmitStudents?: boolean = false;
+    @IsString()
+    courseId: string;
 
-    @IsBoolean()
-    @IsOptional()
-    recordSession?: boolean = true;
+    @IsString()
+    branchId: string;
 
-    @IsBoolean()
     @IsOptional()
-    enableChat?: boolean = false;
-
-    @IsBoolean()
-    @IsOptional()
-    allowProctorIntervention?: boolean = true;
-}
-
-export class ExamSecurity {
-    @IsBoolean()
-    @IsOptional()
-    requireCameraAccess?: boolean = true;
-
-    @IsBoolean()
-    @IsOptional()
-    requireMicrophoneAccess?: boolean = true;
-
-    @IsBoolean()
-    @IsOptional()
-    requireScreenShare?: boolean = true;
-
-    @IsBoolean()
-    @IsOptional()
-    detectTabSwitch?: boolean = true;
-
-    @IsBoolean()
-    @IsOptional()
-    detectMultipleMonitors?: boolean = true;
-
-    @IsBoolean()
-    @IsOptional()
-    lockdownBrowser?: boolean = false;
-
     @IsArray()
     @IsString({ each: true })
-    @IsOptional()
-    allowedApplications?: string[] = [];
+    sectionIds?: string[];
 
+    // Schedule Details
+    @Type(() => ScheduleDetails)
+    scheduleDetails: ScheduleDetails;
+
+    // Faculty Assignment (for AUTO mode)
+    @IsOptional()
     @IsArray()
     @IsString({ each: true })
-    @IsOptional()
-    blockedWebsites?: string[] = [];
+    assignedFacultyIds?: string[];
 
-    @IsNumber()
-    @Min(1)
-    @Max(10)
-    @IsOptional()
-    maxViolations?: number = 3;
-}
-
-export class ExamContactInfo {
-    @IsString()
-    @IsOptional()
-    supportEmail?: string;
-
-    @IsString()
-    @IsOptional()
-    supportPhone?: string;
-
-    @IsString()
-    @IsOptional()
-    emergencyContact?: string;
-}
-
-export class ExamInstructions {
-    @IsString()
-    @IsNotEmpty()
-    instructions: string;
-
+    // Exam Sections with Questions
     @IsArray()
-    @IsString({ each: true })
-    @IsOptional()
-    technicalRequirements?: string[] = [];
+    @Type(() => CreateExamSection)
+    examSections: CreateExamSection[];
 
-    @IsArray()
-    @IsString({ each: true })
-    @IsOptional()
-    examRules?: string[] = [];
-
-    @ValidateNested()
-    @Type(() => ExamContactInfo)
-    @IsOptional()
-    contactInfo?: ExamContactInfo;
-}
-
-export class QuestionOption {
-    @IsString()
-    @IsNotEmpty()
-    optionId: string;
-
-    @IsString()
-    @IsNotEmpty()
-    text: string;
-
-    @IsString()
-    @IsOptional()
-    image?: string;
-
-    @IsBoolean()
-    isCorrect: boolean;
-}
-
-export class QuestionBlank {
-    @IsString()
-    @IsNotEmpty()
-    blankId: string;
-
-    @IsArray()
-    @IsString({ each: true })
-    correctAnswers: string[];
-
-    @IsBoolean()
-    @IsOptional()
-    caseSensitive?: boolean = false;
-
-    @IsBoolean()
-    @IsOptional()
-    acceptPartialCredit?: boolean = false;
-}
-
-export class QuestionEssaySettings {
-    @IsNumber()
-    @Min(1)
-    @IsOptional()
-    maxWords?: number;
-
-    @IsNumber()
-    @Min(1)
-    @IsOptional()
-    minWords?: number;
-
-    @IsArray()
-    @IsString({ each: true })
-    @IsOptional()
-    keywords?: string[] = [];
-
-    @IsString()
-    @IsOptional()
-    rubric?: string;
-}
-
-export class CodingTestCase {
-    @IsString()
-    @IsNotEmpty()
-    input: string;
-
-    @IsString()
-    @IsNotEmpty()
-    expectedOutput: string;
-
-    @IsBoolean()
-    @IsOptional()
-    isHidden?: boolean = false;
-
-    @IsNumber()
-    @Min(0)
-    @IsOptional()
-    points?: number = 1;
-}
-
-export class QuestionCodingSettings {
-    @IsString()
-    @IsOptional()
-    language?: string;
-
-    @IsString()
-    @IsOptional()
-    starterCode?: string;
-
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => CodingTestCase)
-    @IsOptional()
-    testCases?: CodingTestCase[] = [];
-
-    @IsNumber()
-    @Min(1)
-    @IsOptional()
-    timeLimit?: number; // in seconds
-
-    @IsNumber()
-    @Min(1)
-    @IsOptional()
-    memoryLimit?: number; // in MB
-}
-
-export class QuestionMetadata {
-    @IsString()
-    @IsOptional()
-    category?: string;
-
-    @IsArray()
-    @IsString({ each: true })
-    @IsOptional()
-    tags?: string[] = [];
-
-    @IsString()
-    @IsOptional()
-    bloomsLevel?: string;
-
-    @IsString()
-    @IsOptional()
-    learningOutcome?: string;
-}
-
-export class CreateQuestion {
-    @IsEnum(QuestionType)
-    type: QuestionType;
-
-    @IsString()
-    @IsNotEmpty()
-    question: string;
-
-    @IsString()
-    @IsOptional()
-    questionImage?: string;
-
-    @IsString()
-    @IsOptional()
-    explanation?: string;
-
-    @IsNumber()
-    @Min(0.5)
-    marks: number;
-
-    @IsEnum(DifficultyLevel)
-    @IsOptional()
-    difficulty?: DifficultyLevel = DifficultyLevel.MEDIUM;
-
-    @IsNumber()
-    @Min(1)
-    orderIndex: number;
-
-    // For MCQ, Single Choice, True/False
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => QuestionOption)
-    @IsOptional()
-    options?: QuestionOption[];
-
-    // For Fill in the blanks
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => QuestionBlank)
-    @IsOptional()
-    blanks?: QuestionBlank[];
-
-    // For Essay questions
-    @ValidateNested()
-    @Type(() => QuestionEssaySettings)
-    @IsOptional()
-    essaySettings?: QuestionEssaySettings;
-
-    // For Coding questions
-    @ValidateNested()
-    @Type(() => QuestionCodingSettings)
-    @IsOptional()
-    codingSettings?: QuestionCodingSettings;
-
-    @ValidateNested()
-    @Type(() => QuestionMetadata)
-    @IsOptional()
-    metadata?: QuestionMetadata;
-
-    @IsBoolean()
-    @IsOptional()
-    isActive?: boolean = true;
-}
-
-export class CreateExamRequest {
-    @IsString()
-    @IsNotEmpty()
-    title: string;
-
-    @IsString()
-    @IsOptional()
-    description?: string;
-
-    @IsString()
-    @IsNotEmpty()
-    subject: string;
-
-    @IsString()
-    @IsNotEmpty()
-    course: string;
-
-    @IsString()
-    @IsNotEmpty()
-    branch: string;
-
-    @IsNumber()
-    @Min(1)
-    @Max(8)
-    semester: number;
-
-    @IsString()
-    @IsOptional()
-    section?: string;
-
-    @IsString()
-    @IsNotEmpty()
-    batch: string;
-
-    @IsEnum(ExamMode)
-    mode: ExamMode;
-
-    @ValidateNested()
-    @Type(() => ExamSchedule)
-    schedule: ExamSchedule;
-
-    @ValidateNested()
-    @Type(() => ExamGrading)
-    grading: ExamGrading;
-
-    @ValidateNested()
-    @Type(() => ExamSettings)
-    @IsOptional()
-    settings?: ExamSettings;
-
-    @ValidateNested()
-    @Type(() => ExamProctoring)
-    @IsOptional()
-    proctoring?: ExamProctoring;
-
-    @ValidateNested()
-    @Type(() => ExamSecurity)
-    @IsOptional()
-    security?: ExamSecurity;
-
-    @ValidateNested()
-    @Type(() => ExamInstructions)
-    instructions: ExamInstructions;
-
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => CreateQuestion)
-    questions: CreateQuestion[];
-
-    @IsBoolean()
-    @IsOptional()
-    saveAsDraft?: boolean = true;
 }
