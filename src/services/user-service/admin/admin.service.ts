@@ -701,7 +701,19 @@ export class AdminService {
 
     // Create Exam API Endpoint
     async createExamAPI(adminId: string, createExamData: CreateExamRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
 
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to create exam: ' + error.message);
+        }
     }
 
 
