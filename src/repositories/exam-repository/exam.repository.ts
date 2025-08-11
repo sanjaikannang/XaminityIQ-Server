@@ -11,4 +11,16 @@ export class ExamRepositoryService {
     ) { }
 
 
+    // Create a new exam
+    async create(examData: string) {
+
+    }
+
+
+    // Find an exam by its ID
+    async findByExamId(examId: string) {
+
+    }
+
+
 }

@@ -11,4 +11,10 @@ export class ExamSectionRepositoryService {
     ) { }
 
 
+    // Create a new exam section
+    async create(examSectionData: string) {
+
+    }
+
+
 }

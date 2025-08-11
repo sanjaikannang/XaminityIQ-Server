@@ -11,4 +11,15 @@ export class QuestionRepositoryService {
     ) { }
 
 
+    // Create a new question
+    async create(questionDocument: string){
+
+    }
+
+
+    // Find a question by its ID
+    async findByQuestionId(questionId: string) {
+
+    }
+
 }
