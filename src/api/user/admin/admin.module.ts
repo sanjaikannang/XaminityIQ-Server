@@ -42,6 +42,7 @@ import { GetBatchesController } from './get-batches/get-batches.controller';
 import { ServiceModule } from 'src/services/service.module';
 import { RepositoryModule } from 'src/repositories/repository.module';
 import { JwtModule } from '@nestjs/jwt';
+import { CreateExamController } from './create-exam/create-exam.controller';
 
 
 @Module({
@@ -81,7 +82,8 @@ import { JwtModule } from '@nestjs/jwt';
         GetBranchesByCourseController,
         GetCoursesByBatchController,
         GetSectionsByBranchController,
-        GetBatchesController
+        GetBatchesController,
+        CreateExamController
     ],
     providers: [
         ConfigService,
