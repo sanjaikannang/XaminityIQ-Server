@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateFacultyRequest } from 'src/api/user/admin/create-faculty/create-faculty.request';
 import * as bcrypt from 'bcrypt';
-import { Status, UserRole } from 'src/utils/enum';
+import { ExamStatus, Status, UserRole } from 'src/utils/enum';
 import { UserRepositoryService } from 'src/repositories/user-repository/user.repository';
 import { FacultyRepositoryService } from 'src/repositories/faculty-repository/faculty.repository';
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
@@ -31,6 +31,10 @@ import { SectionRepositoryService } from 'src/repositories/section-repository/se
 import { CoursesData } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.response';
 import BranchesData from 'src/api/user/admin/get-branches-by-course/get-branches-by-course.response';
 import { SectionData } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.response';
+import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
+import { ExamSectionRepositoryService } from 'src/repositories/exam-section-repository/exam-section.repository';
+import { QuestionRepositoryService } from 'src/repositories/question-repository/question.repository';
+import { StudentExamAttemptRepositoryService } from 'src/repositories/student-exam-attempt-repository/student-exam-attempt.repository';
 
 
 @Injectable()
@@ -45,7 +49,11 @@ export class AdminService {
         private readonly batchRepositoryService: BatchRepositoryService,
         private readonly courseRepositoryService: CourseRepositoryService,
         private readonly branchRepositoryService: BranchRepositoryService,
-        private readonly sectionRepositoryService: SectionRepositoryService
+        private readonly sectionRepositoryService: SectionRepositoryService,
+        private readonly examRepositoryService: ExamRepositoryService,
+        private readonly examSectionRepositoryService: ExamSectionRepositoryService,
+        private readonly questionRepositoryService: QuestionRepositoryService,
+        private readonly studentExamAttemptRepositoryService: StudentExamAttemptRepositoryService,
     ) { }
 
 
@@ -701,7 +709,277 @@ export class AdminService {
 
     // Create Exam API Endpoint
     async createExamAPI(adminId: string, createExamData: CreateExamRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
 
+            // Validate referenced entities exist
+            await this.validateExamReferences(createExamData);
+
+            // Generate unique exam ID
+            const examId = await this.generateUniqueExamId();
+
+            // Prepare exam data
+            const examData = {
+                examId,
+                examTitle: createExamData.examTitle,
+                examDescription: createExamData.examDescription,
+                subject: createExamData.subject,
+                totalMarks: createExamData.totalMarks,
+                passingMarks: createExamData.passingMarks,
+                duration: createExamData.duration,
+                examMode: createExamData.examMode,
+                generalInstructions: createExamData.generalInstructions || [],
+                examStatus: ExamStatus.DRAFT,
+                batchId: new Types.ObjectId(createExamData.batchId),
+                courseId: new Types.ObjectId(createExamData.courseId),
+                branchId: new Types.ObjectId(createExamData.branchId),
+                sectionIds: createExamData.sectionIds?.map(id => new Types.ObjectId(id)) || [],
+                scheduleDetails: {
+                    examDate: createExamData.scheduleDetails.examDate ? new Date(createExamData.scheduleDetails.examDate) : undefined,
+                    startTime: createExamData.scheduleDetails.startTime,
+                    endTime: createExamData.scheduleDetails.endTime,
+                    startDate: createExamData.scheduleDetails.startDate ? new Date(createExamData.scheduleDetails.startDate) : undefined,
+                    endDate: createExamData.scheduleDetails.endDate ? new Date(createExamData.scheduleDetails.endDate) : undefined,
+                    bufferTime: {
+                        beforeExam: createExamData.scheduleDetails.bufferTime?.beforeExam || 0,
+                        afterExam: createExamData.scheduleDetails.bufferTime?.afterExam || 0
+                    }
+                },
+                assignedFacultyIds: createExamData.assignedFacultyIds?.map(id => new Types.ObjectId(id)) || [],
+                createdBy: new Types.ObjectId(adminId),
+                status: Status.ACTIVE
+            };
+
+            // Create the exam
+            const createdExam = await this.examRepositoryService.create(examData);
+
+            // Create exam sections and questions
+            await this.createExamSectionsAndQuestions(createdExam._id, createExamData.examSections, adminId);
+
+            // Return exam data
+            return {
+                examId: createdExam.examId,
+                examTitle: createdExam.examTitle,
+                examStatus: createdExam.examStatus,
+                totalMarks: createdExam.totalMarks,
+                duration: createdExam.duration
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to create exam: ' + error.message);
+        }
+    }
+
+
+    // Validate Exam References
+    private async validateExamReferences(createExamData: CreateExamRequest): Promise<void> {
+        // Validate batch exists
+        const batch = await this.batchRepositoryService.findById(createExamData.batchId);
+        if (!batch) {
+            throw new NotFoundException('Batch not found');
+        }
+
+        // Validate course exists
+        const course = await this.courseRepositoryService.findById(createExamData.courseId);
+        if (!course) {
+            throw new NotFoundException('Course not found');
+        }
+
+        // Validate branch exists
+        const branch = await this.branchRepositoryService.findById(createExamData.branchId);
+        if (!branch) {
+            throw new NotFoundException('Branch not found');
+        }
+
+        // Validate sections exist (if provided)
+        if (createExamData.sectionIds && createExamData.sectionIds.length > 0) {
+            for (const sectionId of createExamData.sectionIds) {
+                const section = await this.sectionRepositoryService.findById(sectionId);
+                if (!section) {
+                    throw new NotFoundException(`Section with ID ${sectionId} not found`);
+                }
+            }
+        }
+
+        // Validate assigned faculty exist (if provided)
+        if (createExamData.assignedFacultyIds && createExamData.assignedFacultyIds.length > 0) {
+            for (const facultyId of createExamData.assignedFacultyIds) {
+                const faculty = await this.facultyRepositoryService.findById(facultyId);
+                if (!faculty) {
+                    throw new NotFoundException(`Faculty with ID ${facultyId} not found`);
+                }
+            }
+        }
+    }
+
+
+    // Generate Unique Exam ID
+    private async generateUniqueExamId(): Promise<string> {
+        let examId: string;
+        let isUnique = false;
+        let counter = 1;
+
+        while (!isUnique) {
+            examId = `EXM${counter.toString().padStart(3, '0')}`;
+            const existingExam = await this.examRepositoryService.findByExamId(examId);
+
+            if (!existingExam) {
+                isUnique = true;
+            } else {
+                counter++;
+            }
+        }
+
+        return examId;
+    }
+
+
+    // Create Exam Sections and Questions
+    private async createExamSectionsAndQuestions(
+        examId: Types.ObjectId,
+        examSections: any[],
+        adminId: string
+    ): Promise<void> {
+        for (const sectionData of examSections) {
+            // Create exam section
+            const examSectionData = {
+                examId,
+                sectionName: sectionData.sectionName,
+                sectionOrder: sectionData.sectionOrder,
+                sectionMarks: sectionData.sectionMarks,
+                questionType: sectionData.questionType,
+                totalQuestions: sectionData.totalQuestions,
+                sectionInstructions: sectionData.sectionInstructions || [],
+                isOptional: sectionData.isOptional || false,
+                createdBy: new Types.ObjectId(adminId),
+                status: Status.ACTIVE
+            };
+
+            const createdSection = await this.examSectionRepositoryService.create(examSectionData);
+
+            // Create questions for this section
+            await this.createQuestionsForSection(createdSection._id, sectionData.questions, adminId);
+        }
+    }
+
+
+    // Create Questions for Section
+    private async createQuestionsForSection(
+        examSectionId: Types.ObjectId,
+        questions: any[],
+        adminId: string
+    ): Promise<void> {
+        for (const questionData of questions) {
+            // Generate unique question ID
+            const questionId = await this.generateUniqueQuestionId();
+
+            const questionDocument = {
+                questionId,
+                examSectionId,
+                questionText: questionData.questionText,
+                questionImage: questionData.questionImage,
+                questionType: questionData.questionType,
+                marks: questionData.marks,
+                questionOrder: questionData.questionOrder,
+                difficultyLevel: questionData.difficultyLevel,
+                options: questionData.options || [],
+                correctAnswers: questionData.correctAnswers || [],
+                correctAnswer: questionData.correctAnswer,
+                explanation: questionData.explanation,
+                createdBy: new Types.ObjectId(adminId),
+                status: Status.ACTIVE
+            };
+
+            await this.questionRepositoryService.create(questionDocument);
+        }
+    }
+
+
+    // Generate Unique Question ID
+    private async generateUniqueQuestionId(): Promise<string> {
+        let questionId: string;
+        let isUnique = false;
+        let counter = 1;
+
+        while (!isUnique) {
+            questionId = `QUE${counter.toString().padStart(3, '0')}`;
+            const existingQuestion = await this.questionRepositoryService.findByQuestionId(questionId);
+
+            if (!existingQuestion) {
+                isUnique = true;
+            } else {
+                counter++;
+            }
+        }
+
+        return questionId;
+    }
+
+
+    // Validate Schedule Details
+    private validateScheduleDetails(createExamData: CreateExamRequest): void {
+        const { examMode, scheduleDetails } = createExamData;
+
+        if (examMode === 'PROCTORING') {
+            if (!scheduleDetails.examDate || !scheduleDetails.startTime || !scheduleDetails.endTime) {
+                throw new BadRequestException('For PROCTORING mode, examDate, startTime, and endTime are required');
+            }
+        } else if (examMode === 'AUTO') {
+            if (!scheduleDetails.startDate || !scheduleDetails.endDate) {
+                throw new BadRequestException('For AUTO mode, startDate and endDate are required');
+            }
+
+            const startDate = new Date(scheduleDetails.startDate);
+            const endDate = new Date(scheduleDetails.endDate);
+
+            if (startDate >= endDate) {
+                throw new BadRequestException('Start date must be before end date');
+            }
+        }
+    }
+
+
+    //
+    private validateExamSections(examSections: any[]): void {
+        if (!examSections || examSections.length === 0) {
+            throw new BadRequestException('At least one exam section is required');
+        }
+
+        // Validate section orders are unique
+        const sectionOrders = examSections.map(section => section.sectionOrder);
+        const uniqueOrders = new Set(sectionOrders);
+
+        if (sectionOrders.length !== uniqueOrders.size) {
+            throw new BadRequestException('Section orders must be unique');
+        }
+
+        // Validate each section has questions
+        for (const section of examSections) {
+            if (!section.questions || section.questions.length === 0) {
+                throw new BadRequestException(`Section "${section.sectionName}" must have at least one question`);
+            }
+
+            if (section.questions.length !== section.totalQuestions) {
+                throw new BadRequestException(
+                    `Section "${section.sectionName}" totalQuestions (${section.totalQuestions}) must match actual questions count (${section.questions.length})`
+                );
+            }
+
+            // Validate question orders within section
+            const questionOrders = section.questions.map(q => q.questionOrder);
+            const uniqueQuestionOrders = new Set(questionOrders);
+
+            if (questionOrders.length !== uniqueQuestionOrders.size) {
+                throw new BadRequestException(`Question orders in section "${section.sectionName}" must be unique`);
+            }
+        }
     }
 
 

@@ -1,5 +1,5 @@
-import { MongooseModule } from "@nestjs/mongoose";
 import { Module } from "@nestjs/common";
+import { MongooseModule } from "@nestjs/mongoose";
 import { AdminRepositoryService } from "./admin-repository/admin.repository";
 import { FacultyRepositoryService } from "./faculty-repository/faculty.repository";
 import { SessionRepositoryService } from "./session-repository/session.repository";
@@ -9,6 +9,10 @@ import { BatchRepositoryService } from "./batch-repository/batch-repository";
 import { CourseRepositoryService } from "./course-repository/course-repository";
 import { BranchRepositoryService } from "./branch-repository/branch-repository";
 import { SectionRepositoryService } from "./section-repository/section-repository";
+import { ExamRepositoryService } from "./exam-repository/exam.repository";
+import { QuestionRepositoryService } from "./question-repository/question.repository";
+import { ExamSectionRepositoryService } from "./exam-section-repository/exam-section.repository";
+import { StudentExamAttemptRepositoryService } from "./student-exam-attempt-repository/student-exam-attempt.repository";
 
 
 // Schemas
@@ -21,6 +25,10 @@ import { Batch, BatchSchema } from "src/schemas/hierarchy/batch.schema";
 import { Course, CourseSchema } from "src/schemas/hierarchy/course.schema";
 import { Branch, BranchSchema } from "src/schemas/hierarchy/branch.schema";
 import { Section, SectionSchema } from "src/schemas/hierarchy/section.schema";
+import { Exam, ExamSchema } from "src/schemas/exam/exam.schema";
+import { Question, QuestionSchema } from "src/schemas/exam/question.schema";
+import { ExamSection, ExamSectionSchema } from "src/schemas/exam/exam-section.schema";
+import { StudentExamAttempt, StudentExamAttemptSchema } from "src/schemas/exam/student-exam-attempt.schema";
 
 @Module({
     imports: [
@@ -33,7 +41,11 @@ import { Section, SectionSchema } from "src/schemas/hierarchy/section.schema";
             { name: Batch.name, schema: BatchSchema },
             { name: Course.name, schema: CourseSchema },
             { name: Branch.name, schema: BranchSchema },
-            { name: Section.name, schema: SectionSchema }
+            { name: Section.name, schema: SectionSchema },
+            { name: Exam.name, schema: ExamSchema },
+            { name: Question.name, schema: QuestionSchema },
+            { name: ExamSection.name, schema: ExamSectionSchema },
+            { name: StudentExamAttempt.name, schema: StudentExamAttemptSchema },
         ]),
     ],
     controllers: [],
@@ -46,7 +58,11 @@ import { Section, SectionSchema } from "src/schemas/hierarchy/section.schema";
         BatchRepositoryService,
         CourseRepositoryService,
         BranchRepositoryService,
-        SectionRepositoryService
+        SectionRepositoryService,
+        ExamRepositoryService,
+        QuestionRepositoryService,
+        ExamSectionRepositoryService,
+        StudentExamAttemptRepositoryService
     ],
     exports: [
         AdminRepositoryService,
@@ -57,7 +73,11 @@ import { Section, SectionSchema } from "src/schemas/hierarchy/section.schema";
         BatchRepositoryService,
         CourseRepositoryService,
         BranchRepositoryService,
-        SectionRepositoryService
+        SectionRepositoryService,
+        ExamRepositoryService,
+        QuestionRepositoryService,
+        ExamSectionRepositoryService,
+        StudentExamAttemptRepositoryService
     ],
 })
 export class RepositoryModule { }
