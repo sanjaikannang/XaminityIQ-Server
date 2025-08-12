@@ -12,8 +12,16 @@ export class ExamSectionRepositoryService {
 
 
     // Create a new exam section
-    async create(examSectionData: string) {
+    async create(examSectionData: any): Promise<ExamSectionDocument> {
+        try {
 
+            const examSection = new this.examSectionModel(examSectionData);
+            return await examSection.save();
+
+        } catch (error) {
+            console.error("Error creating exam section:", error);
+            throw new Error(`Failed to create exam section: ${error.message}`);
+        }
     }
 
 
