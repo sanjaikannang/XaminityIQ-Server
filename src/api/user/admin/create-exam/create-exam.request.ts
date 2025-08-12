@@ -1,6 +1,18 @@
 import { Type } from "class-transformer";
-import { IsArray, IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Min } from "class-validator";
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Min, ValidateNested } from "class-validator";
 import { DifficultyLevel, ExamMode, QuestionType } from "src/utils/enum";
+
+export class BufferTime {
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    beforeExam: number;
+
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    afterExam: number;
+}
 
 export class ScheduleDetails {
 
@@ -28,20 +40,9 @@ export class ScheduleDetails {
 
     // Buffer time
     @IsOptional()
+    @ValidateNested()
     @Type(() => BufferTime)
     bufferTime?: BufferTime;
-
-}
-
-export class BufferTime {
-
-    @IsNumber()
-    @Min(0)
-    beforeExam: number;
-
-    @IsNumber()
-    @Min(0)
-    afterExam: number;
 
 }
 
@@ -210,7 +211,8 @@ export class CreateExamRequest {
     sectionIds?: string[];
 
     // Schedule Details
-    @Type(() => ScheduleDetails)
+    @ValidateNested()
+    @Type(() => ScheduleDetails)    
     scheduleDetails: ScheduleDetails;
 
     // Faculty Assignment (for AUTO mode)
