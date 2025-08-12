@@ -46,6 +46,7 @@ import { SectionRepositoryService } from 'src/repositories/section-repository/se
 import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
 import { ExamSectionRepositoryService } from 'src/repositories/exam-section-repository/exam-section.repository';
 import { QuestionRepositoryService } from 'src/repositories/question-repository/question.repository';
+import { GetAllExamRequest } from 'src/api/user/admin/get-all-exam/get-all-exam.request';
 
 
 @Injectable()
@@ -1319,4 +1320,21 @@ export class AdminService {
         }
     }
 
+
+    //
+    async getAllExamAPI(adminId: string, getAllExamRequest: GetAllExamRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get exams: ' + error.message);
+        }
+    }
 }
