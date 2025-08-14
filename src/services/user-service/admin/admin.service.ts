@@ -46,6 +46,8 @@ import { SectionRepositoryService } from 'src/repositories/section-repository/se
 import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
 import { ExamSectionRepositoryService } from 'src/repositories/exam-section-repository/exam-section.repository';
 import { QuestionRepositoryService } from 'src/repositories/question-repository/question.repository';
+import { GetAllExamRequest } from 'src/api/user/admin/get-all-exam/get-all-exam.request';
+import { performComprehensiveValidation } from './Validation/validator';
 
 
 @Injectable()
@@ -720,25 +722,23 @@ export class AdminService {
     // Create Exam API Endpoint
     async createExamAPI(adminId: string, createExamData: CreateExamRequest) {
         try {
-            console.log('Step 1: Finding admin...');
-
             // Verify admin exists and is active
             const admin = await this.adminRepositoryService.findByUserId(adminId);
             if (!admin) {
                 throw new NotFoundException('Admin not found');
             }
 
-            console.log("request....", createExamData)
+            const validattion1 = await performComprehensiveValidation(createExamData);
+
+            console.log('Validation Result:', validattion1);
 
             // Validate referenced entities exist
             const validation = await this.validateExamReferences(createExamData);
 
-            console.log('Step 2: Validation completed successfully.', validation);
+            console.log('Validation Result:', validation);
 
             // Generate unique exam ID
             const examId = await this.generateUniqueExamId();
-
-            console.log('Step 3: Generated unique exam ID:', examId);
 
             // Prepare exam data
             const examData = {
@@ -775,12 +775,8 @@ export class AdminService {
             // Create the exam
             const createdExam = await this.examRepositoryService.create(examData);
 
-            console.log('Step 4: Exam created successfully:', createdExam);
-
             // Create exam sections and questions
             const createExam = await this.createExamSectionsAndQuestions(createdExam.examId, createExamData.examSections, adminId);
-
-            console.log('Step 5: Exam sections and questions created successfully.', createExam);
 
             // Return exam data
             return {
@@ -1316,6 +1312,24 @@ export class AdminService {
                 throw error;
             }
             throw new BadRequestException('Failed to get section by branch: ' + error.message);
+        }
+    }
+
+
+    // Get All Exams API Endpoint
+    async getAllExamAPI(adminId: string, getAllExamRequest: GetAllExamRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get exams: ' + error.message);
         }
     }
 
