@@ -47,7 +47,7 @@ import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.rep
 import { ExamSectionRepositoryService } from 'src/repositories/exam-section-repository/exam-section.repository';
 import { QuestionRepositoryService } from 'src/repositories/question-repository/question.repository';
 import { GetAllExamRequest } from 'src/api/user/admin/get-all-exam/get-all-exam.request';
-import { performComprehensiveValidation } from './Validation/validator';
+import { validateCreateExamRequest } from './Validation/validator';
 
 
 @Injectable()
@@ -728,9 +728,10 @@ export class AdminService {
                 throw new NotFoundException('Admin not found');
             }
 
-            const validattion1 = await performComprehensiveValidation(createExamData);
+            // Perform comprehensive validation BEFORE proceeding
+            const validation1 = await validateCreateExamRequest(createExamData);
 
-            console.log('Validation Result:', validattion1);
+            console.log('Comprehensive Validation Result:', validation1);
 
             // Validate referenced entities exist
             const validation = await this.validateExamReferences(createExamData);
@@ -742,6 +743,7 @@ export class AdminService {
 
             // Prepare exam data
             const examData = {
+                examStatus: createExamData.examStatus,
                 examId,
                 examTitle: createExamData.examTitle,
                 examDescription: createExamData.examDescription,
@@ -751,7 +753,6 @@ export class AdminService {
                 duration: createExamData.duration,
                 examMode: createExamData.examMode,
                 generalInstructions: createExamData.generalInstructions || [],
-                examStatus: ExamStatus.DRAFT,
                 batchId: new Types.ObjectId(createExamData.batchId),
                 courseId: new Types.ObjectId(createExamData.courseId),
                 branchId: new Types.ObjectId(createExamData.branchId),
