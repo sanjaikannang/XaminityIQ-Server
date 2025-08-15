@@ -4,7 +4,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 
 
 // Utils
-import { ExamStatus, Status, UserRole } from 'src/utils/enum';
+import { Status, UserRole } from 'src/utils/enum';
 
 
 // Request Files
@@ -24,12 +24,17 @@ import { CreateSectionRequest } from 'src/api/user/admin/create-section/create-s
 import { GetBranchesByCourseRequest } from 'src/api/user/admin/get-branches-by-course/get-branches-by-course.request';
 import { GetCoursesByBatchRequest } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.request';
 import { GetSectionsByBranchRequest } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.request';
+import { GetExamByIdRequest } from 'src/api/user/admin/get-exam/get-exam-by-id.request';
+import { GetAllExamRequest } from 'src/api/user/admin/get-all-exam/get-all-exam.request';
+import { validateCreateExamRequest } from './Validation/validator';
 
 
 // Response Files
 import { CoursesData } from 'src/api/user/admin/get-courses-by-batch/get-courses-by-batch.response';
 import BranchesData from 'src/api/user/admin/get-branches-by-course/get-branches-by-course.response';
 import { SectionData } from 'src/api/user/admin/get-sections-by-branch/get-sections-by-branch.response';
+import { ExamResponse, PaginationInfo } from 'src/api/user/admin/get-all-exam/get-all-exam.response';
+import { DetailedExamResponse, ExamSectionResponse, QuestionResponse } from 'src/api/user/admin/get-exam/get-exam-by-id.response';
 
 
 // Repository Services
@@ -46,8 +51,7 @@ import { SectionRepositoryService } from 'src/repositories/section-repository/se
 import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
 import { ExamSectionRepositoryService } from 'src/repositories/exam-section-repository/exam-section.repository';
 import { QuestionRepositoryService } from 'src/repositories/question-repository/question.repository';
-import { GetAllExamRequest } from 'src/api/user/admin/get-all-exam/get-all-exam.request';
-import { performComprehensiveValidation } from './Validation/validator';
+
 
 
 @Injectable()
@@ -728,9 +732,10 @@ export class AdminService {
                 throw new NotFoundException('Admin not found');
             }
 
-            const validattion1 = await performComprehensiveValidation(createExamData);
+            // Perform comprehensive validation BEFORE proceeding
+            const validation1 = await validateCreateExamRequest(createExamData);
 
-            console.log('Validation Result:', validattion1);
+            console.log('Comprehensive Validation Result:', validation1);
 
             // Validate referenced entities exist
             const validation = await this.validateExamReferences(createExamData);
@@ -742,6 +747,7 @@ export class AdminService {
 
             // Prepare exam data
             const examData = {
+                examStatus: createExamData.examStatus,
                 examId,
                 examTitle: createExamData.examTitle,
                 examDescription: createExamData.examDescription,
@@ -751,7 +757,6 @@ export class AdminService {
                 duration: createExamData.duration,
                 examMode: createExamData.examMode,
                 generalInstructions: createExamData.generalInstructions || [],
-                examStatus: ExamStatus.DRAFT,
                 batchId: new Types.ObjectId(createExamData.batchId),
                 courseId: new Types.ObjectId(createExamData.courseId),
                 branchId: new Types.ObjectId(createExamData.branchId),
@@ -1325,11 +1330,167 @@ export class AdminService {
                 throw new NotFoundException('Admin not found');
             }
 
+            const { page = 1, limit = 10 } = getAllExamRequest;
+            const skip = (page - 1) * limit;
+
+            // Get total count of active exams
+            const totalCount = await this.examRepositoryService.countDocuments({
+                status: Status.ACTIVE
+            });
+
+            // Get exams with pagination
+            const exams = await this.examRepositoryService.findWithPagination(
+                { status: Status.ACTIVE },
+                skip,
+                limit,
+                { createdAt: -1 }
+            );
+
+            // Transform exams to response format
+            const examResponses: ExamResponse[] = exams.map(exam => ({
+                examId: exam.examId,
+                examTitle: exam.examTitle,
+                examDescription: exam.examDescription,
+                subject: exam.subject,
+                totalMarks: exam.totalMarks,
+                passingMarks: exam.passingMarks,
+                duration: exam.duration,
+                examMode: exam.examMode,
+                generalInstructions: exam.generalInstructions,
+                examStatus: exam.examStatus,
+                batchId: exam.batchId.toString(),
+                courseId: exam.courseId.toString(),
+                branchId: exam.branchId.toString(),
+                sectionIds: exam.sectionIds.map(id => id.toString()),
+                scheduleDetails: exam.scheduleDetails,
+                assignedFacultyIds: exam.assignedFacultyIds.map(id => id.toString()),
+                createdBy: exam.createdBy.toString(),
+                status: exam.status,
+            }));
+
+            // Calculate pagination info
+            const totalPages = Math.ceil(totalCount / limit);
+            const pagination: PaginationInfo = {
+                currentPage: page,
+                totalPages,
+                totalCount,
+                hasNextPage: page < totalPages,
+                hasPreviousPage: page > 1,
+            };
+
+            return {
+                exams: examResponses,
+                pagination,
+            };
+
         } catch (error) {
             if (error instanceof NotFoundException || error instanceof BadRequestException) {
                 throw error;
             }
             throw new BadRequestException('Failed to get exams: ' + error.message);
+        }
+    }
+
+
+    // Get Exam By ID API Endpoint
+    async getExamByIdAPI(adminId: string, getExamByIdRequest: GetExamByIdRequest) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            const { id: examId } = getExamByIdRequest;
+
+            // Find the exam
+            const exam = await this.examRepositoryService.findOne({
+                examId: examId,
+                status: Status.ACTIVE
+            });
+
+            if (!exam) {
+                throw new NotFoundException('Exam not found');
+            }
+
+            // Get all sections for this exam
+            const examSections = await this.examSectionRepositoryService.findAll({
+                examId: exam.examId,
+                status: Status.ACTIVE
+            }, { sectionOrder: 1 }); // Sort by section order
+
+            let totalQuestions = 0;
+            const sectionsWithQuestions: ExamSectionResponse[] = [];
+
+            // Get questions for each section
+            for (const section of examSections) {
+                const questions = await this.questionRepositoryService.findAll({
+                    examSectionId: section._id,
+                    status: Status.ACTIVE
+                }, { questionOrder: 1 }); // Sort by question order
+
+                totalQuestions += questions.length;
+
+                const questionResponses: QuestionResponse[] = questions.map(question => ({
+                    _id: (question._id as Types.ObjectId).toString(),
+                    questionId: question.questionId,
+                    questionText: question.questionText,
+                    questionImage: question.questionImage,
+                    questionType: question.questionType,
+                    marks: question.marks,
+                    questionOrder: question.questionOrder,
+                    difficultyLevel: question.difficultyLevel,
+                    options: question.options,
+                    correctAnswers: question.correctAnswers,
+                    correctAnswer: question.correctAnswer,
+                    explanation: question.explanation,
+                }));
+
+                sectionsWithQuestions.push({
+                    _id: (section._id as Types.ObjectId).toString(),
+                    sectionName: section.sectionName,
+                    sectionOrder: section.sectionOrder,
+                    sectionMarks: section.sectionMarks,
+                    questionType: section.questionType,
+                    totalQuestions: section.totalQuestions,
+                    sectionInstructions: section.sectionInstructions,
+                    isOptional: section.isOptional,
+                    questions: questionResponses,
+                });
+            }
+
+            // Create detailed exam response
+            const detailedExamResponse: DetailedExamResponse = {
+                examId: exam.examId,
+                examTitle: exam.examTitle,
+                examDescription: exam.examDescription,
+                subject: exam.subject,
+                totalMarks: exam.totalMarks,
+                passingMarks: exam.passingMarks,
+                duration: exam.duration,
+                examMode: exam.examMode,
+                generalInstructions: exam.generalInstructions,
+                examStatus: exam.examStatus,
+                batchId: exam.batchId.toString(),
+                courseId: exam.courseId.toString(),
+                branchId: exam.branchId.toString(),
+                sectionIds: exam.sectionIds.map(id => id.toString()),
+                scheduleDetails: exam.scheduleDetails,
+                assignedFacultyIds: exam.assignedFacultyIds.map(id => id.toString()),
+                createdBy: exam.createdBy.toString(),
+                status: exam.status,
+                sections: sectionsWithQuestions,
+                totalSections: examSections.length,
+                totalQuestions: totalQuestions,
+            };
+
+            return detailedExamResponse;
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get exam details: ' + error.message);
         }
     }
 

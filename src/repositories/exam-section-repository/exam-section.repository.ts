@@ -25,4 +25,32 @@ export class ExamSectionRepositoryService {
     }
 
 
+    // Find all exam
+    async findAll(filter: any = {}, sort: any = {}): Promise<ExamSectionDocument[]> {
+        try {
+
+            const sections = await this.examSectionModel.find(filter).sort(sort).exec();
+            return sections;
+
+        } catch (error) {
+            console.error("Error find exam section:", error);
+            throw new Error(`Failed to find exam section: ${error.message}`);
+        }
+    }
+
+
+    // Find one exam section by filter
+    async findOne(filter: any): Promise<ExamSectionDocument | null> {
+        try {
+
+            const sections = this.examSectionModel.findOne(filter).exec();
+            return sections;
+
+        } catch (error) {
+            console.error("Error find exam section:", error);
+            throw new Error(`Failed to find exam section: ${error.message}`);
+        }
+    }
+
+
 }

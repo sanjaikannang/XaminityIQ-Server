@@ -43,4 +43,46 @@ export class QuestionRepositoryService {
         }
     }
 
+
+    // Find All Questions with pagination
+    async findAll(filter: any = {}, sort: any = {}): Promise<QuestionDocument[]> {
+        try {
+
+            const questions = await this.questionModel.find(filter).sort(sort).exec();
+            return questions;
+
+        } catch (error) {
+            console.error("Error finding question:", error);
+            throw new Error(`Failed to find question: ${error.message}`);
+        }
+    }
+
+
+    // Find one question by filter
+    async findOne(filter: any): Promise<QuestionDocument | null> {
+        try {
+
+            const question = await this.questionModel.findOne(filter).exec();
+            return question;
+
+        } catch (error) {
+            console.error("Error finding question:", error);
+            throw new Error(`Failed to find question: ${error.message}`);
+        }
+    }
+
+
+    // Question count
+    async countDocuments(filter: any): Promise<number> {
+        try {
+
+            const count = await this.questionModel.countDocuments(filter).exec();
+            return count;
+
+        } catch (error) {
+            console.error("Error finding question count:", error);
+            throw new Error(`Failed to find question count: ${error.message}`);
+        }
+    }
+
 }

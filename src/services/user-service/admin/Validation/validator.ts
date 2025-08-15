@@ -2,279 +2,351 @@ import { BadRequestException } from "@nestjs/common";
 import { CreateExamRequest } from "src/api/user/admin/create-exam/create-exam.request";
 import { ExamMode, QuestionType } from "src/utils/enum";
 
-// Comprehensive Validation Method
-export async function performComprehensiveValidation(createExamData: CreateExamRequest): Promise<void> {
-    // 1. Validate passing marks against total marks
-    this.validatePassingMarks(createExamData);
+export async function validateCreateExamRequest(createExamData: CreateExamRequest): Promise<void> {
 
-    // 2. Validate exam mode specific requirements
-    this.validateExamModeRequirements(createExamData);
+    // 1. Validate exam mode specific requirements
+    await validateExamModeRequirements(createExamData);
 
-    // 3. Validate section marks sum equals total marks
-    this.validateSectionMarksSum(createExamData);
+    // 2. Validate total marks consistency
+    await validateTotalMarksConsistency(createExamData);
 
-    // 4. Validate questions count in each section
-    this.validateQuestionsCount(createExamData);
+    // 3. Validate section marks consistency
+    await validateSectionMarksConsistency(createExamData);
 
-    // 5. Validate question types consistency
-    this.validateQuestionTypes(createExamData);
+    // 4. Validate questions consistency within sections
+    await validateQuestionsConsistency(createExamData);
 
-    // 6. Validate MCQ questions have correct options
-    this.validateMCQQuestions(createExamData);
+    // 5. Validate schedule details based on exam mode
+    await validateScheduleDetails(createExamData);
 
-    // 7. Validate text questions have correct answers
-    this.validateTextQuestions(createExamData);
+    // 6. Validate passing marks
+    await validatePassingMarks(createExamData);
 
-    // 8. Validate True/False questions
-    this.validateTrueFalseQuestions(createExamData);
+    // 7. Validate section order and question order
+    await validateOrderConsistency(createExamData);
 
-    // 9. Validate question orders
-    this.validateQuestionOrders(createExamData);
-
-    // 10. Validate section orders
-    this.validateSectionOrders(createExamData);
-
-    // 11. Validate time constraints
-    this.validateTimeConstraints(createExamData);
-
-    // 12. Validate duplicate question texts
-    await this.validateDuplicateQuestions(createExamData);
+    // 8. Validate question types consistency
+    await validateQuestionTypesConsistency(createExamData);
 }
 
-// 1. Validate Passing Marks
-export async function validatePassingMarks(createExamData: CreateExamRequest) {
-    if (createExamData.passingMarks > createExamData.totalMarks) {
-        throw new BadRequestException('Passing marks cannot exceed total marks');
-    }
 
-    if (createExamData.passingMarks < 0) {
-        throw new BadRequestException('Passing marks cannot be negative');
-    }
+// Validate exam mode specific requirements
+async function validateExamModeRequirements(createExamData: CreateExamRequest): Promise<void> {
+    const { examMode, assignedFacultyIds, scheduleDetails } = createExamData;
 
-    // Validate passing marks is reasonable (typically 30-80% of total marks)
-    const passingPercentage = (createExamData.passingMarks / createExamData.totalMarks) * 100;
-    if (passingPercentage < 10 || passingPercentage > 90) {
-        throw new BadRequestException('Passing marks should be between 10% and 90% of total marks');
-    }
-}
-
-// 2. Validate Exam Mode Requirements
-export async function validateExamModeRequirements(createExamData: CreateExamRequest) {
-    if (createExamData.examMode === ExamMode.AUTO) {
-        // For AUTO mode, assignedFacultyIds should not be required
-        if (createExamData.assignedFacultyIds && createExamData.assignedFacultyIds.length > 0) {
-            console.warn('Faculty assignment is not required for AUTO mode, but will be stored if provided');
+    if (examMode === ExamMode.AUTO) {
+        // For AUTO mode, assignedFacultyIds should not be provided
+        if (assignedFacultyIds && assignedFacultyIds.length > 0) {
+            throw new BadRequestException('assignedFacultyIds should not be provided for AUTO exam mode');
         }
 
-        // Validate AUTO mode schedule details
-        if (!createExamData.scheduleDetails.startDate || !createExamData.scheduleDetails.endDate) {
-            throw new BadRequestException('For AUTO mode, startDate and endDate are required');
-        }
-    } else if (createExamData.examMode === ExamMode.PROCTORING) {
-        // For PROCTORING mode, assignedFacultyIds are recommended
-        if (!createExamData.assignedFacultyIds || createExamData.assignedFacultyIds.length === 0) {
-            console.warn('Faculty assignment is recommended for PROCTORING mode');
+        // For AUTO mode, we need startDate and endDate
+        if (!scheduleDetails.startDate || !scheduleDetails.endDate) {
+            throw new BadRequestException('startDate and endDate are required for AUTO exam mode');
         }
 
-        // Validate PROCTORING mode schedule details
-        if (!createExamData.scheduleDetails.examDate ||
-            !createExamData.scheduleDetails.startTime ||
-            !createExamData.scheduleDetails.endTime) {
-            throw new BadRequestException('For PROCTORING mode, examDate, startTime, and endTime are required');
+        // examDate, startTime, endTime should not be provided for AUTO mode
+        if (scheduleDetails.examDate || scheduleDetails.startTime || scheduleDetails.endTime) {
+            throw new BadRequestException('examDate, startTime, and endTime should not be provided for AUTO exam mode');
+        }
+
+    } else if (examMode === ExamMode.PROCTORING) {
+        // For PROCTORING mode, we need examDate, startTime, endTime
+        if (!scheduleDetails.examDate || !scheduleDetails.startTime || !scheduleDetails.endTime) {
+            throw new BadRequestException('examDate, startTime, and endTime are required for PROCTORING exam mode');
+        }
+
+        // startDate, endDate should not be provided for PROCTORING mode
+        if (scheduleDetails.startDate || scheduleDetails.endDate) {
+            throw new BadRequestException('startDate and endDate should not be provided for PROCTORING exam mode');
+        }
+
+        // Validate time format (HH:MM)
+        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        if (!timeRegex.test(scheduleDetails.startTime)) {
+            throw new BadRequestException('startTime must be in HH:MM format');
+        }
+        if (!timeRegex.test(scheduleDetails.endTime)) {
+            throw new BadRequestException('endTime must be in HH:MM format');
+        }
+
+        // Validate that endTime is after startTime
+        const [startHour, startMin] = scheduleDetails.startTime.split(':').map(Number);
+        const [endHour, endMin] = scheduleDetails.endTime.split(':').map(Number);
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+
+        if (endMinutes <= startMinutes) {
+            throw new BadRequestException('endTime must be after startTime');
         }
     }
 }
 
-// 3. Validate Section Marks Sum
-export async function validateSectionMarksSum(createExamData: CreateExamRequest) {
-    const sectionMarksSum = createExamData.examSections.reduce((sum, section) => sum + section.sectionMarks, 0);
 
-    if (sectionMarksSum !== createExamData.totalMarks) {
+// Validate total marks consistency across exam, sections, and questions
+async function validateTotalMarksConsistency(createExamData: CreateExamRequest): Promise<void> {
+    const { totalMarks, examSections } = createExamData;
+
+    // Calculate total marks from sections
+    const calculatedTotalMarks = examSections.reduce((sum, section) => sum + section.sectionMarks, 0);
+
+    if (totalMarks !== calculatedTotalMarks) {
         throw new BadRequestException(
-            `Sum of section marks (${sectionMarksSum}) must equal total exam marks (${createExamData.totalMarks})`
+            `Total marks mismatch. Exam totalMarks: ${totalMarks}, Sum of section marks: ${calculatedTotalMarks}`
         );
     }
 }
 
-// 4. Validate Questions Count
-export async function validateQuestionsCount(createExamData: CreateExamRequest) {
-    createExamData.examSections.forEach((section, sectionIndex) => {
-        if (section.questions.length !== section.totalQuestions) {
+
+// Validate section marks consistency with questions
+async function validateSectionMarksConsistency(createExamData: CreateExamRequest): Promise<void> {
+    const { examSections } = createExamData;
+
+    for (const section of examSections) {
+        const { sectionMarks, questions, totalQuestions } = section;
+
+        // Validate that totalQuestions matches actual questions count
+        if (totalQuestions !== questions.length) {
             throw new BadRequestException(
-                `Section ${sectionIndex + 1} (${section.sectionName}): Expected ${section.totalQuestions} questions, but got ${section.questions.length} questions`
+                `Section "${section.sectionName}": totalQuestions (${totalQuestions}) does not match actual questions count (${questions.length})`
             );
         }
 
-        // Validate question marks sum equals section marks
-        const questionMarksSum = section.questions.reduce((sum, question) => sum + question.marks, 0);
-        if (questionMarksSum !== section.sectionMarks) {
+        // Calculate marks from questions
+        const calculatedSectionMarks = questions.reduce((sum, question) => sum + question.marks, 0);
+
+        if (sectionMarks !== calculatedSectionMarks) {
             throw new BadRequestException(
-                `Section ${sectionIndex + 1} (${section.sectionName}): Sum of question marks (${questionMarksSum}) must equal section marks (${section.sectionMarks})`
+                `Section "${section.sectionName}": sectionMarks (${sectionMarks}) does not match sum of question marks (${calculatedSectionMarks})`
             );
         }
-    });
+    }
 }
 
-// 5. Validate Question Types Consistency
-export async function validateQuestionTypes(createExamData: CreateExamRequest) {
-    createExamData.examSections.forEach((section, sectionIndex) => {
-        section.questions.forEach((question, questionIndex) => {
-            if (question.questionType !== section.questionType) {
+
+// Validate questions consistency within sections
+async function validateQuestionsConsistency(createExamData: CreateExamRequest): Promise<void> {
+    const { examSections } = createExamData;
+
+    for (const section of examSections) {
+        const { sectionName, questions, questionType } = section;
+
+        // Validate each question in the section
+        for (const question of questions) {
+            // Validate question type matches section question type
+            if (question.questionType !== questionType) {
                 throw new BadRequestException(
-                    `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: Question type (${question.questionType}) must match section question type (${section.questionType})`
+                    `Section "${sectionName}": Question "${question.questionText.substring(0, 50)}..." has questionType "${question.questionType}" but section expects "${questionType}"`
                 );
             }
-        });
-    });
-}
 
-// 6. Validate MCQ Questions
-export async function validateMCQQuestions(createExamData: CreateExamRequest) {
-    createExamData.examSections.forEach((section, sectionIndex) => {
-        if (section.questionType === QuestionType.MCQ) {
-            section.questions.forEach((question, questionIndex) => {
-                if (!question.options || question.options.length < 2) {
-                    throw new BadRequestException(
-                        `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: MCQ questions must have at least 2 options`
-                    );
-                }
-
-                const correctOptions = question.options.filter(option => option.isCorrect);
-                if (correctOptions.length !== 1) {
-                    throw new BadRequestException(
-                        `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: MCQ questions must have exactly one correct option`
-                    );
-                }
-
-                // Validate option texts are not empty
-                question.options.forEach((option, optionIndex) => {
-                    if (!option.optionText.trim()) {
-                        throw new BadRequestException(
-                            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}, Option ${optionIndex + 1}: Option text cannot be empty`
-                        );
-                    }
-                });
-            });
+            // Validate question-specific requirements
+            await validateQuestionSpecificRequirements(question, sectionName);
         }
-    });
-}
 
-// 7. Validate Text Questions (SHORT_ANSWER, LONG_ANSWER)
-export async function validateTextQuestions(createExamData: CreateExamRequest) {
-    const textQuestionTypes = [QuestionType.SHORT_ANSWER, QuestionType.LONG_ANSWER];
-
-    createExamData.examSections.forEach((section, sectionIndex) => {
-        if (textQuestionTypes.includes(section.questionType)) {
-            section.questions.forEach((question, questionIndex) => {
-                if (!question.correctAnswers || question.correctAnswers.length === 0) {
-                    throw new BadRequestException(
-                        `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: Text questions must have at least one correct answer`
-                    );
-                }
-
-                question.correctAnswers.forEach((correctAnswer, answerIndex) => {
-                    if (!correctAnswer.answerText.trim()) {
-                        throw new BadRequestException(
-                            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}, Answer ${answerIndex + 1}: Answer text cannot be empty`
-                        );
-                    }
-
-                    if (!correctAnswer.keywords || correctAnswer.keywords.length === 0) {
-                        throw new BadRequestException(
-                            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}, Answer ${answerIndex + 1}: At least one keyword is required`
-                        );
-                    }
-
-                    if (correctAnswer.marks > question.marks) {
-                        throw new BadRequestException(
-                            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}, Answer ${answerIndex + 1}: Answer marks cannot exceed question marks`
-                        );
-                    }
-                });
-            });
-        }
-    });
-}
-
-// 8. Validate True/False Questions
-export async function validateTrueFalseQuestions(createExamData: CreateExamRequest) {
-    createExamData.examSections.forEach((section, sectionIndex) => {
-        if (section.questionType === QuestionType.TRUE_FALSE) {
-            section.questions.forEach((question, questionIndex) => {
-                if (question.correctAnswer === undefined || question.correctAnswer === null) {
-                    throw new BadRequestException(
-                        `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: True/False questions must have a correct answer (true or false)`
-                    );
-                }
-            });
-        }
-    });
-}
-
-// 9. Validate Question Orders
-export async function validateQuestionOrders(createExamData: CreateExamRequest) {
-    createExamData.examSections.forEach((section, sectionIndex) => {
-        const questionOrders = section.questions.map(q => q.questionOrder).sort((a, b) => a - b);
-        const expectedOrders = Array.from({ length: section.questions.length }, (_, i) => i + 1);
-
-        if (!this.arraysEqual(questionOrders, expectedOrders)) {
+        // Validate question order uniqueness within section
+        const questionOrders = questions.map(q => q.questionOrder);
+        const uniqueOrders = [...new Set(questionOrders)];
+        if (questionOrders.length !== uniqueOrders.length) {
             throw new BadRequestException(
-                `Section ${sectionIndex + 1} (${section.sectionName}): Question orders must be sequential starting from 1`
+                `Section "${sectionName}": Duplicate question orders found`
             );
         }
-    });
-}
 
-// 10. Validate Section Orders
-export async function validateSectionOrders(createExamData: CreateExamRequest) {
-    const sectionOrders = createExamData.examSections.map(s => s.sectionOrder).sort((a, b) => a - b);
-    const expectedOrders = Array.from({ length: createExamData.examSections.length }, (_, i) => i + 1);
-
-    if (!this.arraysEqual(sectionOrders, expectedOrders)) {
-        throw new BadRequestException('Section orders must be sequential starting from 1');
-    }
-}
-
-// 11. Validate Time Constraints
-export async function validateTimeConstraints(createExamData: CreateExamRequest) {
-    let totalSectionTimeLimit = 0;
-
-    createExamData.examSections.forEach((section, sectionIndex) => {
-        if (section.timeLimit) {
-            totalSectionTimeLimit += section.timeLimit;
-        }
-    });
-
-    // If sections have time limits, their sum should not exceed exam duration
-    if (totalSectionTimeLimit > 0 && totalSectionTimeLimit > createExamData.duration) {
-        throw new BadRequestException(
-            `Total section time limits (${totalSectionTimeLimit} minutes) cannot exceed exam duration (${createExamData.duration} minutes)`
-        );
-    }
-
-    // Validate buffer times
-    if (createExamData.scheduleDetails.bufferTime) {
-        const { beforeExam, afterExam } = createExamData.scheduleDetails.bufferTime;
-        if (beforeExam && beforeExam > 60) {
-            throw new BadRequestException('Buffer time before exam cannot exceed 60 minutes');
-        }
-        if (afterExam && afterExam > 60) {
-            throw new BadRequestException('Buffer time after exam cannot exceed 60 minutes');
-        }
-    }
-}
-
-// 12. Validate Duplicate Questions
-export async function validateDuplicateQuestions(createExamData: CreateExamRequest) {
-    const allQuestionTexts: string[] = [];
-
-    createExamData.examSections.forEach(section => {
-        section.questions.forEach(question => {
-            const normalizedText = question.questionText.toLowerCase().trim();
-            if (allQuestionTexts.includes(normalizedText)) {
-                throw new BadRequestException(`Duplicate question found: "${question.questionText}"`);
+        // Validate question order sequence (should be 1, 2, 3, ...)
+        const sortedOrders = questionOrders.sort((a, b) => a - b);
+        for (let i = 0; i < sortedOrders.length; i++) {
+            if (sortedOrders[i] !== i + 1) {
+                throw new BadRequestException(
+                    `Section "${sectionName}": Question orders should be sequential starting from 1`
+                );
             }
-            allQuestionTexts.push(normalizedText);
-        });
-    });
+        }
+    }
+}
+
+
+// Validate question-specific requirements based on question type
+async function validateQuestionSpecificRequirements(question: any, sectionName: string): Promise<void> {
+    const { questionType, options, correctAnswers, correctAnswer } = question;
+
+    switch (questionType) {
+        case QuestionType.MCQ:
+            // MCQ questions must have options
+            if (!options || options.length === 0) {
+                throw new BadRequestException(
+                    `Section "${sectionName}": MCQ question must have options`
+                );
+            }
+
+            // At least one option must be correct
+            const correctOptions = options.filter((opt: any) => opt.isCorrect);
+            if (correctOptions.length === 0) {
+                throw new BadRequestException(
+                    `Section "${sectionName}": MCQ question must have at least one correct option`
+                );
+            }
+
+            // Validate option text is not empty
+            for (const option of options) {
+                if (!option.optionText || option.optionText.trim() === '') {
+                    throw new BadRequestException(
+                        `Section "${sectionName}": MCQ option text cannot be empty`
+                    );
+                }
+            }
+            break;
+
+        case QuestionType.SHORT_ANSWER:
+        case QuestionType.LONG_ANSWER:
+            // Short/Long answer questions must have correctAnswers
+            if (!correctAnswers || correctAnswers.length === 0) {
+                throw new BadRequestException(
+                    `Section "${sectionName}": ${questionType} question must have correctAnswers`
+                );
+            }
+
+            // Validate correctAnswers structure
+            for (const answer of correctAnswers) {
+                if (!answer.answerText || answer.answerText.trim() === '') {
+                    throw new BadRequestException(
+                        `Section "${sectionName}": Answer text cannot be empty`
+                    );
+                }
+
+                if (!answer.keywords || answer.keywords.length === 0) {
+                    throw new BadRequestException(
+                        `Section "${sectionName}": Answer must have keywords for evaluation`
+                    );
+                }
+
+                if (answer.marks <= 0) {
+                    throw new BadRequestException(
+                        `Section "${sectionName}": Answer marks must be greater than 0`
+                    );
+                }
+            }
+
+            // Total marks from correctAnswers should equal question marks
+            const totalAnswerMarks = correctAnswers.reduce((sum: number, answer: any) => sum + answer.marks, 0);
+            if (totalAnswerMarks !== question.marks) {
+                throw new BadRequestException(
+                    `Section "${sectionName}": Sum of answer marks (${totalAnswerMarks}) must equal question marks (${question.marks})`
+                );
+            }
+            break;
+
+        case QuestionType.TRUE_FALSE:
+            // True/False questions must have correctAnswer
+            if (correctAnswer === undefined || correctAnswer === null) {
+                throw new BadRequestException(
+                    `Section "${sectionName}": TRUE_FALSE question must have correctAnswer (true/false)`
+                );
+            }
+
+            if (typeof correctAnswer !== 'boolean') {
+                throw new BadRequestException(
+                    `Section "${sectionName}": TRUE_FALSE correctAnswer must be boolean`
+                );
+            }
+            break;
+
+        default:
+            throw new BadRequestException(
+                `Section "${sectionName}": Invalid question type "${questionType}"`
+            );
+    }
+}
+
+
+// Validate schedule details based on exam mode
+async function validateScheduleDetails(createExamData: CreateExamRequest): Promise<void> {
+    const { examMode, scheduleDetails } = createExamData;
+
+    if (examMode === ExamMode.AUTO) {
+        const startDate = new Date(scheduleDetails.startDate!);
+        const endDate = new Date(scheduleDetails.endDate!);
+        const currentDate = new Date();
+
+        // Start date should be in future or today
+        if (startDate < new Date(currentDate.toDateString())) {
+            throw new BadRequestException('startDate cannot be in the past');
+        }
+
+        // End date should be after start date
+        if (endDate <= startDate) {
+            throw new BadRequestException('endDate must be after startDate');
+        }
+
+    } else if (examMode === ExamMode.PROCTORING) {
+        const examDate = new Date(scheduleDetails.examDate!);
+        const currentDate = new Date();
+
+        // Exam date should be in future or today
+        if (examDate < new Date(currentDate.toDateString())) {
+            throw new BadRequestException('examDate cannot be in the past');
+        }
+    }
+
+    // Validate buffer time
+    if (scheduleDetails.bufferTime) {
+        if (scheduleDetails.bufferTime.beforeExam < 0 || scheduleDetails.bufferTime.afterExam < 0) {
+            throw new BadRequestException('Buffer time cannot be negative');
+        }
+    }
+}
+
+
+// Validate passing marks
+async function validatePassingMarks(createExamData: CreateExamRequest): Promise<void> {
+    const { totalMarks, passingMarks } = createExamData;
+
+    if (passingMarks > totalMarks) {
+        throw new BadRequestException('Passing marks cannot be greater than total marks');
+    }
+
+    if (passingMarks < 0) {
+        throw new BadRequestException('Passing marks cannot be negative');
+    }
+}
+
+
+// Validate section order and consistency
+async function validateOrderConsistency(createExamData: CreateExamRequest): Promise<void> {
+    const { examSections } = createExamData;
+
+    // Validate section order uniqueness
+    const sectionOrders = examSections.map(section => section.sectionOrder);
+    const uniqueSectionOrders = [...new Set(sectionOrders)];
+
+    if (sectionOrders.length !== uniqueSectionOrders.length) {
+        throw new BadRequestException('Duplicate section orders found');
+    }
+
+    // Validate section order sequence (should be 1, 2, 3, ...)
+    const sortedSectionOrders = sectionOrders.sort((a, b) => a - b);
+    for (let i = 0; i < sortedSectionOrders.length; i++) {
+        if (sortedSectionOrders[i] !== i + 1) {
+            throw new BadRequestException('Section orders should be sequential starting from 1');
+        }
+    }
+}
+
+
+// Validate question types consistency within sections
+async function validateQuestionTypesConsistency(createExamData: CreateExamRequest): Promise<void> {
+    const { examSections } = createExamData;
+
+    for (const section of examSections) {
+        const { sectionName, questionType, questions } = section;
+
+        // Check if all questions in the section have the same question type as section
+        const inconsistentQuestions = questions.filter(q => q.questionType !== questionType);
+
+        if (inconsistentQuestions.length > 0) {
+            throw new BadRequestException(
+                `Section "${sectionName}": All questions must be of type "${questionType}"`
+            );
+        }
+    }
 }
