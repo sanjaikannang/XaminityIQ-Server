@@ -40,4 +40,62 @@ export class ExamRepositoryService {
     }
 
 
+    // Count documents
+    async countDocuments(filter: any): Promise<number> {
+        try {
+
+            const count = await this.examModel.countDocuments(filter).exec();
+            return count;
+
+        } catch (error) {
+            console.error("Error finding exam count:", error);
+            throw new Error(`Failed to find exam count: ${error.message}`);
+        }
+    }
+
+
+    // Find exams with pagination
+    async findWithPagination(
+        filter: any,
+        skip: number,
+        limit: number,
+        sort: any = {}
+    ): Promise<ExamDocument[]> {
+        return this.examModel
+            .find(filter)
+            .sort(sort)
+            .skip(skip)
+            .limit(limit)
+            .exec();
+    }
+
+
+    // Find exams with specific fields
+    async findOne(filter: any): Promise<ExamDocument | null> {
+        try {
+
+            const exam = await this.examModel.findOne(filter).exec();
+            return exam;
+
+        } catch (error) {
+            console.error("Error finding exam:", error);
+            throw new Error(`Failed to find exam: ${error.message}`);
+        }
+    }
+
+
+    // Find all exams with optional filter
+    async findAll(filter: any = {}, sort: any = {}): Promise<ExamDocument[]> {
+        try {
+
+            const exam = await this.examModel.find(filter).sort(sort).exec();
+            return exam;
+
+        } catch (error) {
+            console.error("Error finding exam:", error);
+            throw new Error(`Failed to find exam: ${error.message}`);
+        }
+    }
+
+
 }
