@@ -35,11 +35,21 @@ export class GetAllExamController {
             return response;
 
         } catch (error) {
-            ({
+            const response: GetAllExamResponse = {
                 success: false,
-                message: error.message || 'Failed to retrieve exam',
-            });
-
+                message: error.message || 'Failed to retrieve exams',
+                data: {
+                    exams: [],
+                    pagination: {
+                        currentPage: 1,
+                        totalPages: 0,
+                        totalCount: 0,
+                        hasNextPage: false,
+                        hasPreviousPage: false
+                    }
+                }
+            };
+            return response;
         }
     }
 }
