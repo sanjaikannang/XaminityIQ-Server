@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Types } from "mongoose";
 import { DifficultyLevel, QuestionType, Status } from "src/utils/enum";
 
-export type QuestionDocument = Question & Document;
+export type QuestionDocument = Question & Document & { _id: Types.ObjectId };
 
 @Schema({ timestamps: true })
 export class Question {
