@@ -35,8 +35,19 @@ export class FacultyRepositoryService {
     }
 
 
-    async findById(id: string): Promise<FacultyDocument | null> {
-        return await this.facultyModel.findById(id).exec();
+    // Find Faculty by ID
+    async findById(facultyId: string): Promise<FacultyDocument | null> {
+        try {
+
+            const faculty = await this.facultyModel.findOne({
+                userId: facultyId
+            }).exec();
+            return faculty;
+
+        } catch (error) {
+            console.error(`Failed to find Faculty by facultyId: ${facultyId}`, error);
+            throw new Error('Could not retrieve faculty by facultyId.');
+        }
     }
 
     async findByIdAndDelete(id: string): Promise<FacultyDocument | null> {
