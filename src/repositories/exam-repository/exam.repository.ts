@@ -1,8 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import { Exam, ExamDocument } from "src/schemas/exam/exam.schema";
 import { Status } from "src/utils/enum";
+
+export interface FacultyAssignedExamsResult {
+    exams: any[];
+    totalCount: number;
+}
 
 
 @Injectable()
@@ -98,4 +103,36 @@ export class ExamRepositoryService {
     }
 
 
+    // Get exams assigned to a faculty
+    async getFacultyAssignedExams(facultyId: string): Promise<FacultyAssignedExamsResult> {
+        try {
+            // Convert facultyId string to ObjectId
+            const facultyObjectId = new Types.ObjectId(facultyId);
+
+            // Find exams where the faculty is assigned and exam is active
+            const assignedExams = await this.examModel
+                .find({
+                    assignedFacultyIds: { $in: [facultyObjectId] },
+                    status: Status.ACTIVE
+                })
+                .populate('batchId', 'batchName batchCode') // Populate batch info if needed
+                .populate('courseId', 'courseName courseCode') // Populate course info if needed
+                .populate('branchId', 'branchName branchCode') // Populate branch info if needed
+                .populate('sectionIds', 'sectionName sectionCode') // Populate section info if needed
+                .populate('createdBy', 'email') // Populate creator info if needed
+                .select('-__v') // Exclude version field
+                .sort({ createdAt: -1 }) // Sort by creation date, newest first
+                .lean(); // Return plain JavaScript objects for better performance
+
+            return {
+                exams: assignedExams,
+                totalCount: assignedExams.length
+            };
+
+        } catch (error) {
+            console.error("Error finding assigned exam to faculty:", error);
+            throw new Error(`Failed to find assigned exam to faculty exam: ${error.message}`);
+        }
+    }
+    
 }
