@@ -78,4 +78,22 @@ export class SectionRepositoryService {
         }
     }
 
+
+    // Get All Sections
+    async getAllSection(): Promise<SectionDocument[]> {
+        try {
+            const sections = await this.sectionModel
+                .find({ status: Status.ACTIVE })
+                .select('_id name branchId capacity status')
+                .lean()
+                .exec();
+
+            return sections;
+
+        } catch (error) {
+            console.error("Failed to get all sections", error);
+            throw new Error('Could not get all sections');
+        }
+    }
+
 }

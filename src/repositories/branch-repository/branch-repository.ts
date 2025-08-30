@@ -71,4 +71,22 @@ export class BranchRepositoryService {
         }
     }
 
+
+    // Get All Branches
+    async getAllBranches(): Promise<BranchDocument[]> {
+        try {
+            const branches = await this.branchModel
+                .find({ status: Status.ACTIVE })
+                .select('_id name code courseId status')
+                .lean()
+                .exec();
+
+            return branches;
+
+        } catch (error) {
+            console.error("Failed to get all branches", error);
+            throw new Error('Could not get all branches');
+        }
+    }
+
 }
