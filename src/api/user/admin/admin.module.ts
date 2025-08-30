@@ -39,6 +39,7 @@ import { GetBatchesController } from './get-batches/get-batches.controller';
 import { CreateExamController } from './create-exam/create-exam.controller';
 import { GetAllExamController } from './get-all-exam/get-all-exam.controller';
 import { GetExamByIdController } from './get-exam/get-exam-by-id.controller';
+import { GetCoursesController } from './get-courses/get-courses.controller';
 
 
 // Modules
@@ -87,7 +88,8 @@ import { JwtModule } from '@nestjs/jwt';
         GetBatchesController,
         CreateExamController,
         GetAllExamController,
-        GetExamByIdController
+        GetExamByIdController,
+        GetCoursesController
     ],
     providers: [
         ConfigService,

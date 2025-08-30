@@ -1321,6 +1321,41 @@ export class AdminService {
     }
 
 
+    // Get All Courses
+    async getCoursesAPI(adminId: string) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Get All courses
+            const courses = await this.courseRepositoryService.getAllCourses();
+
+            // Transform data to match response format
+            const courseData: CoursesData[] = courses.map(course => ({
+                _id: (course._id as Types.ObjectId).toString(),
+                name: course.name,
+                fullName: course.fullName,
+                batchId: course.batchId.toString(),
+                totalSemesters: course.totalSemesters,
+                durationYears: course.durationYears,
+                courseType: course.courseType,
+                status: course.status
+            }));
+
+            return courseData;
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get courses by batch: ' + error.message);
+        }
+    }
+
+
     // Get All Exams API Endpoint
     async getAllExamAPI(adminId: string, getAllExamRequest: GetAllExamRequest) {
         try {
