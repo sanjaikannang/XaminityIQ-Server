@@ -1388,6 +1388,38 @@ export class AdminService {
     }
 
 
+    // Get API Sections
+    async getSectionsAPI(adminId: string) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }           
+
+            // Get sections by branch ID
+            const sections = await this.sectionRepositoryService.getAllSection();
+
+            // Transform data to match response format
+            const sectionData: SectionData[] = sections.map(section => ({
+                _id: (section._id as Types.ObjectId).toString(),
+                name: section.name,
+                branchId: section.branchId.toString(),
+                capacity: section.capacity,
+                status: section.status
+            }));
+
+            return sectionData;
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get section by branch: ' + error.message);
+        }
+    }
+
+
     // Get All Exams API Endpoint
     async getAllExamAPI(adminId: string, getAllExamRequest: GetAllExamRequest) {
         try {
