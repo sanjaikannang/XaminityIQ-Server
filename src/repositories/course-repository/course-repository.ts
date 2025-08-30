@@ -91,4 +91,20 @@ export class CourseRepositoryService {
     }
 
 
+    // Get All Courses
+    async getAllCourses(): Promise<CourseDocument[]> {
+        try {
+            const courses = await this.courseModel
+                .find({ status: Status.ACTIVE })
+                .select('_id name fullName batchId totalSemesters durationYears courseType status')
+                .lean()
+                .exec();
+
+            return courses;
+
+        } catch (error) {
+            console.error("Failed to get all courses", error);
+            throw new Error('Could not get all courses');
+        }
+    }
 }
