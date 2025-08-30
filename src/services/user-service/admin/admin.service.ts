@@ -1356,6 +1356,38 @@ export class AdminService {
     }
 
 
+    // Get All Branches
+    async getBranchesAPI(adminId: string) {
+        try {
+            // Verify admin exists and is active
+            const admin = await this.adminRepositoryService.findByUserId(adminId);
+            if (!admin) {
+                throw new NotFoundException('Admin not found');
+            }
+
+            // Get branches by course ID
+            const branches = await this.branchRepositoryService.getAllBranches();
+
+            // Transform data to match response format
+            const branchData: BranchesData[] = branches.map(branch => ({
+                _id: (branch._id as Types.ObjectId).toString(),
+                name: branch.name,
+                code: branch.code,
+                courseId: branch.courseId.toString(),
+                status: branch.status
+            }));
+
+            return branchData;
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new BadRequestException('Failed to get branches:' + error.message);
+        }
+    }
+
+
     // Get All Exams API Endpoint
     async getAllExamAPI(adminId: string, getAllExamRequest: GetAllExamRequest) {
         try {
