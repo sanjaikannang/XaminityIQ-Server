@@ -38,11 +38,6 @@ export enum ExamMode {
   PROCTORING = 'PROCTORING'
 }
 
-export enum ExamStatus {
-  DRAFT = 'DRAFT',
-  PUBLISH = 'PUBLISH',
-}
-
 export enum ProctoringMode {
   LIVE = 'LIVE',
   AUTO = 'AUTO'

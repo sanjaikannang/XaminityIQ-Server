@@ -1,6 +1,6 @@
 import { Type } from "class-transformer";
 import { IsArray, IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Min, ValidateNested } from "class-validator";
-import { DifficultyLevel, ExamMode, ExamStatus, QuestionType } from "src/utils/enum";
+import { DifficultyLevel, ExamMode, QuestionType } from "src/utils/enum";
 
 export class BufferTime {
     @IsOptional()
@@ -162,9 +162,6 @@ export class CreateExamSection {
 }
 
 export class CreateExamRequest {
-
-    @IsEnum(ExamStatus)
-    examStatus: ExamStatus;
 
     // Basic Exam Info    
     @IsString()
