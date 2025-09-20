@@ -747,7 +747,6 @@ export class AdminService {
 
             // Prepare exam data
             const examData = {
-                examStatus: createExamData.examStatus,
                 examId,
                 examTitle: createExamData.examTitle,
                 examDescription: createExamData.examDescription,
@@ -781,13 +780,12 @@ export class AdminService {
             const createdExam = await this.examRepositoryService.create(examData);
 
             // Create exam sections and questions
-            const createExam = await this.createExamSectionsAndQuestions(createdExam.examId, createExamData.examSections, adminId);
+            await this.createExamSectionsAndQuestions(createdExam.examId, createExamData.examSections, adminId);
 
             // Return exam data
             return {
                 examId: createdExam.examId,
                 examTitle: createdExam.examTitle,
-                examStatus: createdExam.examStatus,
                 totalMarks: createdExam.totalMarks,
                 duration: createdExam.duration
             };
@@ -1395,7 +1393,7 @@ export class AdminService {
             const admin = await this.adminRepositoryService.findByUserId(adminId);
             if (!admin) {
                 throw new NotFoundException('Admin not found');
-            }           
+            }
 
             // Get sections by branch ID
             const sections = await this.sectionRepositoryService.getAllSection();
@@ -1456,7 +1454,6 @@ export class AdminService {
                 duration: exam.duration,
                 examMode: exam.examMode,
                 generalInstructions: exam.generalInstructions,
-                examStatus: exam.examStatus,
                 batchId: exam.batchId.toString(),
                 courseId: exam.courseId.toString(),
                 branchId: exam.branchId.toString(),
@@ -1569,7 +1566,6 @@ export class AdminService {
                 duration: exam.duration,
                 examMode: exam.examMode,
                 generalInstructions: exam.generalInstructions,
-                examStatus: exam.examStatus,
                 batchId: exam.batchId.toString(),
                 courseId: exam.courseId.toString(),
                 branchId: exam.branchId.toString(),

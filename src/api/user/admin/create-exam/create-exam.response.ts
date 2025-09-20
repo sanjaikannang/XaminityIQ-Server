@@ -1,7 +1,6 @@
 export class ExamData {
     examId: string;
     examTitle: string;
-    examStatus: string;
     totalMarks: number;
     duration: number;
 }
