@@ -8,7 +8,6 @@ export class ExamResponse {
     duration: number;
     examMode: string;
     generalInstructions: string[];
-    examStatus: string;
 
     // Target Audience
     batchId: string;

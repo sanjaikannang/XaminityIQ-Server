@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Types } from "mongoose";
-import { ExamMode, ExamStatus, Status } from "src/utils/enum";
+import { ExamMode, Status } from "src/utils/enum";
 
 export type ExamDocument = Exam & Document;
 
@@ -32,9 +32,6 @@ export class Exam {
 
     @Prop({ type: [String], default: [] })
     generalInstructions: string[];
-
-    @Prop({ required: true, enum: ExamStatus, default: ExamStatus.DRAFT })
-    examStatus: ExamStatus;
 
     // Target Audience
     @Prop({ type: Types.ObjectId, ref: 'Batch', required: true })
@@ -95,12 +92,7 @@ export const ExamSchema = SchemaFactory.createForClass(Exam);
 
 // Indexes
 ExamSchema.index({ examId: 1 });
-ExamSchema.index({ examStatus: 1 });
 ExamSchema.index({ examMode: 1 });
 ExamSchema.index({ batchId: 1, courseId: 1, branchId: 1 });
 ExamSchema.index({ createdBy: 1 });
 ExamSchema.index({ status: 1 });
-
-// Compound indexes
-ExamSchema.index({ examStatus: 1, 'scheduleDetails.examDate': 1 });
-ExamSchema.index({ examStatus: 1, 'scheduleDetails.startDate': 1, 'scheduleDetails.endDate': 1 });

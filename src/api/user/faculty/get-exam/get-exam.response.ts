@@ -1,4 +1,4 @@
-import { ExamMode, ExamStatus, Status } from "src/utils/enum";
+import { ExamMode, Status } from "src/utils/enum";
 
 export interface FacultyExamData {
     _id: string;
@@ -11,7 +11,6 @@ export interface FacultyExamData {
     duration: number;
     examMode: ExamMode;
     generalInstructions: string[];
-    examStatus: ExamStatus;
     batchId: {
         _id: string;
         batchName?: string;
