@@ -3,7 +3,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from 'src/config/config.service';
 import { RepositoryModule } from 'src/repositories/repository.module';
 import { ServiceModule } from 'src/services/service.module';
-import { GetExamController } from './get-exam/get-exam.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Faculty, FacultySchema } from 'src/schemas/faculty.schema';
 
@@ -24,9 +23,7 @@ import { Faculty, FacultySchema } from 'src/schemas/faculty.schema';
         ServiceModule,
         RepositoryModule
     ],
-    controllers: [
-        GetExamController
-    ],
+    controllers: [],
     providers: [
         ConfigService,
     ],
