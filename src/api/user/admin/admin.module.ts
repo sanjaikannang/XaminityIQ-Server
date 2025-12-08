@@ -28,21 +28,6 @@ import { GetAllFacultyController } from './get-all-faculty/get-all-faculty.contr
 import { GetAllStudentController } from './get-all-student/get-all-student.controller';
 import { GetFacultyController } from './get-faculty/get-faculty.controller';
 import { GetStudentController } from './get-student/get-student.controller';
-import { CreateBatchController } from './create-batch/create-batch.controller';
-import { CreateCourseController } from './create-course/create-course.controller';
-import { CreateBranchController } from './create-branch/create-branch.controller';
-import { CreateSectionController } from './create-section/create-section.controller';
-import { GetBranchesByCourseController } from './get-branches-by-course/get-branches-by-course.controller';
-import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
-import { GetSectionsByBranchController } from './get-sections-by-branch/get-sections-by-branch.controller';
-import { GetBatchesController } from './get-batches/get-batches.controller';
-import { CreateExamController } from './create-exam/create-exam.controller';
-import { GetAllExamController } from './get-all-exam/get-all-exam.controller';
-import { GetExamByIdController } from './get-exam/get-exam-by-id.controller';
-import { GetCoursesController } from './get-courses/get-courses.controller';
-import { GetBranchesController } from './get-branchs/get-branchs.controller';
-import { GetSectionsController } from './get-section/get-section.controller';
-
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -80,20 +65,6 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllStudentController,
         GetFacultyController,
         GetStudentController,
-        CreateBatchController,
-        CreateCourseController,
-        CreateBranchController,
-        CreateSectionController,
-        GetBranchesByCourseController,
-        GetCoursesByBatchController,
-        GetSectionsByBranchController,
-        GetBatchesController,
-        CreateExamController,
-        GetAllExamController,
-        GetExamByIdController,
-        GetCoursesController,
-        GetBranchesController,
-        GetSectionsController
     ],
     providers: [
         ConfigService,

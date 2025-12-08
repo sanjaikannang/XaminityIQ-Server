@@ -21,7 +21,6 @@ import { LoginController } from './login/login.controller';
 import { LogoutController } from './logout/logout.controller';
 import { RefreshTokenController } from './refresh-token/refresh-token.controller';
 import { ChangePasswordController } from './change-password/change-password.controller';
-import { MeController } from './me/me.controller';
 
 // Guards
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
@@ -55,7 +54,6 @@ import { RepositoryModule } from 'src/repositories/repository.module';
         LogoutController,
         RefreshTokenController,
         ChangePasswordController,
-        MeController,
     ],
     providers: [
         ConfigService,
