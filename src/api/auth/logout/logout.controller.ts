@@ -1,8 +1,8 @@
-import { Controller, Post, Req, UseGuards, BadRequestException } from '@nestjs/common';
 import { Request } from 'express';
 import { LogoutResponse } from './logout.response';
-import { AuthService } from 'src/services/auth-service/auth.service';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { AuthService } from 'src/services/auth-service/auth.service';
+import { Controller, Post, Req, UseGuards, BadRequestException } from '@nestjs/common';
 
 @Controller('auth')
 export class LogoutController {
@@ -14,9 +14,9 @@ export class LogoutController {
         @Req() req: Request,
     ) {
         try {
-            const sessionId = (req as any).user?.sessionId;
+            const userId = (req as any).user?.sub;
 
-            await this.authService.logoutAPI(sessionId);
+            await this.authService.logoutAPI(userId);
 
             const response: LogoutResponse = {
                 success: true,

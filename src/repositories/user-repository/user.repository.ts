@@ -8,9 +8,7 @@ import { UserRole } from 'src/utils/enum';
 @Injectable()
 export class UserRepositoryService {
     constructor(
-        @InjectModel(User.name) private userModel: Model<UserDocument>,
-        @InjectModel('Faculty') private facultyModel: Model<any>,
-        @InjectModel('Student') private studentModel: Model<any>,
+        @InjectModel(User.name) private userModel: Model<UserDocument>,        
         @InjectModel('Admin') private adminModel: Model<any>,
     ) { }
 
@@ -67,6 +65,62 @@ export class UserRepositoryService {
     }
 
 
+    // Update user tokens
+    async updateUserTokens(userId: string, accessToken: string, refreshToken: string): Promise<void> {
+        try {
+            const updatedUser = await this.userModel.findByIdAndUpdate(
+                userId,
+                {
+                    accessToken,
+                    refreshToken,
+                },
+                { new: true }
+            ).exec();
+
+            if (!updatedUser) {
+                throw new NotFoundException(`User with id ${userId} not found`);
+            }
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to update user tokens', error);
+        }
+    }
+
+
+    // Find user by refresh token
+    async findUserByRefreshToken(refreshToken: string): Promise<UserDocument | null> {
+        try {
+            const user = await this.userModel.findOne({
+                refreshToken,
+                isActive: true
+            }).exec();
+            return user;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to find user by refresh token', error);
+        }
+    }
+
+
+    // Clear user tokens (for logout)
+    async clearUserTokens(userId: string): Promise<void> {
+        try {
+            const updatedUser = await this.userModel.findByIdAndUpdate(
+                userId,
+                {
+                    accessToken: null,
+                    refreshToken: null,
+                },
+                { new: true }
+            ).exec();
+
+            if (!updatedUser) {
+                throw new NotFoundException(`User with id ${userId} not found`);
+            }
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to clear user tokens', error);
+        }
+    }
+
+
     // Update user password
     async updateUserPassword(id: string, password: string): Promise<UserDocument | null> {
         try {
@@ -115,40 +169,6 @@ export class UserRepositoryService {
             return !!user;
         } catch (error) {
             throw new InternalServerErrorException('Failed to check email exist', error);
-        }
-    }
-
-
-    // Get user profile
-    async getUserProfile(userId: string, role: UserRole): Promise<any> {
-        const objectId = new Types.ObjectId(userId);
-
-        switch (role) {
-            case UserRole.FACULTY:
-                return this.facultyModel.findOne({ userId: objectId }).exec();
-            case UserRole.STUDENT:
-                return this.studentModel.findOne({ userId: objectId }).exec();
-            case UserRole.ADMIN:
-                return this.adminModel.findOne({ userId: objectId }).exec();
-            default:
-                return null;
-        }
-    }
-
-
-    // get User Profile 
-    async getUserWithProfile(id: string): Promise<{
-        user: UserDocument;
-        profile: any;
-    } | null> {
-        try {
-            const user = await this.findUserById(id);
-            if (!user) return null;
-
-            const profile = await this.getUserProfile(id, user.role);
-            return { user, profile };
-        } catch (error) {
-            throw new InternalServerErrorException('Failed to get user profile data', error);
         }
     }
 

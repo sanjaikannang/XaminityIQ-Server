@@ -1,5 +1,4 @@
-import { Controller, Post, Body, Req, BadRequestException } from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
 import { LoginRequest } from './login.request';
 import { LoginResponse } from './login.response';
 import { AuthService } from 'src/services/auth-service/auth.service';
@@ -11,14 +10,9 @@ export class LoginController {
     @Post('login')
     async login(
         @Body() loginData: LoginRequest,
-        @Req() req: Request,
     ) {
         try {
-
-            const userAgent = req.headers['user-agent'] || '';
-            const ipAddress = req.ip || '';
-
-            const result = await this.authService.loginAPI(loginData, userAgent, ipAddress);
+            const result = await this.authService.loginAPI(loginData);
 
             const response: LoginResponse = {
                 success: true,
@@ -31,7 +25,6 @@ export class LoginController {
                         accessToken: result.tokens.accessToken,
                         refreshToken: result.tokens.refreshToken,
                     },
-                    sessionId: result.sessionId,
                 },
             };
 

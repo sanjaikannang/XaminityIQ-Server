@@ -34,6 +34,12 @@ export class User {
     @Prop()
     lastPasswordChange: Date;
 
+    @Prop()
+    accessToken: string;
+
+    @Prop()
+    refreshToken: string;
+
     @Prop({ type: Types.ObjectId, ref: 'User' })
     createdBy: Types.ObjectId;
 
@@ -42,6 +48,5 @@ export class User {
 export const UserSchema = SchemaFactory.createForClass(User);
 
 // Define indexes
-// UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1, isActive: 1 });
 UserSchema.index({ lastLogin: 1 });
