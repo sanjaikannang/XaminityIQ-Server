@@ -4,16 +4,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 // Schemas
 import { Admin, AdminSchema } from 'src/schemas/admin.schema';
-import { Faculty, FacultySchema } from 'src/schemas/faculty.schema';
-import { Session, SessionSchema } from 'src/schemas/session.schema';
-import { Student, StudentSchema } from 'src/schemas/student.schema';
 import { User, UserSchema } from 'src/schemas/user.schema';
 
 // Services
 import { ConfigService } from 'src/config/config.service';
 import { AuthService } from 'src/services/auth-service/auth.service';
 import { AuthJwtService } from 'src/services/auth-service/jwt.service';
-import { SessionService } from 'src/services/auth-service/session.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
 
 // Controllers
@@ -33,9 +29,6 @@ import { RepositoryModule } from 'src/repositories/repository.module';
     imports: [
         MongooseModule.forFeature([
             { name: User.name, schema: UserSchema },
-            { name: Session.name, schema: SessionSchema },
-            { name: Faculty.name, schema: FacultySchema },
-            { name: Student.name, schema: StudentSchema },
             { name: Admin.name, schema: AdminSchema },
         ]),
         RepositoryModule,
@@ -58,8 +51,7 @@ import { RepositoryModule } from 'src/repositories/repository.module';
     providers: [
         ConfigService,
         AuthService,
-        AuthJwtService,
-        SessionService,
+        AuthJwtService,        
         PasswordService,
         JwtAuthGuard,
         RoleGuard,
@@ -67,8 +59,7 @@ import { RepositoryModule } from 'src/repositories/repository.module';
     exports: [
         ConfigService,
         AuthService,
-        AuthJwtService,
-        SessionService,
+        AuthJwtService,        
         JwtAuthGuard,
         RoleGuard,
     ],

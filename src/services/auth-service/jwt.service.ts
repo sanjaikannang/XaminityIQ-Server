@@ -1,13 +1,12 @@
-import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from 'src/config/config.service';
 import { UserRole } from 'src/utils/enum';
+import { ConfigService } from 'src/config/config.service';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 export interface JwtPayload {
     sub: string;
     email: string;
-    role: UserRole;
-    sessionId: string;
+    role: UserRole;    
     type: 'access' | 'refresh';
 }
 

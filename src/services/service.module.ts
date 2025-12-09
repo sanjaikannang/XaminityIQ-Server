@@ -5,7 +5,6 @@ import { JwtModule } from "@nestjs/jwt";
 import { AuthService } from "./auth-service/auth.service";
 import { AuthJwtService } from "./auth-service/jwt.service";
 import { PasswordService } from "./auth-service/password.service";
-import { SessionService } from "./auth-service/session.service";
 import { AdminService } from "./user-service/admin/admin.service";
 import { FacultyService } from "./user-service/faculty/faculty.service";
 import { StudentService } from "./user-service/student/student.service";
@@ -33,7 +32,6 @@ import { RepositoryModule } from "src/repositories/repository.module";
         AuthService,
         AuthJwtService,
         PasswordService,
-        SessionService,
         AdminService,
         FacultyService,
         StudentService
@@ -42,7 +40,6 @@ import { RepositoryModule } from "src/repositories/repository.module";
         AuthService,
         PasswordService,
         AuthJwtService,
-        SessionService,
         AdminService,
         FacultyService,
         StudentService

@@ -67,6 +67,62 @@ export class UserRepositoryService {
     }
 
 
+    // Update user tokens
+    async updateUserTokens(userId: string, accessToken: string, refreshToken: string): Promise<void> {
+        try {
+            const updatedUser = await this.userModel.findByIdAndUpdate(
+                userId,
+                {
+                    accessToken,
+                    refreshToken,
+                },
+                { new: true }
+            ).exec();
+
+            if (!updatedUser) {
+                throw new NotFoundException(`User with id ${userId} not found`);
+            }
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to update user tokens', error);
+        }
+    }
+
+
+    // Find user by refresh token
+    async findUserByRefreshToken(refreshToken: string): Promise<UserDocument | null> {
+        try {
+            const user = await this.userModel.findOne({
+                refreshToken,
+                isActive: true
+            }).exec();
+            return user;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to find user by refresh token', error);
+        }
+    }
+
+
+    // Clear user tokens (for logout)
+    async clearUserTokens(userId: string): Promise<void> {
+        try {
+            const updatedUser = await this.userModel.findByIdAndUpdate(
+                userId,
+                {
+                    accessToken: null,
+                    refreshToken: null,
+                },
+                { new: true }
+            ).exec();
+
+            if (!updatedUser) {
+                throw new NotFoundException(`User with id ${userId} not found`);
+            }
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to clear user tokens', error);
+        }
+    }
+
+
     // Update user password
     async updateUserPassword(id: string, password: string): Promise<UserDocument | null> {
         try {

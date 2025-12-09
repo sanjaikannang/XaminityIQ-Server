@@ -1,13 +1,11 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { PasswordService } from './password.service';
-import { AuthJwtService } from './jwt.service';
 import { Types } from "mongoose";
-import { SessionService } from './session.service';
+import { AuthJwtService } from './jwt.service';
+import { PasswordService } from './password.service';
 import { LoginRequest } from 'src/api/auth/login/login.request';
 import { RefreshTokenRequest } from 'src/api/auth/refresh-token/refresh-token.request';
-import { ChangePasswordRequest } from 'src/api/auth/change-password/change-password.request';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { UserRepositoryService } from 'src/repositories/user-repository/user.repository';
-import { SessionRepositoryService } from 'src/repositories/session-repository/session.repository';
+import { ChangePasswordRequest } from 'src/api/auth/change-password/change-password.request';
 
 @Injectable()
 export class AuthService {
@@ -15,13 +13,11 @@ export class AuthService {
         private readonly userRepositoryService: UserRepositoryService,
         private readonly passwordService: PasswordService,
         private readonly jwtService: AuthJwtService,
-        private readonly sessionService: SessionService,
-        private readonly sessionRepositoryService: SessionRepositoryService,
     ) { }
 
 
     // Login API Endpoint
-    async loginAPI(loginData: LoginRequest, userAgent: string, ipAddress: string) {
+    async loginAPI(loginData: LoginRequest) {
         const { email, password } = loginData;
 
         // Find user by email
@@ -36,18 +32,24 @@ export class AuthService {
             throw new UnauthorizedException('Invalid email or password');
         }
 
+        const userId = (user._id as Types.ObjectId).toString();
+
         // Generate tokens
-        const sessionId = await this.sessionService.createUserSession(user, userAgent, ipAddress);
+        const accessToken = this.jwtService.generateAccessToken({
+            sub: userId,
+            email: user.email,
+            role: user.role,
+        });
 
-        // Get the tokens from the session
-        const tokens = await this.sessionRepositoryService.getTokensBySessionId(sessionId);
+        const refreshToken = this.jwtService.generateRefreshToken({
+            sub: userId,
+            email: user.email,
+            role: user.role,
+        });
 
-        if (!tokens) {
-            throw new UnauthorizedException('Failed to create session');
-        }
-
-        // Update last login
-        await this.userRepositoryService.updateLastLogin((user._id as Types.ObjectId).toString());
+        // Update user with tokens and last login
+        await this.userRepositoryService.updateUserTokens(userId, accessToken, refreshToken);
+        await this.userRepositoryService.updateLastLogin(userId);
 
         return {
             user: {
@@ -57,32 +59,25 @@ export class AuthService {
                 isFirstLogin: user.isFirstLogin,
             },
             tokens: {
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
+                accessToken,
+                refreshToken
             },
-            sessionId,
         };
     }
 
 
     // Refresh Token API Endpoint
     async refreshTokenAPI(refreshData: RefreshTokenRequest) {
-        const { refreshToken, sessionId } = refreshData;
+        const { refreshToken } = refreshData;
 
         try {
             // Verify refresh token
             const payload = this.jwtService.verifyRefreshToken(refreshToken);
 
-            // Check session
-            const session = await this.sessionService.getSession(sessionId);
-            if (!session || session.refreshToken !== refreshToken) {
-                throw new UnauthorizedException('Invalid session');
-            }
-
-            // Check if session is expired
-            if (session.expiresAt < Date.now()) {
-                await this.sessionService.deleteSession(sessionId);
-                throw new UnauthorizedException('Session expired');
+            // Find user by refresh token
+            const user = await this.userRepositoryService.findUserByRefreshToken(refreshToken);
+            if (!user) {
+                throw new UnauthorizedException('Invalid refresh token');
             }
 
             // Generate new tokens
@@ -90,21 +85,20 @@ export class AuthService {
                 sub: payload.sub,
                 email: payload.email,
                 role: payload.role,
-                sessionId: payload.sessionId,
             });
 
             const newRefreshToken = this.jwtService.generateRefreshToken({
                 sub: payload.sub,
                 email: payload.email,
                 role: payload.role,
-                sessionId: payload.sessionId,
             });
 
-            // Update database session
-            await this.sessionRepositoryService.updateSession(sessionId, {
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken,
-            });
+            // Update user with new tokens
+            await this.userRepositoryService.updateUserTokens(
+                payload.sub,
+                newAccessToken,
+                newRefreshToken
+            );
 
             return {
                 accessToken: newAccessToken,
@@ -160,11 +154,10 @@ export class AuthService {
 
 
     // Logout API Endpoint
-    async logoutAPI(sessionId: string) {
+    async logoutAPI(userId: string) {
         try {
-
-            await this.sessionService.deleteSession(sessionId);
-            await this.sessionRepositoryService.deactivateSession(sessionId);
+            // Clear tokens from user
+            await this.userRepositoryService.clearUserTokens(userId);
 
             return {
                 message: 'Logged out successfully'
