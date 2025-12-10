@@ -1,11 +1,27 @@
-export enum Country {
-  INDIA = 'India',
-}
-
 export enum UserRole {
   ADMIN = 'ADMIN',
   FACULTY = 'FACULTY',
   STUDENT = 'STUDENT',
+}
+
+export enum FacultyStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  ON_LEAVE = 'ON_LEAVE',
+  TERMINATED = 'TERMINATED',
+  RETIRED = 'RETIRED',
+  PENDING = 'PENDING',
+}
+
+export enum StudentStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  ON_LEAVE = 'ON_LEAVE',
+  DROPPED = 'DROPPED',
+  GRADUATED = 'GRADUATED',
+  PENDING = 'PENDING',
 }
 
 export enum Gender {
@@ -15,32 +31,23 @@ export enum Gender {
 }
 
 export enum MaritalStatus {
-  SINGLE = 'Single',
-  MARRIED = 'Married',
-  DIVORCED = 'Divorced',
-  WIDOWED = 'Widowed',
+  SINGLE = 'SINGLE',
+  MARRIED = 'MARRIED',
+  DIVORCED = 'DIVORCED',
+  WIDOWED = 'WIDOWED',
 }
 
 export enum Nationality {
-  INDIAN = 'Indian'
+  INDIAN = 'INDIAN'
 }
 
-export enum Status {
-  ACTIVE = 'Active',
-  INACTIVE = 'Inactive',
-  SUSPENDED = 'Suspended',
-  GRADUATED = 'Graduated',
-  DROPPED = 'Dropped',
+export enum Country {
+  INDIA = "INDIA",
 }
 
 export enum ExamMode {
   AUTO = 'AUTO',
   PROCTORING = 'PROCTORING'
-}
-
-export enum ProctoringMode {
-  LIVE = 'LIVE',
-  AUTO = 'AUTO'
 }
 
 export enum CourseType {

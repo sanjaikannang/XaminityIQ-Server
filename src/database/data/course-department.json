@@ -1,0 +1,425 @@
+{
+    "streams": [
+        {
+            "streamCode": "ARTS_SCI",
+            "streamName": "Arts & Science",
+            "courses": [
+                {
+                    "courseCode": "BA",
+                    "courseName": "Bachelor of Arts",
+                    "duration": "3 Years",
+                    "semesters": 6,
+                    "level": "UG",
+                    "departments": [
+                        {
+                            "deptCode": "ENG",
+                            "deptName": "English"
+                        },
+                        {
+                            "deptCode": "TAM",
+                            "deptName": "Tamil"
+                        },
+                        {
+                            "deptCode": "ECO",
+                            "deptName": "Economics"
+                        },
+                        {
+                            "deptCode": "HIS",
+                            "deptName": "History"
+                        },
+                        {
+                            "deptCode": "POL",
+                            "deptName": "Political Science"
+                        },
+                        {
+                            "deptCode": "SOC",
+                            "deptName": "Sociology"
+                        },
+                        {
+                            "deptCode": "PSY",
+                            "deptName": "Psychology"
+                        },
+                        {
+                            "deptCode": "JMC",
+                            "deptName": "Journalism & Mass Communication"
+                        }
+                    ]
+                },
+                {
+                    "courseCode": "BSC",
+                    "courseName": "Bachelor of Science",
+                    "duration": "3 Years",
+                    "semesters": 6,
+                    "level": "UG",
+                    "departments": [
+                        {
+                            "deptCode": "CS",
+                            "deptName": "Computer Science"
+                        },
+                        {
+                            "deptCode": "IT",
+                            "deptName": "Information Technology"
+                        },
+                        {
+                            "deptCode": "MAT",
+                            "deptName": "Mathematics"
+                        },
+                        {
+                            "deptCode": "PHY",
+                            "deptName": "Physics"
+                        },
+                        {
+                            "deptCode": "CHEM",
+                            "deptName": "Chemistry"
+                        },
+                        {
+                            "deptCode": "BIO",
+                            "deptName": "Biotechnology"
+                        },
+                        {
+                            "deptCode": "MIC",
+                            "deptName": "Microbiology"
+                        },
+                        {
+                            "deptCode": "BOT",
+                            "deptName": "Botany"
+                        },
+                        {
+                            "deptCode": "ZOO",
+                            "deptName": "Zoology"
+                        }
+                    ]
+                },
+                {
+                    "courseCode": "BCOM",
+                    "courseName": "Bachelor of Commerce",
+                    "duration": "3 Years",
+                    "semesters": 6,
+                    "level": "UG",
+                    "departments": [
+                        {
+                            "deptCode": "GEN",
+                            "deptName": "General Commerce"
+                        },
+                        {
+                            "deptCode": "AF",
+                            "deptName": "Accounting & Finance"
+                        },
+                        {
+                            "deptCode": "CS",
+                            "deptName": "Corporate Secretaryship"
+                        },
+                        {
+                            "deptCode": "CA",
+                            "deptName": "Computer Applications"
+                        },
+                        {
+                            "deptCode": "BI",
+                            "deptName": "Banking & Insurance"
+                        }
+                    ]
+                },
+                {
+                    "courseCode": "BBA",
+                    "courseName": "Bachelor of Business Administration",
+                    "duration": "3 Years",
+                    "semesters": 6,
+                    "level": "UG",
+                    "departments": [
+                        {
+                            "deptCode": "GEN",
+                            "deptName": "General Management"
+                        },
+                        {
+                            "deptCode": "HR",
+                            "deptName": "Human Resource Management"
+                        },
+                        {
+                            "deptCode": "FIN",
+                            "deptName": "Finance Management"
+                        },
+                        {
+                            "deptCode": "MKT",
+                            "deptName": "Marketing Management"
+                        },
+                        {
+                            "deptCode": "LOG",
+                            "deptName": "Logistics & Supply Chain Management"
+                        }
+                    ]
+                },
+                {
+                    "courseCode": "MA",
+                    "courseName": "Master of Arts",
+                    "duration": "2 Years",
+                    "semesters": 4,
+                    "level": "PG",
+                    "departments": [
+                        {
+                            "deptCode": "ENG",
+                            "deptName": "English"
+                        },
+                        {
+                            "deptCode": "TAM",
+                            "deptName": "Tamil"
+                        },
+                        {
+                            "deptCode": "ECO",
+                            "deptName": "Economics"
+                        },
+                        {
+                            "deptCode": "PSY",
+                            "deptName": "Psychology"
+                        }
+                    ]
+                },
+                {
+                    "courseCode": "MSC",
+                    "courseName": "Master of Science",
+                    "duration": "2 Years",
+                    "semesters": 4,
+                    "level": "PG",
+                    "departments": [
+                        {
+                            "deptCode": "CS",
+                            "deptName": "Computer Science"
+                        },
+                        {
+                            "deptCode": "IT",
+                            "deptName": "Information Technology"
+                        },
+                        {
+                            "deptCode": "DS",
+                            "deptName": "Data Science"
+                        },
+                        {
+                            "deptCode": "AI",
+                            "deptName": "Artificial Intelligence"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "streamCode": "ENGG",
+            "streamName": "Engineering & Technology",
+            "courses": [
+                {
+                    "courseCode": "BE",
+                    "courseName": "Bachelor of Engineering",
+                    "duration": "4 Years",
+                    "semesters": 8,
+                    "level": "UG",
+                    "departments": [
+                        {
+                            "deptCode": "CSE",
+                            "deptName": "Computer Science Engineering"
+                        },
+                        {
+                            "deptCode": "ECE",
+                            "deptName": "Electronics & Communication Engineering"
+                        },
+                        {
+                            "deptCode": "EEE",
+                            "deptName": "Electrical & Electronics Engineering"
+                        },
+                        {
+                            "deptCode": "MECH",
+                            "deptName": "Mechanical Engineering"
+                        },
+                        {
+                            "deptCode": "CIV",
+                            "deptName": "Civil Engineering"
+                        },
+                        {
+                            "deptCode": "AI_DS",
+                            "deptName": "AI & Data Science"
+                        },
+                        {
+                            "deptCode": "ML",
+                            "deptName": "AI & Machine Learning"
+                        },
+                        {
+                            "deptCode": "CYB",
+                            "deptName": "Cyber Security"
+                        }
+                    ]
+                },
+                {
+                    "courseCode": "ME",
+                    "courseName": "Master of Engineering",
+                    "duration": "2 Years",
+                    "semesters": 4,
+                    "level": "PG",
+                    "departments": [
+                        {
+                            "deptCode": "CSE",
+                            "deptName": "Computer Science Engineering"
+                        },
+                        {
+                            "deptCode": "SE",
+                            "deptName": "Software Engineering"
+                        },
+                        {
+                            "deptCode": "VLSI",
+                            "deptName": "VLSI Design"
+                        },
+                        {
+                            "deptCode": "EMB",
+                            "deptName": "Embedded Systems"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "streamCode": "MED",
+            "streamName": "Medical & Health Sciences",
+            "courses": [
+                {
+                    "courseCode": "MBBS",
+                    "courseName": "Bachelor of Medicine & Surgery",
+                    "duration": "5.5 Years",
+                    "semesters": 11,
+                    "level": "UG",
+                    "departments": [
+                        {
+                            "deptCode": "GEN",
+                            "deptName": "General Medicine"
+                        },
+                        {
+                            "deptCode": "PED",
+                            "deptName": "Pediatrics"
+                        },
+                        {
+                            "deptCode": "SUR",
+                            "deptName": "General Surgery"
+                        }
+                    ]
+                },
+                {
+                    "courseCode": "BDS",
+                    "courseName": "Bachelor of Dental Surgery",
+                    "duration": "5 Years",
+                    "semesters": 10,
+                    "level": "UG",
+                    "departments": [
+                        {
+                            "deptCode": "ORTH",
+                            "deptName": "Orthodontics"
+                        },
+                        {
+                            "deptCode": "PERI",
+                            "deptName": "Periodontics"
+                        }
+                    ]
+                },
+                {
+                    "courseCode": "MD",
+                    "courseName": "Doctor of Medicine",
+                    "duration": "3 Years",
+                    "semesters": 6,
+                    "level": "PG",
+                    "departments": [
+                        {
+                            "deptCode": "GEN_MED",
+                            "deptName": "General Medicine"
+                        },
+                        {
+                            "deptCode": "NEU",
+                            "deptName": "Neurology"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "streamCode": "LAW",
+            "streamName": "Law & Legal Studies",
+            "courses": [
+                {
+                    "courseCode": "LLB",
+                    "courseName": "Bachelor of Law",
+                    "duration": "3 Years",
+                    "semesters": 6,
+                    "level": "UG",
+                    "departments": [
+                        {
+                            "deptCode": "CRIM",
+                            "deptName": "Criminal Law"
+                        },
+                        {
+                            "deptCode": "CIV",
+                            "deptName": "Civil Law"
+                        },
+                        {
+                            "deptCode": "CORP",
+                            "deptName": "Corporate Law"
+                        }
+                    ]
+                },
+                {
+                    "courseCode": "LLM",
+                    "courseName": "Master of Law",
+                    "duration": "2 Years",
+                    "semesters": 4,
+                    "level": "PG",
+                    "departments": [
+                        {
+                            "deptCode": "INT",
+                            "deptName": "International Law"
+                        },
+                        {
+                            "deptCode": "TAX",
+                            "deptName": "Tax Law"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "streamCode": "AGRI",
+            "streamName": "Agriculture & Life Sciences",
+            "courses": [
+                {
+                    "courseCode": "BSC_AGRI",
+                    "courseName": "B.Sc Agriculture",
+                    "duration": "4 Years",
+                    "semesters": 8,
+                    "level": "UG",
+                    "departments": [
+                        {
+                            "deptCode": "AGR",
+                            "deptName": "Agronomy"
+                        },
+                        {
+                            "deptCode": "HRT",
+                            "deptName": "Horticulture"
+                        },
+                        {
+                            "deptCode": "ENT",
+                            "deptName": "Entomology"
+                        }
+                    ]
+                },
+                {
+                    "courseCode": "MSC_AGRI",
+                    "courseName": "M.Sc Agriculture",
+                    "duration": "2 Years",
+                    "semesters": 4,
+                    "level": "PG",
+                    "departments": [
+                        {
+                            "deptCode": "PBG",
+                            "deptName": "Plant Breeding & Genetics"
+                        },
+                        {
+                            "deptCode": "SS",
+                            "deptName": "Soil Science"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

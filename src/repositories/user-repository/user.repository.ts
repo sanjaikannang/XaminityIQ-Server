@@ -2,7 +2,6 @@ import { Injectable, InternalServerErrorException, NotFoundException } from '@ne
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument } from 'src/schemas/user.schema';
-import { UserRole } from 'src/utils/enum';
 
 
 @Injectable()
@@ -20,36 +19,6 @@ export class UserRepositoryService {
             return user;
         } catch (error) {
             throw new InternalServerErrorException('Failed to find user by email', error);
-        }
-    }
-
-
-    // Find user by id
-    async findUserById(id: string): Promise<UserDocument | null> {
-        try {
-            const user = this.userModel.findById(id).exec();
-            return user;
-        } catch (error) {
-            throw new InternalServerErrorException('Failed to find user by Id', error);
-        }
-    }
-
-
-    // Create User
-    async createUser(userData: {
-        email: string;
-        password: string;
-        role: UserRole;
-        createdBy?: string;
-    }): Promise<UserDocument> {
-        try {
-            const user = new this.userModel({
-                ...userData,
-                createdBy: userData.createdBy ? new Types.ObjectId(userData.createdBy) : undefined,
-            });
-            return user.save();
-        } catch (error) {
-            throw new InternalServerErrorException('Failed to create user', error);
         }
     }
 
@@ -159,41 +128,6 @@ export class UserRepositoryService {
             }
             throw new InternalServerErrorException('Failed to update last login', error);
         }
-    }
-
-
-    // Check email exists
-    async checkEmailExists(email: string): Promise<boolean> {
-        try {
-            const user = await this.userModel.findOne({ email }).exec();
-            return !!user;
-        } catch (error) {
-            throw new InternalServerErrorException('Failed to check email exist', error);
-        }
-    }
-
-
-    // Find user by Role
-    async findUsersByRole(role: UserRole): Promise<UserDocument[]> {
-        try {
-            const user = this.userModel.find({ role, isActive: true }).exec();
-            return user;
-        } catch (error) {
-            throw new InternalServerErrorException('Failed to update user password', error);
-        }
-    }
-
-
-    // Find by ID and Delete
-    async findByIdAndDelete(id: string): Promise<UserDocument | null> {
-        return await this.userModel.findByIdAndDelete(id).exec();
-    }
-
-
-    // Delete by ID
-    async deleteById(id: string): Promise<boolean> {
-        const result = await this.userModel.deleteOne({ _id: id }).exec();
-        return result.deletedCount > 0;
     }
 
 }
