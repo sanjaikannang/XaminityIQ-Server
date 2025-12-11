@@ -6,6 +6,9 @@ import { AdminSeeder } from './admin.seeder';
 import { DatabaseSeeder } from './database.seeder';
 import { ConfigService } from 'src/config/config.service';
 import { ConfigModule } from 'src/config/config.module';
+import { Course, CourseSchema } from 'src/schemas/course.schema';
+import { Department, DepartmentSchema } from 'src/schemas/department.schema';
+import { CourseDepartmentSeeder } from './course-department.seeder';
 
 @Global()
 @Module({
@@ -32,12 +35,15 @@ import { ConfigModule } from 'src/config/config.module';
         MongooseModule.forFeature([
             { name: User.name, schema: UserSchema },
             { name: Admin.name, schema: AdminSchema },
+            { name: Course.name, schema: CourseSchema },
+            { name: Department.name, schema: DepartmentSchema },
         ]),
     ],
     controllers: [],
     providers: [
         ConfigService,
         AdminSeeder,
+        CourseDepartmentSeeder,
         DatabaseSeeder
     ],
     exports: [
