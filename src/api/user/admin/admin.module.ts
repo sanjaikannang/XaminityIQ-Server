@@ -8,6 +8,7 @@ import { RoleGuard } from 'src/guards/role.guard';
 // Schemas
 import { Admin, AdminSchema } from 'src/schemas/admin.schema';
 import { User, UserSchema } from 'src/schemas/user.schema';
+import { Batch, BatchSchema } from 'src/schemas/batch.schema';
 
 // Services
 import { ConfigService } from 'src/config/config.service';
@@ -16,11 +17,13 @@ import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
 
 // Controllers
+import { CreateBatchController } from './create-batch/create-batch.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
 import { RepositoryModule } from 'src/repositories/repository.module';
 import { JwtModule } from '@nestjs/jwt';
+import { AdminService } from 'src/services/user-service/admin/admin.service';
 
 
 @Module({
@@ -28,6 +31,7 @@ import { JwtModule } from '@nestjs/jwt';
         MongooseModule.forFeature([
             { name: User.name, schema: UserSchema },
             { name: Admin.name, schema: AdminSchema },
+            { name: Batch.name, schema: BatchSchema },            
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -42,12 +46,14 @@ import { JwtModule } from '@nestjs/jwt';
         RepositoryModule
     ],
     controllers: [
+        CreateBatchController
     ],
     providers: [
         ConfigService,
         AuthService,
         AuthJwtService,
         PasswordService,
+        AdminService,
         JwtAuthGuard,
         RoleGuard,
     ],
@@ -55,6 +61,7 @@ import { JwtModule } from '@nestjs/jwt';
         ConfigService,
         AuthService,
         AuthJwtService,
+        AdminService,
         JwtAuthGuard,
         RoleGuard,
     ],
