@@ -19,40 +19,68 @@
 
 XaminityIQ is a comprehensive online examination system that streamlines the entire assessment process for universities and colleges. With role-based access control and intuitive interfaces, it empowers administrators, faculty, and students to manage and participate in examinations seamlessly.
 
-## ✨ Features
-
 ### 🔐 Role-Based Access Control
 
-| Role | Capabilities |
-|------|-------------|
-| **Super Admin** | Complete system management, user creation, configuration settings, batch & department management |
-| **Faculty** | Course management, exam creation, student assessment, grade submission, result analytics |
-| **Students** | Exam participation, result viewing, profile management, exam history tracking |
+| Role |
+|------|
+| **Super Admin**   |
+| **Faculty**       |
+| **Student**      |
 
 ---
 
 ## 🚀 Tech Stack
 
+<div align="center">
+
 <table>
 <tr>
-<td width="50%">
-
-### Backend Framework
-- **NestJS** - Progressive Node.js framework
-- **TypeScript** - Type-safe development
-- **Mongoose** - MongoDB object modeling
-
+<td align="center" width="25%">
+<img src="https://nestjs.com/logo-small-gradient.76616405.svg" alt="NestJS" width="60" height="60"/>
+<br><strong>NestJS</strong>
+<p><sub>Progressive Framework</sub></p>
 </td>
-<td width="50%">
-
-### Database & Security
-- **MongoDB** - NoSQL document database
-- **JWT** - Secure token-based authentication
-- **bcrypt** - Password encryption
-
+<td align="center" width="25%">
+<img src="https://raw.githubusercontent.com/remojansen/logo.ts/master/ts.png" alt="TypeScript" width="60" height="60"/>
+<br><strong>TypeScript</strong>
+<p><sub>Type-Safe Development</sub></p>
+</td>
+<td align="center" width="25%">
+<img src="https://cdn.worldvectorlogo.com/logos/mongodb-icon-1.svg" alt="MongoDB" width="60" height="60"/>
+<br><strong>MongoDB</strong>
+<p><sub>NoSQL Database</sub></p>
+</td>
+<td align="center" width="25%">
+<img src="https://raw.githubusercontent.com/Automattic/mongoose/master/docs/images/mongoose5_62x30_transparent.png" alt="Mongoose" width="80" height="40"/>
+<br><strong>Mongoose</strong>
+<p><sub>ODM Library</sub></p>
+</td>
+</tr>
+<tr>
+<td align="center" width="25%">
+<img src="https://jwt.io/img/pic_logo.svg" alt="JWT" width="60" height="60"/>
+<br><strong>JWT</strong>
+<p><sub>Secure Authentication</sub></p>
+</td>
+<td align="center" width="25%">
+<img src="https://img.icons8.com/color/96/000000/lock--v1.png" alt="bcrypt" width="60" height="60"/>
+<br><strong>bcrypt</strong>
+<p><sub>Password Encryption</sub></p>
+</td>
+<td align="center" width="25%">
+<img src="https://img.icons8.com/color/96/000000/api-settings.png" alt="REST API" width="60" height="60"/>
+<br><strong>REST API</strong>
+<p><sub>API Architecture</sub></p>
+</td>
+<td align="center" width="25%">
+<img src="https://img.icons8.com/color/96/000000/nodejs.png" alt="Node.js" width="60" height="60"/>
+<br><strong>Node.js</strong>
+<p><sub>Runtime Environment</sub></p>
 </td>
 </tr>
 </table>
+
+</div>
 
 ---
 
@@ -210,5 +238,6 @@ src/
 ├── app.service.ts
 ├── app.module.ts
 └── main.ts
+```
 
 </div>
