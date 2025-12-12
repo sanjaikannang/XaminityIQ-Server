@@ -1,6 +1,12 @@
+# 📘 XaminityIQ – Online Examination Platform
+
+XaminityIQ is a secure and scalable online examination system designed for universities and colleges. It provides role-based access for **Super Admin**, **Faculty**, and **Students**, enabling efficient management of batches, courses, departments, and sections.
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
+
+---
 
 [circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
 [circleci-url]: https://circleci.com/gh/nestjs/nest
@@ -57,42 +63,104 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
-## Deployment
+---
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## 📁 Project Folder Structure
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+src/
+├── api/
+│   ├── auth/
+│   │   ├── login/
+│   │   │   ├── login.controller.ts
+│   │   │   ├── login.request.ts
+│   │   │   └── login.response.ts
+│   │   ├── change-password/
+│   │   │   ├── change-password.controller.ts
+│   │   │   ├── change-password.request.ts
+│   │   │   └── change-password.response.ts
+│   │   └── auth.module.ts
+│   │
+│   ├── user/
+│   │   ├── admin/
+│   │   │   ├── student/
+│   │   │   │   ├── create-student.controller.ts
+│   │   │   │   ├── create-student.service.ts
+│   │   │   │   ├── update-student.controller.ts
+│   │   │   │   ├── update-student.service.ts
+│   │   │   │   └── student.module.ts
+│   │   │   ├── faculty/
+│   │   │   │   ├── create-faculty.controller.ts
+│   │   │   │   ├── create-faculty.service.ts
+│   │   │   │   └── faculty.module.ts
+│   │   │   └── admin.module.ts          # Optional: facade module
+│   │   │
+│   │   ├── faculty/
+│   │   │   ├── get-faculty.controller.ts
+│   │   │   ├── get-faculty.service.ts
+│   │   │   └── faculty.module.ts
+│   │   │
+│   │   ├── student/
+│   │   │   ├── get-student.controller.ts
+│   │   │   ├── get-student.service.ts
+│   │   │   └── student.module.ts
+│   │   │
+│   │   └── user.module.ts
+│   │
+│   └── api.module.ts
+│
+├── services/
+│   ├── auth/
+│   │   └── auth.service.ts             # Shared auth logic
+│   │
+│   ├── user/
+│   │   ├── admin/
+│   │   │   ├── student/
+│   │   │   │   ├── create-student.service.ts
+│   │   │   │   ├── update-student.service.ts
+│   │   │   │   └── student.service.ts  # Optional: shared admin-student logic
+│   │   │   ├── faculty/
+│   │   │   │   ├── create-faculty.service.ts
+│   │   │   │   └── faculty.service.ts
+│   │   │   └── admin.service.ts        # Facade service for admin role
+│   │   │
+│   │   ├── faculty/
+│   │   │   └── faculty.service.ts
+│   │   │
+│   │   └── student/
+│   │       └── student.service.ts
+│   │
+│   └── service.module.ts
+│
+├── repositories/
+│   ├── admin-repository/
+│   │   └── admin-repository.ts
+│   ├── batch-repository/
+│   │   └── batch-repository.ts
+│   └── repository.module.ts
+│
+├── schemas/
+│   ├── admin.schema.ts
+│   ├── batch.schema.ts
+│   └── course.schema.ts
+│
+├── database/
+│   ├── seeders/
+│   │   ├── admin-seeder.ts
+│   │   ├── course-department.seeder.ts
+│   │   └── seeder.module.ts
+│   └── database.module.ts
+│
+├── common/
+│   ├── dtos/                          # Shared DTOs
+│   ├── exceptions/                    # Custom exceptions
+│   ├── filters/                       # Exception filters
+│   ├── guards/                        # Auth/Role guards
+│   ├── interceptors/                  # Logging, transform
+│   └── pipes/                          # Validation pipes
+│
+├── app.controller.ts
+├── app.service.ts
+├── app.module.ts
+└── main.ts
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
