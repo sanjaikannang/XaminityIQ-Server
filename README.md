@@ -21,11 +21,29 @@ XaminityIQ is a comprehensive online examination system that streamlines the ent
 
 ### 🔐 Role-Based Access Control
 
-| Role |
-|------|
-| **Super Admin**   |
-| **Faculty**       |
-| **Student**      |
+<div align="center">
+
+<table>
+<tr>
+<td align="center" width="33%">
+<img src="https://img.icons8.com/fluency/96/000000/admin-settings-male.png" alt="Super Admin" width="80"/>
+<h3>👑 Super Admin</h3>
+<p><em>Complete System Control</em></p>
+</td>
+<td align="center" width="33%">
+<img src="https://img.icons8.com/fluency/96/000000/teacher.png" alt="Faculty" width="80"/>
+<h3>👨‍🏫 Faculty</h3>
+<p><em>Course & Exam Management</em></p>
+</td>
+<td align="center" width="33%">
+<img src="https://img.icons8.com/fluency/96/000000/student-male.png" alt="Student" width="80"/>
+<h3>🎓 Student</h3>
+<p><em>Exam Participation</em></p>
+</td>
+</tr>
+</table>
+
+</div>
 
 ---
 
@@ -38,44 +56,36 @@ XaminityIQ is a comprehensive online examination system that streamlines the ent
 <td align="center" width="25%">
 <img src="https://nestjs.com/logo-small-gradient.76616405.svg" alt="NestJS" width="60" height="60"/>
 <br><strong>NestJS</strong>
-<p><sub>Progressive Framework</sub></p>
 </td>
 <td align="center" width="25%">
 <img src="https://raw.githubusercontent.com/remojansen/logo.ts/master/ts.png" alt="TypeScript" width="60" height="60"/>
 <br><strong>TypeScript</strong>
-<p><sub>Type-Safe Development</sub></p>
 </td>
 <td align="center" width="25%">
 <img src="https://cdn.worldvectorlogo.com/logos/mongodb-icon-1.svg" alt="MongoDB" width="60" height="60"/>
 <br><strong>MongoDB</strong>
-<p><sub>NoSQL Database</sub></p>
 </td>
 <td align="center" width="25%">
 <img src="https://raw.githubusercontent.com/Automattic/mongoose/master/docs/images/mongoose5_62x30_transparent.png" alt="Mongoose" width="80" height="40"/>
 <br><strong>Mongoose</strong>
-<p><sub>ODM Library</sub></p>
 </td>
 </tr>
 <tr>
 <td align="center" width="25%">
 <img src="https://jwt.io/img/pic_logo.svg" alt="JWT" width="60" height="60"/>
 <br><strong>JWT</strong>
-<p><sub>Secure Authentication</sub></p>
 </td>
 <td align="center" width="25%">
 <img src="https://img.icons8.com/color/96/000000/lock--v1.png" alt="bcrypt" width="60" height="60"/>
 <br><strong>bcrypt</strong>
-<p><sub>Password Encryption</sub></p>
 </td>
 <td align="center" width="25%">
 <img src="https://img.icons8.com/color/96/000000/api-settings.png" alt="REST API" width="60" height="60"/>
 <br><strong>REST API</strong>
-<p><sub>API Architecture</sub></p>
 </td>
 <td align="center" width="25%">
 <img src="https://img.icons8.com/color/96/000000/nodejs.png" alt="Node.js" width="60" height="60"/>
 <br><strong>Node.js</strong>
-<p><sub>Runtime Environment</sub></p>
 </td>
 </tr>
 </table>
