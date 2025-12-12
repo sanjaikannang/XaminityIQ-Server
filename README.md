@@ -27,17 +27,17 @@ XaminityIQ is a comprehensive online examination system that streamlines the ent
 <tr>
 <td align="center" width="33%">
 <img src="https://img.icons8.com/fluency/96/000000/admin-settings-male.png" alt="Super Admin" width="80"/>
-<h3>👑 Super Admin</h3>
+<h3>Super Admin</h3>
 <p><em>Complete System Control</em></p>
 </td>
 <td align="center" width="33%">
 <img src="https://img.icons8.com/fluency/96/000000/teacher.png" alt="Faculty" width="80"/>
-<h3>👨‍🏫 Faculty</h3>
+<h3>Faculty</h3>
 <p><em>Course & Exam Management</em></p>
 </td>
 <td align="center" width="33%">
 <img src="https://img.icons8.com/fluency/96/000000/student-male.png" alt="Student" width="80"/>
-<h3>🎓 Student</h3>
+<h3>Student</h3>
 <p><em>Exam Participation</em></p>
 </td>
 </tr>
@@ -53,37 +53,31 @@ XaminityIQ is a comprehensive online examination system that streamlines the ent
 
 <table>
 <tr>
-<td align="center" width="25%">
-<img src="https://nestjs.com/logo-small-gradient.76616405.svg" alt="NestJS" width="60" height="60"/>
+<td align="center" width="15%">
+<img src="https://docs.nestjs.com/assets/logo-small-gradient.svg" alt="NestJS" width="60" height="60"/>
 <br><strong>NestJS</strong>
 </td>
-<td align="center" width="25%">
+<td align="center" width="15%">
 <img src="https://raw.githubusercontent.com/remojansen/logo.ts/master/ts.png" alt="TypeScript" width="60" height="60"/>
 <br><strong>TypeScript</strong>
 </td>
-<td align="center" width="25%">
+<td align="center" width="14%">
 <img src="https://cdn.worldvectorlogo.com/logos/mongodb-icon-1.svg" alt="MongoDB" width="60" height="60"/>
 <br><strong>MongoDB</strong>
 </td>
-<td align="center" width="25%">
-<img src="https://raw.githubusercontent.com/Automattic/mongoose/master/docs/images/mongoose5_62x30_transparent.png" alt="Mongoose" width="80" height="40"/>
-<br><strong>Mongoose</strong>
-</td>
-</tr>
-<tr>
-<td align="center" width="25%">
+<td align="center" width="14%">
 <img src="https://jwt.io/img/pic_logo.svg" alt="JWT" width="60" height="60"/>
 <br><strong>JWT</strong>
 </td>
-<td align="center" width="25%">
+<td align="center" width="14%">
 <img src="https://img.icons8.com/color/96/000000/lock--v1.png" alt="bcrypt" width="60" height="60"/>
 <br><strong>bcrypt</strong>
 </td>
-<td align="center" width="25%">
+<td align="center" width="14%">
 <img src="https://img.icons8.com/color/96/000000/api-settings.png" alt="REST API" width="60" height="60"/>
 <br><strong>REST API</strong>
 </td>
-<td align="center" width="25%">
+<td align="center" width="14%">
 <img src="https://img.icons8.com/color/96/000000/nodejs.png" alt="Node.js" width="60" height="60"/>
 <br><strong>Node.js</strong>
 </td>
