@@ -2,66 +2,50 @@
 
 XaminityIQ is a secure and scalable online examination system designed for universities and colleges. It provides role-based access for **Super Admin**, **Faculty**, and **Students**, enabling efficient management of batches, courses, departments, and sections.
 
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+---
+
+## 🚀 Tech Stack
+
+### **Backend**
+- NestJs
+- TypeScript
+- MongoDB
+- Mongoose
+- JWT (JSON Web Token)
 
 ---
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## ⚙️ Installation
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
+### 1. Clone the project
 ```bash
-$ npm install
+git clone https://github.com/sanjaikannang/XaminityIQ-Server.git
 ```
 
-## Compile and run the project
-
+### 2. Install dependencies
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+### 3. Configure environment variables
+Create a `.env` file in the root directory and add the following variables:
+```env
+VITE_API_BASE_URL=""
+VITE_BACKEND_URL=""
 ```
+
+### 4. Run the development server
+```bash
+npm run start:dev
+```
+
+---
+
+## 🔐 User Roles
+
+- **Super Admin** - Complete system management and configuration
+- **Faculty** - Manage courses, exams, and student assessments
+- **Students** - Take exams and view results
 
 ---
 
@@ -93,7 +77,7 @@ src/
 │   │   │   │   ├── create-faculty.controller.ts
 │   │   │   │   ├── create-faculty.service.ts
 │   │   │   │   └── faculty.module.ts
-│   │   │   └── admin.module.ts          # Optional: facade module
+│   │   │   └── admin.module.ts          
 │   │   │
 │   │   ├── faculty/
 │   │   │   ├── get-faculty.controller.ts
@@ -111,18 +95,18 @@ src/
 │
 ├── services/
 │   ├── auth/
-│   │   └── auth.service.ts             # Shared auth logic
+│   │   └── auth.service.ts             
 │   │
 │   ├── user/
 │   │   ├── admin/
 │   │   │   ├── student/
 │   │   │   │   ├── create-student.service.ts
 │   │   │   │   ├── update-student.service.ts
-│   │   │   │   └── student.service.ts  # Optional: shared admin-student logic
+│   │   │   │   └── student.service.ts  
 │   │   │   ├── faculty/
 │   │   │   │   ├── create-faculty.service.ts
 │   │   │   │   └── faculty.service.ts
-│   │   │   └── admin.service.ts        # Facade service for admin role
+│   │   │   └── admin.service.ts       
 │   │   │
 │   │   ├── faculty/
 │   │   │   └── faculty.service.ts
@@ -152,15 +136,14 @@ src/
 │   └── database.module.ts
 │
 ├── common/
-│   ├── dtos/                          # Shared DTOs
-│   ├── exceptions/                    # Custom exceptions
-│   ├── filters/                       # Exception filters
-│   ├── guards/                        # Auth/Role guards
-│   ├── interceptors/                  # Logging, transform
-│   └── pipes/                          # Validation pipes
+│   ├── dtos/                          
+│   ├── exceptions/                    
+│   ├── filters/                       
+│   ├── guards/                        
+│   ├── interceptors/                  
+│   └── pipes/                         
 │
 ├── app.controller.ts
 ├── app.service.ts
 ├── app.module.ts
 └── main.ts
-
