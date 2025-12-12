@@ -11,8 +11,6 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 
-[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Architecture](#-architecture)
-
 ---
 
 </div>
@@ -30,15 +28,6 @@ XaminityIQ is a comprehensive online examination system that streamlines the ent
 | **Super Admin** | Complete system management, user creation, configuration settings, batch & department management |
 | **Faculty** | Course management, exam creation, student assessment, grade submission, result analytics |
 | **Students** | Exam participation, result viewing, profile management, exam history tracking |
-
-### 🎯 Core Capabilities
-
-- **Secure Authentication** - JWT-based authentication with role-based authorization
-- **Batch Management** - Organize students by academic years and semesters
-- **Course Administration** - Create and manage courses across departments
-- **Exam Engine** - Flexible examination system with multiple question types
-- **Real-time Monitoring** - Track exam progress and student participation
-- **Result Analytics** - Comprehensive reporting and performance metrics
 
 ---
 
@@ -69,18 +58,10 @@ XaminityIQ is a comprehensive online examination system that streamlines the ent
 
 ## ⚙️ Installation
 
-### Prerequisites
-
-Before you begin, ensure you have the following installed:
-- **Node.js** (v16 or higher)
-- **npm** or **yarn**
-- **MongoDB** (local or cloud instance)
-
 ### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/sanjaikannang/XaminityIQ-Server.git
-cd XaminityIQ-Server
 ```
 
 ### Step 2: Install Dependencies
@@ -94,20 +75,7 @@ npm install
 Create a `.env` file in the root directory:
 
 ```env
-# API Configuration
-VITE_API_BASE_URL="http://localhost:3000/api"
-VITE_BACKEND_URL="http://localhost:3000"
-
-# Database
-MONGODB_URI="mongodb://localhost:27017/xaminityiq"
-
-# JWT Configuration
-JWT_SECRET="your-secret-key-here"
-JWT_EXPIRES_IN="24h"
-
-# Application
-PORT=3000
-NODE_ENV="development"
+VITE_API_BASE_URL=""
 ```
 
 ### Step 4: Database Seeding
@@ -141,167 +109,106 @@ npm run start:debug
 npm start
 ```
 
-The server will start at `http://localhost:3000`
-
 ---
 
-## 🎮 Usage
 
-### Available Scripts
+## 📁 Project Folder Structure
 
-| Command | Description |
-|---------|-------------|
-| `npm start` | Start the application in standard mode |
-| `npm run start:dev` | Start with hot-reload for development |
-| `npm run start:debug` | Start in debug mode |
-| `npm run start:prod` | Start in production mode |
-| `npm run seed` | Seed database with initial data |
-| `npm run seed:drop` | Remove all seeded data |
-| `npm run seed:refresh` | Drop and re-seed database |
-
-### Default Credentials (After Seeding)
-
-```
-Super Admin:
-Email: admin@xaminityiq.com
-Password: Admin@123
-
-Faculty:
-Email: faculty@xaminityiq.com
-Password: Faculty@123
-
-Student:
-Email: student@xaminityiq.com
-Password: Student@123
-```
-
-> ⚠️ **Important:** Change default passwords after first login!
-
----
-
-## 🏗️ Architecture
-
-### Project Structure
-
-```
+```bash
 src/
-│
-├── 📂 api/                          # API Layer (Controllers & Routes)
-│   ├── auth/                        # Authentication endpoints
+├── api/
+│   ├── auth/
 │   │   ├── login/
-│   │   └── change-password/
-│   ├── user/                        # User management
-│   │   ├── admin/                   # Admin operations
-│   │   ├── faculty/                 # Faculty operations
-│   │   └── student/                 # Student operations
+│   │   │   ├── login.controller.ts
+│   │   │   ├── login.request.ts
+│   │   │   └── login.response.ts
+│   │   ├── change-password/
+│   │   │   ├── change-password.controller.ts
+│   │   │   ├── change-password.request.ts
+│   │   │   └── change-password.response.ts
+│   │   └── auth.module.ts
+│   │
+│   ├── user/
+│   │   ├── admin/
+│   │   │   ├── student/
+│   │   │   │   ├── create-student.controller.ts
+│   │   │   │   ├── create-student.service.ts
+│   │   │   │   ├── update-student.controller.ts
+│   │   │   │   ├── update-student.service.ts
+│   │   │   │   └── student.module.ts
+│   │   │   ├── faculty/
+│   │   │   │   ├── create-faculty.controller.ts
+│   │   │   │   ├── create-faculty.service.ts
+│   │   │   │   └── faculty.module.ts
+│   │   │   └── admin.module.ts          
+│   │   │
+│   │   ├── faculty/
+│   │   │   ├── get-faculty.controller.ts
+│   │   │   ├── get-faculty.service.ts
+│   │   │   └── faculty.module.ts
+│   │   │
+│   │   ├── student/
+│   │   │   ├── get-student.controller.ts
+│   │   │   ├── get-student.service.ts
+│   │   │   └── student.module.ts
+│   │   │
+│   │   └── user.module.ts
+│   │
 │   └── api.module.ts
 │
-├── 📂 services/                     # Business Logic Layer
+├── services/
 │   ├── auth/
-│   └── user/
-│       ├── admin/
-│       ├── faculty/
-│       └── student/
+│   │   └── auth.service.ts             
+│   │
+│   ├── user/
+│   │   ├── admin/
+│   │   │   ├── student/
+│   │   │   │   ├── create-student.service.ts
+│   │   │   │   ├── update-student.service.ts
+│   │   │   │   └── student.service.ts  
+│   │   │   ├── faculty/
+│   │   │   │   ├── create-faculty.service.ts
+│   │   │   │   └── faculty.service.ts
+│   │   │   └── admin.service.ts       
+│   │   │
+│   │   ├── faculty/
+│   │   │   └── faculty.service.ts
+│   │   │
+│   │   └── student/
+│   │       └── student.service.ts
+│   │
+│   └── service.module.ts
 │
-├── 📂 repositories/                 # Data Access Layer
+├── repositories/
 │   ├── admin-repository/
+│   │   └── admin-repository.ts
 │   ├── batch-repository/
+│   │   └── batch-repository.ts
 │   └── repository.module.ts
 │
-├── 📂 schemas/                      # MongoDB Schemas
+├── schemas/
 │   ├── admin.schema.ts
 │   ├── batch.schema.ts
 │   └── course.schema.ts
 │
-├── 📂 database/                     # Database Configuration
+├── database/
 │   ├── seeders/
 │   │   ├── admin-seeder.ts
 │   │   ├── course-department.seeder.ts
 │   │   └── seeder.module.ts
 │   └── database.module.ts
 │
-├── 📂 common/                       # Shared Resources
-│   ├── dtos/                        # Data Transfer Objects
-│   ├── exceptions/                  # Custom exceptions
-│   ├── filters/                     # Exception filters
-│   ├── guards/                      # Auth guards
-│   ├── interceptors/                # Request/Response interceptors
-│   └── pipes/                       # Validation pipes
+├── common/
+│   ├── dtos/                          
+│   ├── exceptions/                    
+│   ├── filters/                       
+│   ├── guards/                        
+│   ├── interceptors/                  
+│   └── pipes/                         
 │
-├── app.module.ts                    # Root module
-└── main.ts                          # Application entry point
-```
-
-### Module Organization
-
-<table>
-<tr>
-<th>Layer</th>
-<th>Purpose</th>
-<th>Components</th>
-</tr>
-<tr>
-<td><strong>API Layer</strong></td>
-<td>Handle HTTP requests</td>
-<td>Controllers, DTOs, Validators</td>
-</tr>
-<tr>
-<td><strong>Service Layer</strong></td>
-<td>Business logic implementation</td>
-<td>Services, Business rules</td>
-</tr>
-<tr>
-<td><strong>Repository Layer</strong></td>
-<td>Database operations</td>
-<td>Repositories, Queries</td>
-</tr>
-<tr>
-<td><strong>Schema Layer</strong></td>
-<td>Data modeling</td>
-<td>MongoDB Schemas, Models</td>
-</tr>
-</table>
-
----
-
-## 🔒 Security Features
-
-- ✅ JWT-based authentication
-- ✅ Role-based authorization
-- ✅ Password encryption with bcrypt
-- ✅ Request validation and sanitization
-- ✅ CORS configuration
-- ✅ Rate limiting
-- ✅ Secure session management
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
-## 📧 Contact
-
-For questions or support, please reach out to the development team.
-
-<div align="center">
-
-**Made with ❤️ by XaminityIQ Team**
-
-⭐ Star this repository if you find it helpful!
+├── app.controller.ts
+├── app.service.ts
+├── app.module.ts
+└── main.ts
 
 </div>
