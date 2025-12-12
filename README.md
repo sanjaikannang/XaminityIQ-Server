@@ -54,31 +54,31 @@ XaminityIQ is a comprehensive online examination system that streamlines the ent
 <table>
 <tr>
 <td align="center" width="15%">
-<img src="https://docs.nestjs.com/assets/logo-small-gradient.svg" alt="NestJS" width="60" height="60"/>
+<img src="https://docs.nestjs.com/assets/logo-small-gradient.svg" alt="NestJS" width="70" height="70"/>
 <br><strong>NestJS</strong>
 </td>
 <td align="center" width="15%">
-<img src="https://raw.githubusercontent.com/remojansen/logo.ts/master/ts.png" alt="TypeScript" width="60" height="60"/>
+<img src="https://raw.githubusercontent.com/remojansen/logo.ts/master/ts.png" alt="TypeScript" width="70" height="70"/>
 <br><strong>TypeScript</strong>
 </td>
 <td align="center" width="14%">
-<img src="https://cdn.worldvectorlogo.com/logos/mongodb-icon-1.svg" alt="MongoDB" width="60" height="60"/>
+<img src="https://cdn.worldvectorlogo.com/logos/mongodb-icon-1.svg" alt="MongoDB" width="70" height="70"/>
 <br><strong>MongoDB</strong>
 </td>
 <td align="center" width="14%">
-<img src="https://jwt.io/img/pic_logo.svg" alt="JWT" width="60" height="60"/>
+<img src="https://jwt.io/img/pic_logo.svg" alt="JWT" width="70" height="70"/>
 <br><strong>JWT</strong>
 </td>
 <td align="center" width="14%">
-<img src="https://img.icons8.com/color/96/000000/lock--v1.png" alt="bcrypt" width="60" height="60"/>
+<img src="https://img.icons8.com/color/96/000000/lock--v1.png" alt="bcrypt" width="70" height="70"/>
 <br><strong>bcrypt</strong>
 </td>
 <td align="center" width="14%">
-<img src="https://img.icons8.com/color/96/000000/api-settings.png" alt="REST API" width="60" height="60"/>
+<img src="https://img.icons8.com/color/96/000000/api-settings.png" alt="REST API" width="70" height="70"/>
 <br><strong>REST API</strong>
 </td>
 <td align="center" width="14%">
-<img src="https://img.icons8.com/color/96/000000/nodejs.png" alt="Node.js" width="60" height="60"/>
+<img src="https://img.icons8.com/color/96/000000/nodejs.png" alt="Node.js" width="70" height="70"/>
 <br><strong>Node.js</strong>
 </td>
 </tr>
