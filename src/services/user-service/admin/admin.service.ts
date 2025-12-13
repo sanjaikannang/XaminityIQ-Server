@@ -1,6 +1,7 @@
 import { CreateBatchRequest } from "src/api/user/admin/create-batch/create-batch.request";
 import { BatchRepositoryService } from "src/repositories/batch-repository/batch-repository";
 import { BadRequestException, ConflictException, Injectable, InternalServerErrorException } from "@nestjs/common";
+import { MapCourseToBatchRequest } from "src/api/user/admin/map-course-to-batch/map-course-to-batch.request";
 
 @Injectable()
 export class AdminService {
@@ -22,7 +23,7 @@ export class AdminService {
             // Validate batch name matches start and end year
             const expectedBatchName = `${startYear}-${endYear}`;
             if (batchName !== expectedBatchName) {
-                throw new BadRequestException(`Batch name must be ${expectedBatchName} based on start and end year`);
+                throw new BadRequestException(`Batch name must be based on start and end year`);
             }
 
             // Convert to numbers
@@ -40,6 +41,16 @@ export class AdminService {
                 throw error;
             }
             throw new InternalServerErrorException('Failed to create batch');
+        }
+    }
+
+
+    async mapCourseToBatchAPI(batchId: MapCourseToBatchRequest) {
+        try {
+
+            
+        } catch (error) {
+
         }
     }
 
