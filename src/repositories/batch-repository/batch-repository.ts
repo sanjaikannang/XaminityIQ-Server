@@ -10,6 +10,16 @@ export class BatchRepositoryService {
     ) { }
 
 
+    // Find batch by ID
+    async findById(batchId: string): Promise<BatchDocument | null> {
+        try {
+            return this.batchModel.findById(batchId).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
     // Find batch by batch name
     async findByBatchName(batchName: string): Promise<BatchDocument | null> {
         return this.batchModel.findOne({ batchName }).exec();

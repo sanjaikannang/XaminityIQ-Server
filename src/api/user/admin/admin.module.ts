@@ -9,21 +9,28 @@ import { RoleGuard } from 'src/guards/role.guard';
 import { Admin, AdminSchema } from 'src/schemas/admin.schema';
 import { User, UserSchema } from 'src/schemas/user.schema';
 import { Batch, BatchSchema } from 'src/schemas/batch.schema';
+import { Course, CourseSchema } from 'src/schemas/course.schema';
+import { BatchCourse, BatchCourseSchema } from 'src/schemas/batchCourse.schema';
+import { Department, DepartmentSchema } from 'src/schemas/department.schema';
+import { BatchDepartment, BatchDepartmentSchema } from 'src/schemas/batchDepartment.schema';
+import { Section, SectionSchema } from 'src/schemas/section.schema';
 
 // Services
 import { ConfigService } from 'src/config/config.service';
 import { AuthService } from 'src/services/auth-service/auth.service';
 import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
+import { AdminService } from 'src/services/user-service/admin/admin.service';
 
 // Controllers
 import { CreateBatchController } from './create-batch/create-batch.controller';
+import { MapCourseToBatchController } from './map-course-to-batch/map-course-to-batch.controller';
+import { AddDepartmentToBatchCourseController } from './add-department-to-batch-course/add-department-to-batch-course.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
 import { RepositoryModule } from 'src/repositories/repository.module';
 import { JwtModule } from '@nestjs/jwt';
-import { AdminService } from 'src/services/user-service/admin/admin.service';
 
 
 @Module({
@@ -31,7 +38,12 @@ import { AdminService } from 'src/services/user-service/admin/admin.service';
         MongooseModule.forFeature([
             { name: User.name, schema: UserSchema },
             { name: Admin.name, schema: AdminSchema },
-            { name: Batch.name, schema: BatchSchema },            
+            { name: Batch.name, schema: BatchSchema },
+            { name: Course.name, schema: CourseSchema },
+            { name: BatchCourse.name, schema: BatchCourseSchema },
+            { name: Department.name, schema: DepartmentSchema },
+            { name: BatchDepartment.name, schema: BatchDepartmentSchema },
+            { name: Section.name, schema: SectionSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -46,7 +58,9 @@ import { AdminService } from 'src/services/user-service/admin/admin.service';
         RepositoryModule
     ],
     controllers: [
-        CreateBatchController
+        CreateBatchController,
+        MapCourseToBatchController,
+        AddDepartmentToBatchCourseController
     ],
     providers: [
         ConfigService,
