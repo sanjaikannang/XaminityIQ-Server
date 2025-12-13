@@ -11,6 +11,9 @@ import { User, UserSchema } from 'src/schemas/user.schema';
 import { Batch, BatchSchema } from 'src/schemas/batch.schema';
 import { Course, CourseSchema } from 'src/schemas/course.schema';
 import { BatchCourse, BatchCourseSchema } from 'src/schemas/batchCourse.schema';
+import { Department, DepartmentSchema } from 'src/schemas/department.schema';
+import { BatchDepartment, BatchDepartmentSchema } from 'src/schemas/batchDepartment.schema';
+import { Section, SectionSchema } from 'src/schemas/section.schema';
 
 // Services
 import { ConfigService } from 'src/config/config.service';
@@ -22,6 +25,7 @@ import { AdminService } from 'src/services/user-service/admin/admin.service';
 // Controllers
 import { CreateBatchController } from './create-batch/create-batch.controller';
 import { MapCourseToBatchController } from './map-course-to-batch/map-course-to-batch.controller';
+import { AddDepartmentToBatchCourseController } from './add-department-to-batch-course/add-department-to-batch-course.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -34,9 +38,12 @@ import { JwtModule } from '@nestjs/jwt';
         MongooseModule.forFeature([
             { name: User.name, schema: UserSchema },
             { name: Admin.name, schema: AdminSchema },
-            { name: Batch.name, schema: BatchSchema },   
-            { name: Course.name, schema: CourseSchema },            
+            { name: Batch.name, schema: BatchSchema },
+            { name: Course.name, schema: CourseSchema },
             { name: BatchCourse.name, schema: BatchCourseSchema },
+            { name: Department.name, schema: DepartmentSchema },
+            { name: BatchDepartment.name, schema: BatchDepartmentSchema },
+            { name: Section.name, schema: SectionSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -52,7 +59,8 @@ import { JwtModule } from '@nestjs/jwt';
     ],
     controllers: [
         CreateBatchController,
-        MapCourseToBatchController
+        MapCourseToBatchController,
+        AddDepartmentToBatchCourseController
     ],
     providers: [
         ConfigService,
