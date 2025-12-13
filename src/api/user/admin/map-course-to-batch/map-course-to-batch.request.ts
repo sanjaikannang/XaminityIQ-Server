@@ -4,10 +4,6 @@ export class MapCourseToBatchRequest {
 
     @IsMongoId()
     @IsNotEmpty()
-    batchId: string;
-
-    @IsMongoId()
-    @IsNotEmpty()
     courseId: string;
 
 }
