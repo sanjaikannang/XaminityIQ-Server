@@ -286,4 +286,86 @@ export class AdminService {
         }
     }
 
+
+    // Get All Courses for Batch API Endpoint
+    async getAllCoursesForBatchAPI(batchId: string, queryParams: { page?: number; limit?: number; search?: string }) {
+        try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const search = queryParams.search || '';
+
+            // Verify batch exists
+            const batch = await this.batchRepositoryService.findById(batchId);
+            if (!batch) {
+                throw new NotFoundException('Batch not found');
+            }
+
+            // Calculate skip value for pagination
+            const skip = (page - 1) * limit;
+
+            // Build search filter for courses
+            let courseSearchFilter = {};
+            if (search && search.trim() !== '') {
+                courseSearchFilter = {
+                    $or: [
+                        { courseName: { $regex: search, $options: 'i' } },
+                        { courseCode: { $regex: search, $options: 'i' } },
+                        { streamName: { $regex: search, $options: 'i' } },
+                        { streamCode: { $regex: search, $options: 'i' } }
+                    ]
+                };
+            }
+
+            // Get total count for pagination
+            const totalItems = await this.batchCourseRepositoryService.countCoursesForBatch(
+                batchId,
+                courseSearchFilter
+            );
+
+            // Get courses with pagination
+            const coursesData = await this.batchCourseRepositoryService.findCoursesForBatchWithPagination(
+                batchId,
+                courseSearchFilter,
+                skip,
+                limit
+            );
+
+            // Calculate pagination metadata
+            const totalPages = Math.ceil(totalItems / limit);
+            const hasNextPage = page < totalPages;
+            const hasPreviousPage = page > 1;
+
+            return {
+                courses: coursesData.map(item => {
+                    const course = item.courseId as any;
+                    return {
+                        _id: course._id.toString(),
+                        batchCourseId: (item._id as any).toString(),
+                        streamCode: course.streamCode,
+                        streamName: course.streamName,
+                        courseCode: course.courseCode,
+                        courseName: course.courseName,
+                        level: course.level,
+                        duration: course.duration,
+                        semesters: course.semesters,
+                        createdAt: course.createdAt,
+                    };
+                }),
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage,
+                    hasPreviousPage
+                }
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch courses for batch');
+        }
+    }
 }
