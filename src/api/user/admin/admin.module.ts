@@ -26,6 +26,7 @@ import { AdminService } from 'src/services/user-service/admin/admin.service';
 import { CreateBatchController } from './create-batch/create-batch.controller';
 import { MapCourseToBatchController } from './map-course-to-batch/map-course-to-batch.controller';
 import { AddDepartmentToBatchCourseController } from './add-department-to-batch-course/add-department-to-batch-course.controller';
+import { GetAllBatchesController } from './get-all-batches/get-all-batches.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -60,7 +61,8 @@ import { JwtModule } from '@nestjs/jwt';
     controllers: [
         CreateBatchController,
         MapCourseToBatchController,
-        AddDepartmentToBatchCourseController
+        AddDepartmentToBatchCourseController,
+        GetAllBatchesController
     ],
     providers: [
         ConfigService,

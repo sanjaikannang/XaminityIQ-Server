@@ -40,4 +40,21 @@ export class BatchRepositoryService {
         }
     }
 
+
+    // Count documents based on filter
+    async countDocuments(filter: any): Promise<number> {
+        return this.batchModel.countDocuments(filter).exec();
+    }
+
+
+    // Find batches with pagination
+    async findWithPagination(filter: any, skip: number, limit: number) {
+        return this.batchModel
+            .find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .exec();
+    }
+
 }

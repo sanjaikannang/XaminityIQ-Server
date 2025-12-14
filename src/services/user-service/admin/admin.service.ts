@@ -228,4 +228,62 @@ export class AdminService {
             throw new InternalServerErrorException('Failed to add department to batch-course');
         }
     }
+
+
+    // Get All Batches API Endpoint
+    async getAllBatchesAPI(queryParams: { page?: number; limit?: number; search?: string }) {
+        try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const search = queryParams.search || '';
+
+            // Calculate skip value for pagination
+            const skip = (page - 1) * limit;
+
+            // Build search filter
+            let searchFilter = {};
+            if (search && search.trim() !== '') {
+                searchFilter = {
+                    batchName: { $regex: search, $options: 'i' }
+                };
+            }
+
+            // Get total count for pagination
+            const totalItems = await this.batchRepositoryService.countDocuments(searchFilter);
+
+            // Get batches with pagination
+            const batches = await this.batchRepositoryService.findWithPagination(
+                searchFilter,
+                skip,
+                limit
+            );
+
+            // Calculate pagination metadata
+            const totalPages = Math.ceil(totalItems / limit);
+            const hasNextPage = page < totalPages;
+            const hasPreviousPage = page > 1;
+
+            return {
+                batches: batches.map(batch => ({
+                    _id: (batch._id as any).toString(),
+                    batchName: batch.batchName,
+                    startYear: batch.startYear,
+                    endYear: batch.endYear,
+                    createdAt: (batch as any).createdAt,
+                })),
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage,
+                    hasPreviousPage
+                }
+            };
+
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch batches');
+        }
+    }
+
 }
