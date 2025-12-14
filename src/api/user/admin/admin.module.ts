@@ -30,6 +30,7 @@ import { GetAllBatchesController } from './get-all-batches/get-all-batches.contr
 import { GetAllCoursesForBatchController } from './get-all-courses-for-batch/get-all-courses-for-batch.controller';
 import { GetAllDepartmentForBatchCourseController } from './get-all-departments-for-batch-course/get-all-departments-for-batch-course.controller';
 import { GetAllCoursesWithDepartmentsController } from './get-all-courses-with-departments/get-all-courses-with-departments.controller';
+import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -67,7 +68,8 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllBatchesController,
         GetAllCoursesForBatchController,
         GetAllDepartmentForBatchCourseController,
-        GetAllCoursesWithDepartmentsController
+        GetAllCoursesWithDepartmentsController,
+        GetCoursesByBatchController
     ],
     providers: [
         ConfigService,

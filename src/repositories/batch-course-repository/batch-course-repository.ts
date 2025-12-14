@@ -1,4 +1,4 @@
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { BatchCourse, BatchCourseDocument } from 'src/schemas/batchCourse.schema';
@@ -88,6 +88,14 @@ export class BatchCourseRepositoryService {
         // Filter out null courseId and apply pagination manually
         const filtered = results.filter(item => item.courseId !== null);
         return filtered.slice(skip, skip + limit);
+    }
+
+
+    // Find all courses for a batch
+    async findByBatchId(batchId: string) {
+        return this.batchCourseModel
+            .find({ batchId: new Types.ObjectId(batchId) })
+            .exec();
     }
 
 

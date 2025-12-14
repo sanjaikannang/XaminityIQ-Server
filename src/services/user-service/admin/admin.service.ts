@@ -510,4 +510,53 @@ export class AdminService {
     }
 
 
+    // Get Courses by Batch Duration
+    async getCoursesByBatchAPI(batchId: string) {
+        try {
+            // Verify batch exists
+            const batch = await this.batchRepositoryService.findById(batchId);
+            if (!batch) {
+                throw new NotFoundException('Batch not found');
+            }
+
+            // Calculate batch duration (in years)
+            const batchDuration = batch.endYear - batch.startYear;
+
+            // Get all courses
+            const allCourses = await this.courseRepositoryService.findAll();
+
+            // Filter courses that match the batch duration
+            const matchingCourses = allCourses.filter(course => {
+                const courseDurationMatch = course.duration.match(/^(\d+)\s*[Yy]ear/);
+                if (!courseDurationMatch) {
+                    return false;
+                }
+                const courseDuration = parseInt(courseDurationMatch[1]);
+                return courseDuration === batchDuration;
+            });
+
+            // Get already mapped courses for this batch
+            const mappedCourses = await this.batchCourseRepositoryService.findByBatchId(batchId);
+            const mappedCourseIds = mappedCourses.map(bc => bc.courseId.toString());
+
+            // Filter out already mapped courses
+            const availableCourses = matchingCourses.filter(
+                course => !mappedCourseIds.includes((course._id as any).toString())
+            );
+
+            return availableCourses.map(course => ({
+                _id: (course._id as any).toString(),
+                courseCode: course.courseCode,
+                courseName: course.courseName,
+            }));
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch courses for batch');
+        }
+    }
+
+
 }
