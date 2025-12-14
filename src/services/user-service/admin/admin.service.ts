@@ -559,4 +559,29 @@ export class AdminService {
     }
 
 
+    async getDepartmentsByCourseAPI(courseId: string) {
+        try {
+            // Verify course exists
+            const course = await this.courseRepositoryService.findById(courseId);
+            if (!course) {
+                throw new NotFoundException('Course not found');
+            }
+
+            // Get departments for this course
+            const departments = await this.departmentRepositoryService.findByCourseId(courseId);
+
+            return departments.map(dept => ({
+                _id: (dept._id as any).toString(),
+                deptCode: dept.deptCode,
+                deptName: dept.deptName
+            }));
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch departments for course');
+        }
+    }
+
 }
