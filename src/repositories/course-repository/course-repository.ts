@@ -20,4 +20,13 @@ export class CourseRepositoryService {
     }
 
 
+    // Get all courses
+    async findAll() {
+        return this.courseModel
+            .find()
+            .sort({ courseName: 1 })
+            .exec();
+    }
+
+
 }

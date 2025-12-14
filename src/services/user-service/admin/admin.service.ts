@@ -470,4 +470,44 @@ export class AdminService {
         }
     }
 
+
+    // Get All Courses with Departments
+    async getAllCoursesWithDepartmentsAPI() {
+        try {
+            // Get all courses
+            const courses = await this.courseRepositoryService.findAll();
+
+            // For each course, get its departments
+            const coursesWithDepartments = await Promise.all(
+                courses.map(async (course) => {
+                    const departments = await this.departmentRepositoryService.findByCourseId(
+                        (course._id as any).toString()
+                    );
+
+                    return {
+                        _id: (course._id as any).toString(),
+                        streamCode: course.streamCode,
+                        streamName: course.streamName,
+                        courseCode: course.courseCode,
+                        courseName: course.courseName,
+                        level: course.level,
+                        duration: course.duration,
+                        semesters: course.semesters,
+                        departments: departments.map(dept => ({
+                            _id: (dept._id as any).toString(),
+                            deptCode: dept.deptCode,
+                            deptName: dept.deptName
+                        }))
+                    };
+                })
+            );
+
+            return coursesWithDepartments;
+
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch courses with departments');
+        }
+    }
+
+
 }
