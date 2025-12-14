@@ -228,4 +228,360 @@ export class AdminService {
             throw new InternalServerErrorException('Failed to add department to batch-course');
         }
     }
+
+
+    // Get All Batches API Endpoint
+    async getAllBatchesAPI(queryParams: { page?: number; limit?: number; search?: string }) {
+        try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const search = queryParams.search || '';
+
+            // Calculate skip value for pagination
+            const skip = (page - 1) * limit;
+
+            // Build search filter
+            let searchFilter = {};
+            if (search && search.trim() !== '') {
+                searchFilter = {
+                    batchName: { $regex: search, $options: 'i' }
+                };
+            }
+
+            // Get total count for pagination
+            const totalItems = await this.batchRepositoryService.countDocuments(searchFilter);
+
+            // Get batches with pagination
+            const batches = await this.batchRepositoryService.findWithPagination(
+                searchFilter,
+                skip,
+                limit
+            );
+
+            // Calculate pagination metadata
+            const totalPages = Math.ceil(totalItems / limit);
+            const hasNextPage = page < totalPages;
+            const hasPreviousPage = page > 1;
+
+            return {
+                batches: batches.map(batch => ({
+                    _id: (batch._id as any).toString(),
+                    batchName: batch.batchName,
+                    startYear: batch.startYear,
+                    endYear: batch.endYear,
+                    createdAt: (batch as any).createdAt,
+                })),
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage,
+                    hasPreviousPage
+                }
+            };
+
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch batches');
+        }
+    }
+
+
+    // Get All Courses for Batch API Endpoint
+    async getAllCoursesForBatchAPI(batchId: string, queryParams: { page?: number; limit?: number; search?: string }) {
+        try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const search = queryParams.search || '';
+
+            // Verify batch exists
+            const batch = await this.batchRepositoryService.findById(batchId);
+            if (!batch) {
+                throw new NotFoundException('Batch not found');
+            }
+
+            // Calculate skip value for pagination
+            const skip = (page - 1) * limit;
+
+            // Build search filter for courses
+            let courseSearchFilter = {};
+            if (search && search.trim() !== '') {
+                courseSearchFilter = {
+                    $or: [
+                        { courseName: { $regex: search, $options: 'i' } },
+                        { courseCode: { $regex: search, $options: 'i' } },
+                        { streamName: { $regex: search, $options: 'i' } },
+                        { streamCode: { $regex: search, $options: 'i' } }
+                    ]
+                };
+            }
+
+            // Get total count for pagination
+            const totalItems = await this.batchCourseRepositoryService.countCoursesForBatch(
+                batchId,
+                courseSearchFilter
+            );
+
+            // Get courses with pagination
+            const coursesData = await this.batchCourseRepositoryService.findCoursesForBatchWithPagination(
+                batchId,
+                courseSearchFilter,
+                skip,
+                limit
+            );
+
+            // Calculate pagination metadata
+            const totalPages = Math.ceil(totalItems / limit);
+            const hasNextPage = page < totalPages;
+            const hasPreviousPage = page > 1;
+
+            return {
+                courses: coursesData.map(item => {
+                    const course = item.courseId as any;
+                    return {
+                        _id: course._id.toString(),
+                        batchCourseId: (item._id as any).toString(),
+                        streamCode: course.streamCode,
+                        streamName: course.streamName,
+                        courseCode: course.courseCode,
+                        courseName: course.courseName,
+                        level: course.level,
+                        duration: course.duration,
+                        semesters: course.semesters,
+                        createdAt: course.createdAt,
+                    };
+                }),
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage,
+                    hasPreviousPage
+                }
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch courses for batch');
+        }
+    }
+
+
+    // Get All Departments for Batch-Course API Endpoint
+    async getAllDepartmentsForBatchCourseAPI(
+        batchCourseId: string,
+        queryParams: { page?: number; limit?: number; search?: string }
+    ) {
+        try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const search = queryParams.search || '';
+
+            // Verify batch-course mapping exists
+            const batchCourse = await this.batchCourseRepositoryService.findById(batchCourseId);
+            if (!batchCourse) {
+                throw new NotFoundException('Batch-Course mapping not found');
+            }
+
+            // Calculate skip value for pagination
+            const skip = (page - 1) * limit;
+
+            // Build search filter for departments
+            let departmentSearchFilter = {};
+            if (search && search.trim() !== '') {
+                departmentSearchFilter = {
+                    $or: [
+                        { deptName: { $regex: search, $options: 'i' } },
+                        { deptCode: { $regex: search, $options: 'i' } }
+                    ]
+                };
+            }
+
+            // Get total count for pagination
+            const totalItems = await this.batchDepartmentRepositoryService.countDepartmentsForBatchCourse(
+                batchCourseId,
+                departmentSearchFilter
+            );
+
+            // Get departments with pagination
+            const departmentsData = await this.batchDepartmentRepositoryService.findDepartmentsForBatchCourseWithPagination(
+                batchCourseId,
+                departmentSearchFilter,
+                skip,
+                limit
+            );
+
+            // For each department, get its sections
+            const departmentsWithSections = await Promise.all(
+                departmentsData.map(async (batchDept) => {
+                    const department = batchDept.deptId as any;
+
+                    // Get sections for this department in this batch-course
+                    const sections = await this.sectionRepositoryService.findByBatchCourseAndDepartment(
+                        batchCourse.batchId.toString(),
+                        batchCourse.courseId.toString(),
+                        department._id.toString()
+                    );
+
+                    return {
+                        _id: department._id.toString(),
+                        batchDepartmentId: (batchDept._id as any).toString(),
+                        deptCode: department.deptCode,
+                        deptName: department.deptName,
+                        totalSeats: batchDept.totalSeats,
+                        sectionCapacity: batchDept.sectionCapacity,
+                        sections: sections.map(section => ({
+                            _id: (section._id as any).toString(),
+                            sectionName: section.sectionName,
+                            capacity: section.capacity,
+                            currentStrength: section.currentStrength,
+                            createdAt: (section as any).createdAt,
+                        })),
+                        createdAt: department.createdAt,
+                    };
+                })
+            );
+
+            // Calculate pagination metadata
+            const totalPages = Math.ceil(totalItems / limit);
+            const hasNextPage = page < totalPages;
+            const hasPreviousPage = page > 1;
+
+            return {
+                departments: departmentsWithSections,
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage,
+                    hasPreviousPage
+                }
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch departments for batch-course');
+        }
+    }
+
+
+    // Get All Courses with Departments
+    async getAllCoursesWithDepartmentsAPI() {
+        try {
+            // Get all courses
+            const courses = await this.courseRepositoryService.findAll();
+
+            // For each course, get its departments
+            const coursesWithDepartments = await Promise.all(
+                courses.map(async (course) => {
+                    const departments = await this.departmentRepositoryService.findByCourseId(
+                        (course._id as any).toString()
+                    );
+
+                    return {
+                        _id: (course._id as any).toString(),
+                        streamCode: course.streamCode,
+                        streamName: course.streamName,
+                        courseCode: course.courseCode,
+                        courseName: course.courseName,
+                        level: course.level,
+                        duration: course.duration,
+                        semesters: course.semesters,
+                        departments: departments.map(dept => ({
+                            _id: (dept._id as any).toString(),
+                            deptCode: dept.deptCode,
+                            deptName: dept.deptName
+                        }))
+                    };
+                })
+            );
+
+            return coursesWithDepartments;
+
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch courses with departments');
+        }
+    }
+
+
+    // Get Courses by Batch Duration
+    async getCoursesByBatchAPI(batchId: string) {
+        try {
+            // Verify batch exists
+            const batch = await this.batchRepositoryService.findById(batchId);
+            if (!batch) {
+                throw new NotFoundException('Batch not found');
+            }
+
+            // Calculate batch duration (in years)
+            const batchDuration = batch.endYear - batch.startYear;
+
+            // Get all courses
+            const allCourses = await this.courseRepositoryService.findAll();
+
+            // Filter courses that match the batch duration
+            const matchingCourses = allCourses.filter(course => {
+                const courseDurationMatch = course.duration.match(/^(\d+)\s*[Yy]ear/);
+                if (!courseDurationMatch) {
+                    return false;
+                }
+                const courseDuration = parseInt(courseDurationMatch[1]);
+                return courseDuration === batchDuration;
+            });
+
+            // Get already mapped courses for this batch
+            const mappedCourses = await this.batchCourseRepositoryService.findByBatchId(batchId);
+            const mappedCourseIds = mappedCourses.map(bc => bc.courseId.toString());
+
+            // Filter out already mapped courses
+            const availableCourses = matchingCourses.filter(
+                course => !mappedCourseIds.includes((course._id as any).toString())
+            );
+
+            return availableCourses.map(course => ({
+                _id: (course._id as any).toString(),
+                courseCode: course.courseCode,
+                courseName: course.courseName,
+            }));
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch courses for batch');
+        }
+    }
+
+
+    async getDepartmentsByCourseAPI(courseId: string) {
+        try {
+            // Verify course exists
+            const course = await this.courseRepositoryService.findById(courseId);
+            if (!course) {
+                throw new NotFoundException('Course not found');
+            }
+
+            // Get departments for this course
+            const departments = await this.departmentRepositoryService.findByCourseId(courseId);
+
+            return departments.map(dept => ({
+                _id: (dept._id as any).toString(),
+                deptCode: dept.deptCode,
+                deptName: dept.deptName
+            }));
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch departments for course');
+        }
+    }
+
 }

@@ -26,12 +26,17 @@ import { AdminService } from 'src/services/user-service/admin/admin.service';
 import { CreateBatchController } from './create-batch/create-batch.controller';
 import { MapCourseToBatchController } from './map-course-to-batch/map-course-to-batch.controller';
 import { AddDepartmentToBatchCourseController } from './add-department-to-batch-course/add-department-to-batch-course.controller';
+import { GetAllBatchesController } from './get-all-batches/get-all-batches.controller';
+import { GetAllCoursesForBatchController } from './get-all-courses-for-batch/get-all-courses-for-batch.controller';
+import { GetAllDepartmentForBatchCourseController } from './get-all-departments-for-batch-course/get-all-departments-for-batch-course.controller';
+import { GetAllCoursesWithDepartmentsController } from './get-all-courses-with-departments/get-all-courses-with-departments.controller';
+import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
+import { GetDepartmentsByCourseController } from './get-departments-by-course/get-departments-by-course.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
 import { RepositoryModule } from 'src/repositories/repository.module';
 import { JwtModule } from '@nestjs/jwt';
-
 
 @Module({
     imports: [
@@ -60,7 +65,13 @@ import { JwtModule } from '@nestjs/jwt';
     controllers: [
         CreateBatchController,
         MapCourseToBatchController,
-        AddDepartmentToBatchCourseController
+        AddDepartmentToBatchCourseController,
+        GetAllBatchesController,
+        GetAllCoursesForBatchController,
+        GetAllDepartmentForBatchCourseController,
+        GetAllCoursesWithDepartmentsController,
+        GetCoursesByBatchController,
+        GetDepartmentsByCourseController
     ],
     providers: [
         ConfigService,
