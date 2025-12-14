@@ -368,4 +368,106 @@ export class AdminService {
             throw new InternalServerErrorException('Failed to fetch courses for batch');
         }
     }
+
+
+    // Get All Departments for Batch-Course API Endpoint
+    async getAllDepartmentsForBatchCourseAPI(
+        batchCourseId: string,
+        queryParams: { page?: number; limit?: number; search?: string }
+    ) {
+        try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const search = queryParams.search || '';
+
+            // Verify batch-course mapping exists
+            const batchCourse = await this.batchCourseRepositoryService.findById(batchCourseId);
+            if (!batchCourse) {
+                throw new NotFoundException('Batch-Course mapping not found');
+            }
+
+            // Calculate skip value for pagination
+            const skip = (page - 1) * limit;
+
+            // Build search filter for departments
+            let departmentSearchFilter = {};
+            if (search && search.trim() !== '') {
+                departmentSearchFilter = {
+                    $or: [
+                        { deptName: { $regex: search, $options: 'i' } },
+                        { deptCode: { $regex: search, $options: 'i' } }
+                    ]
+                };
+            }
+
+            // Get total count for pagination
+            const totalItems = await this.batchDepartmentRepositoryService.countDepartmentsForBatchCourse(
+                batchCourseId,
+                departmentSearchFilter
+            );
+
+            // Get departments with pagination
+            const departmentsData = await this.batchDepartmentRepositoryService.findDepartmentsForBatchCourseWithPagination(
+                batchCourseId,
+                departmentSearchFilter,
+                skip,
+                limit
+            );
+
+            // For each department, get its sections
+            const departmentsWithSections = await Promise.all(
+                departmentsData.map(async (batchDept) => {
+                    const department = batchDept.deptId as any;
+
+                    // Get sections for this department in this batch-course
+                    const sections = await this.sectionRepositoryService.findByBatchCourseAndDepartment(
+                        batchCourse.batchId.toString(),
+                        batchCourse.courseId.toString(),
+                        department._id.toString()
+                    );
+
+                    return {
+                        _id: department._id.toString(),
+                        batchDepartmentId: (batchDept._id as any).toString(),
+                        deptCode: department.deptCode,
+                        deptName: department.deptName,
+                        totalSeats: batchDept.totalSeats,
+                        sectionCapacity: batchDept.sectionCapacity,
+                        sections: sections.map(section => ({
+                            _id: (section._id as any).toString(),
+                            sectionName: section.sectionName,
+                            capacity: section.capacity,
+                            currentStrength: section.currentStrength,
+                            createdAt: (section as any).createdAt,
+                        })),
+                        createdAt: department.createdAt,
+                    };
+                })
+            );
+
+            // Calculate pagination metadata
+            const totalPages = Math.ceil(totalItems / limit);
+            const hasNextPage = page < totalPages;
+            const hasPreviousPage = page > 1;
+
+            return {
+                departments: departmentsWithSections,
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage,
+                    hasPreviousPage
+                }
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch departments for batch-course');
+        }
+    }
+
 }

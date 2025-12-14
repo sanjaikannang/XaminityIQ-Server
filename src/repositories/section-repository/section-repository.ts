@@ -36,4 +36,17 @@ export class SectionRepositoryService {
         }
     }
 
+
+    // Find sections by batch, course and department
+    async findByBatchCourseAndDepartment(batchId: string, courseId: string, departmentId: string) {
+        return this.sectionModel
+            .find({
+                batchId: new Types.ObjectId(batchId),
+                courseId: new Types.ObjectId(courseId),
+                departmentId: new Types.ObjectId(departmentId)
+            })
+            .sort({ sectionName: 1 })
+            .exec();
+    }
+
 }
