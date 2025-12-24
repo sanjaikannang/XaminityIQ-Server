@@ -19,6 +19,20 @@ export class CourseRepositoryService {
         }
     }
 
+    // Count documents based on filter
+    async countDocuments(filter: any): Promise<number> {
+        return this.courseModel.countDocuments(filter).exec();
+    }
+
+    // Find courses with pagination
+    async findWithPagination(filter: any, skip: number, limit: number) {
+        return this.courseModel
+            .find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .exec();
+    }
 
     // Get all courses
     async findAll() {

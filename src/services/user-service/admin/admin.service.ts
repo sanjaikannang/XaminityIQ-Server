@@ -472,13 +472,44 @@ export class AdminService {
 
 
     // Get All Courses with Departments
-    async getAllCoursesWithDepartmentsAPI() {
+    async getAllCoursesWithDepartmentsAPI(queryParams: { page?: number; limit?: number; search?: string }) {
         try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const search = queryParams.search || '';
+
+            // Calculate skip value for pagination
+            const skip = (page - 1) * limit;
+
+            // Build search filter
+            let searchFilter = {};
+            if (search && search.trim() !== '') {
+                searchFilter = {
+                    streamCode: { $regex: search, $options: 'i' },
+                    streamName: { $regex: search, $options: 'i' },
+                    courseCode: { $regex: search, $options: 'i' },
+                    courseName: { $regex: search, $options: 'i' },
+                    level: { $regex: search, $options: 'i' }
+                };
+            }
+
+            // Get total count for pagination
+            const totalItems = await this.courseRepositoryService.countDocuments(searchFilter);
+
             // Get all courses
-            const courses = await this.courseRepositoryService.findAll();
+            const courses = await this.courseRepositoryService.findWithPagination(
+                searchFilter,
+                skip,
+                limit
+            );
+
+            // Calculate pagination metadata
+            const totalPages = Math.ceil(totalItems / limit);
+            const hasNextPage = page < totalPages;
+            const hasPreviousPage = page > 1;
 
             // For each course, get its departments
-            const coursesWithDepartments = await Promise.all(
+            const data = await Promise.all(
                 courses.map(async (course) => {
                     const departments = await this.departmentRepositoryService.findByCourseId(
                         (course._id as any).toString()
@@ -502,7 +533,17 @@ export class AdminService {
                 })
             );
 
-            return coursesWithDepartments;
+            return {
+                data,
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage,
+                    hasPreviousPage
+                }
+            };
 
         } catch (error) {
             throw new InternalServerErrorException('Failed to fetch courses with departments');
