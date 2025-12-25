@@ -1,14 +1,11 @@
 import { Types } from "mongoose";
-import { AdmissionType } from "src/utils/enum";
+import { AdmissionType, StudentStatus } from "src/utils/enum";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 
 export type StudentAcademicDetailDocument = StudentAcademicDetail & Document;
 
 @Schema({ timestamps: true })
 export class StudentAcademicDetail {
-    @Prop({ required: true, unique: true })
-    admissionNumber: string;
-
     @Prop({ required: true, unique: true })
     rollNumber: string;
 
@@ -33,7 +30,7 @@ export class StudentAcademicDetail {
     @Prop({ required: true })
     admissionDate: Date;
 
-    @Prop({ default: 'ACTIVE' }) // ACTIVE | ALUMNI | DROPOUT | SUSPENDED
+    @Prop({ required: true, enum: Object.values(StudentStatus) }) // ACTIVE | ALUMNI | DROPOUT | SUSPENDED
     status: string;
 }
 

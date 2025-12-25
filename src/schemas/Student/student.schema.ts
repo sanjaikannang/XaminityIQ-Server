@@ -1,5 +1,5 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 export type StudentDocument = Student & Document;
 
@@ -11,19 +11,22 @@ export class Student {
     @Prop({ required: true, unique: true })
     studentId: string; // Auto-generated UUID
 
-    @Prop({ type: Types.ObjectId, ref: 'PersonalDetail', required: true })
+    @Prop({ type: Types.ObjectId, ref: 'StudentPersonalDetail', required: true })
     personalDetailId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'ContactInformation', required: true })
+    @Prop({ type: Types.ObjectId, ref: 'StudentContactInformation', required: true })
     contactInformationId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'AddressDetail', required: true })
+    @Prop({ type: Types.ObjectId, ref: 'StudentAddressDetail', required: true })
     addressDetailId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'AcademicDetail', required: true })
+    @Prop({ type: Types.ObjectId, ref: 'StudentAcademicDetail', required: true })
     academicDetailId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'ParentDetail' })
+    @Prop({ type: Types.ObjectId, ref: 'StudentEducationHistory', required: true })
+    educationHistoryId: Types.ObjectId;
+
+    @Prop({ type: Types.ObjectId, ref: 'StudentParentDetail' })
     parentDetailId: Types.ObjectId;
 
     @Prop({ default: true })

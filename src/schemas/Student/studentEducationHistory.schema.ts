@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Types } from "mongoose";
+import { EducationLevel } from "src/utils/enum";
 
 export type StudentEducationHistoryDocument = StudentEducationHistory & Document;
 
@@ -8,7 +9,7 @@ export class StudentEducationHistory {
     @Prop({ type: Types.ObjectId, ref: 'Student', required: true })
     studentId: Types.ObjectId;
 
-    @Prop({ required: true })
+    @Prop({ required: true, enum: Object.values(EducationLevel) })
     level: string; // SECONDARY | HIGHER_SECONDARY | DIPLOMA | UNDERGRADUATE
 
     @Prop({ required: true })
