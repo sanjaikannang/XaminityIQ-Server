@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument } from '../../schemas/user.schema';
-import { Admin, AdminDocument } from '../../schemas/admin.schema';
+import { User, UserDocument } from '../../schemas/User/user.schema';
+import { Admin, AdminDocument } from '../../schemas/User/Admin/admin.schema';
 import { UserRole } from '../../utils/enum';
 import { ConfigService } from 'src/config/config.service';
 

@@ -1,13 +1,13 @@
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from 'src/schemas/user.schema';
-import { Admin, AdminSchema } from 'src/schemas/admin.schema';
+import { User, UserSchema } from 'src/schemas/User/user.schema';
+import { Admin, AdminSchema } from 'src/schemas/User/Admin/admin.schema';
 import { AdminSeeder } from './admin.seeder';
 import { DatabaseSeeder } from './database.seeder';
 import { ConfigService } from 'src/config/config.service';
 import { ConfigModule } from 'src/config/config.module';
-import { Course, CourseSchema } from 'src/schemas/course.schema';
-import { Department, DepartmentSchema } from 'src/schemas/department.schema';
+import { Course, CourseSchema } from 'src/schemas/Academic/course.schema';
+import { Department, DepartmentSchema } from 'src/schemas/Academic/department.schema';
 import { CourseDepartmentSeeder } from './course-department.seeder';
 
 @Global()

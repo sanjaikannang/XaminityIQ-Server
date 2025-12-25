@@ -2,8 +2,8 @@ import { Model } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import data from "../data/course-department.json";
-import { Course, CourseDocument } from '../../schemas/course.schema';
-import { Department, DepartmentDocument } from '../../schemas/department.schema';
+import { Course, CourseDocument } from '../../schemas/Academic/course.schema';
+import { Department, DepartmentDocument } from '../../schemas/Academic/department.schema';
 
 @Injectable()
 export class CourseDepartmentSeeder {

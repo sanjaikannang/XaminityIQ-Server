@@ -13,14 +13,14 @@ import { SectionRepositoryService } from "./section-repository/section-repositor
 
 
 // Schemas
-import { Admin, AdminSchema } from "src/schemas/admin.schema";
-import { User, UserSchema } from "src/schemas/user.schema";
-import { Batch, BatchSchema } from "src/schemas/batch.schema";
-import { Course, CourseSchema } from "src/schemas/course.schema";
-import { BatchCourse, BatchCourseSchema } from "src/schemas/batchCourse.schema";
-import { Department, DepartmentSchema } from "src/schemas/department.schema";
-import { BatchDepartment, BatchDepartmentSchema } from "src/schemas/batchDepartment.schema";
-import { Section, SectionSchema } from "src/schemas/section.schema";
+import { Admin, AdminSchema } from "src/schemas/User/Admin/admin.schema";
+import { User, UserSchema } from "src/schemas/User/user.schema";
+import { Batch, BatchSchema } from "src/schemas/Academic/batch.schema";
+import { Course, CourseSchema } from "src/schemas/Academic/course.schema";
+import { BatchCourse, BatchCourseSchema } from "src/schemas/Academic/batchCourse.schema";
+import { Department, DepartmentSchema } from "src/schemas/Academic/department.schema";
+import { BatchDepartment, BatchDepartmentSchema } from "src/schemas/Academic/batchDepartment.schema";
+import { Section, SectionSchema } from "src/schemas/Academic/section.schema";
 
 
 @Module({

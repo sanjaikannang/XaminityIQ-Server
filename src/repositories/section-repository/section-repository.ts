@@ -1,7 +1,7 @@
 import { Model, Types } from 'mongoose';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Section, SectionDocument } from 'src/schemas/section.schema';
+import { Section, SectionDocument } from 'src/schemas/Academic/section.schema';
 
 @Injectable()
 export class SectionRepositoryService {

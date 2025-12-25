@@ -1,6 +1,6 @@
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { Course, CourseDocument } from 'src/schemas/course.schema';
+import { Course, CourseDocument } from 'src/schemas/Academic/course.schema';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 @Injectable()
