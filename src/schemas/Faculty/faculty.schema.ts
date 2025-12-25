@@ -20,8 +20,14 @@ export class Faculty {
     @Prop({ type: Types.ObjectId, ref: 'FacultyAddressDetail', required: true })
     addressDetailId: Types.ObjectId;
 
+    @Prop({ type: Types.ObjectId, ref: 'FacultyEducationHistory', required: true })
+    educationHistoryId: Types.ObjectId;
+
     @Prop({ type: Types.ObjectId, ref: 'FacultyEmploymentDetail', required: true })
     employmentDetailId: Types.ObjectId;
+
+    @Prop({ type: Types.ObjectId, ref: 'FacultyWorkExperience' })
+    workExperienceId: Types.ObjectId;
 
     @Prop({ default: true })
     isActive: boolean;

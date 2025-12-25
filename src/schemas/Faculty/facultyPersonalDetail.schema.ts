@@ -1,4 +1,4 @@
-import { Gender, MaritalStatus } from "src/utils/enum";
+import { Gender, MaritalStatus, Nationality } from "src/utils/enum";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 
 export type FacultyPersonalDetailDocument = FacultyPersonalDetail & Document;
@@ -23,11 +23,11 @@ export class FacultyPersonalDetail {
     @Prop({ required: true })
     profilePhotoUrl: string;
 
-    @Prop()
+    @Prop({ required: true, default: Nationality.INDIAN })
     nationality: string;
 
     @Prop()
-    bloodGroup: string;
+    religion: string;
 }
 
 export const FacultyPersonalDetailSchema = SchemaFactory.createForClass(FacultyPersonalDetail);

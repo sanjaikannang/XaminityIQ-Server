@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { RelationType } from "src/utils/enum";
 
 export type FacultyContactInformationDocument = FacultyContactInformation & Document;
 
@@ -7,7 +8,7 @@ export class FacultyEmergencyContact {
     @Prop({ required: true })
     name: string;
 
-    @Prop({ required: true })
+    @Prop({ required: true, enum: Object.values(RelationType) })
     relation: string;
 
     @Prop({ required: true })

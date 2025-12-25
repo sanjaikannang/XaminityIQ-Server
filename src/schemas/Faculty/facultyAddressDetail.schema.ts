@@ -1,3 +1,4 @@
+import { Country } from "src/utils/enum";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 
 export type FacultyAddressDocument = FacultyAddress & Document;
@@ -19,7 +20,7 @@ export class AddressInfo {
     @Prop({ required: true })
     pincode: string;
 
-    @Prop({ required: true })
+    @Prop({ required: true, default: Country.INDIA })
     country: string;
 }
 
