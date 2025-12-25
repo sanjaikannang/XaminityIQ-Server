@@ -14,16 +14,6 @@ export enum FacultyStatus {
   PENDING = 'PENDING',
 }
 
-export enum StudentStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED',
-  ON_LEAVE = 'ON_LEAVE',
-  DROPPED = 'DROPPED',
-  GRADUATED = 'GRADUATED',
-  PENDING = 'PENDING',
-}
-
 export enum Gender {
   MALE = 'MALE',
   FEMALE = 'FEMALE',
@@ -39,10 +29,6 @@ export enum MaritalStatus {
 
 export enum Nationality {
   INDIAN = 'INDIAN'
-}
-
-export enum Country {
-  INDIA = "INDIA",
 }
 
 export enum ExamMode {
@@ -77,4 +63,46 @@ export enum AttemptStatus {
   COMPLETED = 'COMPLETED',
   TIME_UP = 'TIME_UP',
   SUBMITTED = 'SUBMITTED'
+}
+
+export enum AdmissionType {
+  REGULAR = 'REGULAR',
+  LATERAL = 'LATERAL',
+  MANAGEMENT = 'MANAGEMENT'
+}
+
+export enum Country {
+  INDIA = 'INDIA'
+}
+
+export enum EducationLevel {
+  SECONDARY = 'SECONDARY',
+  HIGHER_SECONDARY = 'HIGHER_SECONDARY',
+  DIPLOMA = 'DIPLOMA',
+  UNDERGRADUATE = 'UNDERGRADUATE',
+  POSTGRADUATE = 'POSTGRADUATE'
+}
+
+export enum StudentStatus {
+  ACTIVE = 'ACTIVE',
+  ALUMNI = 'ALUMNI',
+  DROPOUT = 'DROPOUT',
+  SUSPENDED = 'SUSPENDED',
+  ON_LEAVE = 'ON_LEAVE'
+}
+
+export enum RelationType {
+  FATHER = 'FATHER',
+  MOTHER = 'MOTHER',
+  GUARDIAN = 'GUARDIAN',
+  RELATIVE = 'RELATIVE',
+  OTHER = 'OTHER'
+}
+
+export enum BoardType {
+  STATE_BOARD = 'STATE_BOARD',
+  CBSE = 'CBSE',
+  ICSE = 'ICSE',
+  IB = 'IB',
+  OTHER = 'OTHER'
 }
