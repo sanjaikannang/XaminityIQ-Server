@@ -3,8 +3,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 
 // Schemas
-import { Admin, AdminSchema } from 'src/schemas/admin.schema';
-import { User, UserSchema } from 'src/schemas/user.schema';
+import { Admin, AdminSchema } from 'src/schemas/User/Admin/admin.schema';
+import { User, UserSchema } from 'src/schemas/User/user.schema';
 
 // Services
 import { ConfigService } from 'src/config/config.service';

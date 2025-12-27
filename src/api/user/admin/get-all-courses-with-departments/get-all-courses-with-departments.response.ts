@@ -16,8 +16,18 @@ export class CourseWithDepartments {
     departments: DepartmentInfo[];
 }
 
+export class PaginationMeta {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+}
+
 export class GetAllCoursesWithDepartmentsResponse {
     success: boolean;
     message: string;
     data?: CourseWithDepartments[];
+    pagination?: PaginationMeta;
 }

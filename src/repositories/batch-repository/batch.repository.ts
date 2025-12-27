@@ -1,6 +1,6 @@
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { Batch, BatchDocument } from 'src/schemas/batch.schema';
+import { Batch, BatchDocument } from 'src/schemas/Academic/batch.schema';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 @Injectable()

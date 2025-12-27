@@ -14,13 +14,12 @@ import { MapCourseToBatchRequest } from "src/api/user/admin/map-course-to-batch/
 import { AddDepartmentToBatchCourseRequest } from "src/api/user/admin/add-department-to-batch-course/add-department-to-batch-course.request";
 
 // Repositories
-import { BatchRepositoryService } from "src/repositories/batch-repository/batch-repository";
-import { CourseRepositoryService } from "src/repositories/course-repository/course-repository";
-import { BatchCourseRepositoryService } from "src/repositories/batch-course-repository/batch-course-repository";
-import { DepartmentRepositoryService } from "src/repositories/department-repository/department-repository";
-import { BatchDepartmentRepositoryService } from "src/repositories/batch-department-repository/batch-department-repository";
-import { SectionRepositoryService } from "src/repositories/section-repository/section-repository";
-
+import { BatchRepositoryService } from "src/repositories/batch-repository/batch.repository";
+import { CourseRepositoryService } from "src/repositories/course-repository/course.repository";
+import { BatchCourseRepositoryService } from "src/repositories/batch-course-repository/batch-course.repository";
+import { DepartmentRepositoryService } from "src/repositories/department-repository/department.repository";
+import { BatchDepartmentRepositoryService } from "src/repositories/batch-department-repository/batch-department.repository";
+import { SectionRepositoryService } from "src/repositories/section-repository/section.repository";
 
 @Injectable()
 export class AdminService {
@@ -30,7 +29,7 @@ export class AdminService {
         private readonly batchCourseRepositoryService: BatchCourseRepositoryService,
         private readonly departmentRepositoryService: DepartmentRepositoryService,
         private readonly batchDepartmentRepositoryService: BatchDepartmentRepositoryService,
-        private readonly sectionRepositoryService: SectionRepositoryService
+        private readonly sectionRepositoryService: SectionRepositoryService,        
     ) { }
 
 
@@ -471,14 +470,45 @@ export class AdminService {
     }
 
 
-    // Get All Courses with Departments
-    async getAllCoursesWithDepartmentsAPI() {
+    // Get All Courses with Departments API Endpoint
+    async getAllCoursesWithDepartmentsAPI(queryParams: { page?: number; limit?: number; search?: string }) {
         try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const search = queryParams.search || '';
+
+            // Calculate skip value for pagination
+            const skip = (page - 1) * limit;
+
+            // Build search filter
+            let searchFilter = {};
+            if (search && search.trim() !== '') {
+                searchFilter = {
+                    streamCode: { $regex: search, $options: 'i' },
+                    streamName: { $regex: search, $options: 'i' },
+                    courseCode: { $regex: search, $options: 'i' },
+                    courseName: { $regex: search, $options: 'i' },
+                    level: { $regex: search, $options: 'i' }
+                };
+            }
+
+            // Get total count for pagination
+            const totalItems = await this.courseRepositoryService.countDocuments(searchFilter);
+
             // Get all courses
-            const courses = await this.courseRepositoryService.findAll();
+            const courses = await this.courseRepositoryService.findWithPagination(
+                searchFilter,
+                skip,
+                limit
+            );
+
+            // Calculate pagination metadata
+            const totalPages = Math.ceil(totalItems / limit);
+            const hasNextPage = page < totalPages;
+            const hasPreviousPage = page > 1;
 
             // For each course, get its departments
-            const coursesWithDepartments = await Promise.all(
+            const data = await Promise.all(
                 courses.map(async (course) => {
                     const departments = await this.departmentRepositoryService.findByCourseId(
                         (course._id as any).toString()
@@ -502,7 +532,17 @@ export class AdminService {
                 })
             );
 
-            return coursesWithDepartments;
+            return {
+                data,
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage,
+                    hasPreviousPage
+                }
+            };
 
         } catch (error) {
             throw new InternalServerErrorException('Failed to fetch courses with departments');
@@ -510,7 +550,7 @@ export class AdminService {
     }
 
 
-    // Get Courses by Batch Duration
+    // Get Courses by Batch Duration API Endpoint
     async getCoursesByBatchAPI(batchId: string) {
         try {
             // Verify batch exists
@@ -559,6 +599,7 @@ export class AdminService {
     }
 
 
+    // Get Departments By Course API Endpoint
     async getDepartmentsByCourseAPI(courseId: string) {
         try {
             // Verify course exists
@@ -582,6 +623,5 @@ export class AdminService {
             }
             throw new InternalServerErrorException('Failed to fetch departments for course');
         }
-    }
-
+    }   
 }

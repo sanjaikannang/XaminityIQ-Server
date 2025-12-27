@@ -1,7 +1,7 @@
 import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { Department, DepartmentDocument } from 'src/schemas/department.schema';
+import { Department, DepartmentDocument } from 'src/schemas/Academic/department.schema';
 
 @Injectable()
 export class DepartmentRepositoryService {

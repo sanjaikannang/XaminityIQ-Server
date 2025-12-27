@@ -6,14 +6,21 @@ import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/guards/role.guard';
 
 // Schemas
-import { Admin, AdminSchema } from 'src/schemas/admin.schema';
-import { User, UserSchema } from 'src/schemas/user.schema';
-import { Batch, BatchSchema } from 'src/schemas/batch.schema';
-import { Course, CourseSchema } from 'src/schemas/course.schema';
-import { BatchCourse, BatchCourseSchema } from 'src/schemas/batchCourse.schema';
-import { Department, DepartmentSchema } from 'src/schemas/department.schema';
-import { BatchDepartment, BatchDepartmentSchema } from 'src/schemas/batchDepartment.schema';
-import { Section, SectionSchema } from 'src/schemas/section.schema';
+import { Admin, AdminSchema } from 'src/schemas/User/Admin/admin.schema';
+import { User, UserSchema } from 'src/schemas/User/user.schema';
+import { Batch, BatchSchema } from 'src/schemas/Academic/batch.schema';
+import { Course, CourseSchema } from 'src/schemas/Academic/course.schema';
+import { BatchCourse, BatchCourseSchema } from 'src/schemas/Academic/batchCourse.schema';
+import { Department, DepartmentSchema } from 'src/schemas/Academic/department.schema';
+import { BatchDepartment, BatchDepartmentSchema } from 'src/schemas/Academic/batchDepartment.schema';
+import { Section, SectionSchema } from 'src/schemas/Academic/section.schema';
+import { Student, StudentSchema } from 'src/schemas/User/Student/student.schema';
+import { StudentPersonalDetail, StudentPersonalDetailSchema } from 'src/schemas/User/Student/studentPersonalDetails.schema';
+import { StudentParentDetail, StudentParentDetailSchema } from 'src/schemas/User/Student/studentParentDetail.schema';
+import { StudentContactInformation, StudentContactInformationSchema } from 'src/schemas/User/Student/studentContactInformation.schema';
+import { StudentEducationHistory, StudentEducationHistorySchema } from 'src/schemas/User/Student/studentEducationHistory.schema';
+import { StudentAddressDetail, StudentAddressDetailSchema } from 'src/schemas/User/Student/studentAddressDetail.schema';
+import { StudentAcademicDetail, StudentAcademicDetailSchema } from 'src/schemas/User/Student/studentAcademicDetail.schema';
 
 // Services
 import { ConfigService } from 'src/config/config.service';
@@ -21,6 +28,8 @@ import { AuthService } from 'src/services/auth-service/auth.service';
 import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
 import { AdminService } from 'src/services/user-service/admin/admin.service';
+import { StudentManagementService } from 'src/services/user-service/admin/student-management.service';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 
 // Controllers
 import { CreateBatchController } from './create-batch/create-batch.controller';
@@ -32,6 +41,10 @@ import { GetAllDepartmentForBatchCourseController } from './get-all-departments-
 import { GetAllCoursesWithDepartmentsController } from './get-all-courses-with-departments/get-all-courses-with-departments.controller';
 import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
 import { GetDepartmentsByCourseController } from './get-departments-by-course/get-departments-by-course.controller';
+import { CreateStudentController } from './student-management/create-student/create-student.controller';
+import { GetAllStudentsController } from './student-management/get-all-students/get-all-students.controller';
+import { GetStudentController } from './student-management/get-student/get-student.controller';
+import { BulkUploadStudentsController } from './student-management/bulk-upload-student/bulk-upload-students.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -49,6 +62,13 @@ import { JwtModule } from '@nestjs/jwt';
             { name: Department.name, schema: DepartmentSchema },
             { name: BatchDepartment.name, schema: BatchDepartmentSchema },
             { name: Section.name, schema: SectionSchema },
+            { name: Student.name, schema: StudentSchema },
+            { name: StudentPersonalDetail.name, schema: StudentPersonalDetailSchema },
+            { name: StudentParentDetail.name, schema: StudentParentDetailSchema },
+            { name: StudentContactInformation.name, schema: StudentContactInformationSchema },
+            { name: StudentEducationHistory.name, schema: StudentEducationHistorySchema },
+            { name: StudentAddressDetail.name, schema: StudentAddressDetailSchema },
+            { name: StudentAcademicDetail.name, schema: StudentAcademicDetailSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -71,7 +91,11 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllDepartmentForBatchCourseController,
         GetAllCoursesWithDepartmentsController,
         GetCoursesByBatchController,
-        GetDepartmentsByCourseController
+        GetDepartmentsByCourseController,
+        CreateStudentController,
+        GetAllStudentsController,
+        GetStudentController,
+        BulkUploadStudentsController
     ],
     providers: [
         ConfigService,
@@ -79,16 +103,20 @@ import { JwtModule } from '@nestjs/jwt';
         AuthJwtService,
         PasswordService,
         AdminService,
+        StudentManagementService,
         JwtAuthGuard,
         RoleGuard,
+        CloudinaryService
     ],
     exports: [
         ConfigService,
         AuthService,
         AuthJwtService,
         AdminService,
+        StudentManagementService,
         JwtAuthGuard,
         RoleGuard,
+        CloudinaryService
     ],
 })
 export class AdminModule { }
