@@ -4,19 +4,19 @@ import { MongooseModule } from "@nestjs/mongoose";
 // Repositories
 import { AdminRepositoryService } from "./admin-repository/admin.repository";
 import { UserRepositoryService } from "./user-repository/user.repository";
-import { BatchRepositoryService } from "./batch-repository/batch-repository";
-import { CourseRepositoryService } from "./course-repository/course-repository";
-import { BatchCourseRepositoryService } from "./batch-course-repository/batch-course-repository";
-import { DepartmentRepositoryService } from "./department-repository/department-repository";
-import { BatchDepartmentRepositoryService } from "./batch-department-repository/batch-department-repository";
-import { SectionRepositoryService } from "./section-repository/section-repository";
-import { StudentRepositoryService } from "./student-repository/student-repository.service";
-import { StudentPersonalDetailRepositoryService } from "./student-personal-detail-repository/student-personal-detail-repository.service";
-import { StudentParentDetailRepositoryService } from "./student-parent-detail-repository/student-parent-detail-repository.service";
-import { StudentContactInformationRepositoryService } from "./student-contact-information-repository/student-contact-information-repository.service";
-import { StudentAddressDetailRepositoryService } from "./student-address-detail-repository/student-address-detail-repository.service";
-import { StudentEducationHistoryRepositoryService } from "./student-education-history-repository/student-education-history-repository.service";
-import { StudentAcademicDetailRepositoryService } from "./student-academic-detail-repository/student-academic-detail-repository.service";
+import { BatchRepositoryService } from "./batch-repository/batch.repository";
+import { CourseRepositoryService } from "./course-repository/course.repository";
+import { BatchCourseRepositoryService } from "./batch-course-repository/batch-course.repository";
+import { DepartmentRepositoryService } from "./department-repository/department.repository";
+import { BatchDepartmentRepositoryService } from "./batch-department-repository/batch-department.repository";
+import { SectionRepositoryService } from "./section-repository/section.repository";
+import { StudentRepositoryService } from "./student-repository/student.repository";
+import { StudentPersonalDetailRepositoryService } from "./student-personal-detail-repository/student-personal-detail.repository";
+import { StudentParentDetailRepositoryService } from "./student-parent-detail-repository/student-parent-detail.repository";
+import { StudentContactInformationRepositoryService } from "./student-contact-information-repository/student-contact-information.repository";
+import { StudentAddressDetailRepositoryService } from "./student-address-detail-repository/student-address-detail.repository";
+import { StudentEducationHistoryRepositoryService } from "./student-education-history-repository/student-education-history.repository";
+import { StudentAcademicDetailRepositoryService } from "./student-academic-detail-repository/student-academic-detail.repository";
 
 
 // Schemas

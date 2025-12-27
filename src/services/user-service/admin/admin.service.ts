@@ -18,20 +18,20 @@ import { AddDepartmentToBatchCourseRequest } from "src/api/user/admin/add-depart
 import { CreateStudentRequest } from "src/api/user/admin/student/create-student/create-student.request";
 
 // Repositories
-import { BatchRepositoryService } from "src/repositories/batch-repository/batch-repository";
-import { CourseRepositoryService } from "src/repositories/course-repository/course-repository";
-import { BatchCourseRepositoryService } from "src/repositories/batch-course-repository/batch-course-repository";
-import { DepartmentRepositoryService } from "src/repositories/department-repository/department-repository";
-import { BatchDepartmentRepositoryService } from "src/repositories/batch-department-repository/batch-department-repository";
-import { SectionRepositoryService } from "src/repositories/section-repository/section-repository";
+import { BatchRepositoryService } from "src/repositories/batch-repository/batch.repository";
+import { CourseRepositoryService } from "src/repositories/course-repository/course.repository";
+import { BatchCourseRepositoryService } from "src/repositories/batch-course-repository/batch-course.repository";
+import { DepartmentRepositoryService } from "src/repositories/department-repository/department.repository";
+import { BatchDepartmentRepositoryService } from "src/repositories/batch-department-repository/batch-department.repository";
+import { SectionRepositoryService } from "src/repositories/section-repository/section.repository";
 import { UserRepositoryService } from "src/repositories/user-repository/user.repository";
-import { StudentContactInformationRepositoryService } from "src/repositories/student-contact-information-repository/student-contact-information-repository.service";
-import { StudentPersonalDetailRepositoryService } from "src/repositories/student-personal-detail-repository/student-personal-detail-repository.service";
-import { StudentAddressDetailRepositoryService } from "src/repositories/student-address-detail-repository/student-address-detail-repository.service";
-import { StudentAcademicDetailRepositoryService } from "src/repositories/student-academic-detail-repository/student-academic-detail-repository.service";
-import { StudentEducationHistoryRepositoryService } from "src/repositories/student-education-history-repository/student-education-history-repository.service";
-import { StudentRepositoryService } from "src/repositories/student-repository/student-repository.service";
-import { StudentParentDetailRepositoryService } from "src/repositories/student-parent-detail-repository/student-parent-detail-repository.service";
+import { StudentContactInformationRepositoryService } from "src/repositories/student-contact-information-repository/student-contact-information.repository";
+import { StudentPersonalDetailRepositoryService } from "src/repositories/student-personal-detail-repository/student-personal-detail.repository";
+import { StudentAddressDetailRepositoryService } from "src/repositories/student-address-detail-repository/student-address-detail.repository";
+import { StudentAcademicDetailRepositoryService } from "src/repositories/student-academic-detail-repository/student-academic-detail.repository";
+import { StudentEducationHistoryRepositoryService } from "src/repositories/student-education-history-repository/student-education-history.repository";
+import { StudentRepositoryService } from "src/repositories/student-repository/student.repository";
+import { StudentParentDetailRepositoryService } from "src/repositories/student-parent-detail-repository/student-parent-detail.repository";
 
 
 @Injectable()
