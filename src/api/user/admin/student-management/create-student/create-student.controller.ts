@@ -11,7 +11,7 @@ import { StudentManagementService } from 'src/services/user-service/admin/studen
 export class CreateStudentController {
     constructor(private readonly studentManagementService: StudentManagementService) { }
 
-    @Post('student')
+    @Post('students')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.ADMIN)
     async createStudent(

@@ -79,4 +79,28 @@ export class StudentRepositoryService {
         }
     }
 
+
+    // Count Students
+    async countStudents(filter: any = {}): Promise<number> {
+        try {
+            return await this.studentModel.countDocuments(filter).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Find All Students with all Details
+    async findAllWithDetails(filter: any = {}, skip: number = 0, limit: number = 10): Promise<StudentDocument[]> {
+        try {
+            return await this.studentModel
+                .find(filter)
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
 }

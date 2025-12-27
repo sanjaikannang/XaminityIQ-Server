@@ -42,6 +42,8 @@ import { GetAllCoursesWithDepartmentsController } from './get-all-courses-with-d
 import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
 import { GetDepartmentsByCourseController } from './get-departments-by-course/get-departments-by-course.controller';
 import { CreateStudentController } from './student-management/create-student/create-student.controller';
+import { GetAllStudentsController } from './student-management/get-all-students/get-all-students.controller';
+import { GetStudentController } from './student-management/get-student/get-student.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -89,7 +91,9 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllCoursesWithDepartmentsController,
         GetCoursesByBatchController,
         GetDepartmentsByCourseController,
-        CreateStudentController
+        CreateStudentController,
+        GetAllStudentsController,
+        GetStudentController
     ],
     providers: [
         ConfigService,
