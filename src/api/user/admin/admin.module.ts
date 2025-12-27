@@ -14,6 +14,13 @@ import { BatchCourse, BatchCourseSchema } from 'src/schemas/Academic/batchCourse
 import { Department, DepartmentSchema } from 'src/schemas/Academic/department.schema';
 import { BatchDepartment, BatchDepartmentSchema } from 'src/schemas/Academic/batchDepartment.schema';
 import { Section, SectionSchema } from 'src/schemas/Academic/section.schema';
+import { Student, StudentSchema } from 'src/schemas/User/Student/student.schema';
+import { StudentPersonalDetail, StudentPersonalDetailSchema } from 'src/schemas/User/Student/studentPersonalDetails.schema';
+import { StudentParentDetail, StudentParentDetailSchema } from 'src/schemas/User/Student/studentParentDetail.schema';
+import { StudentContactInformation, StudentContactInformationSchema } from 'src/schemas/User/Student/studentContactInformation.schema';
+import { StudentEducationHistory, StudentEducationHistorySchema } from 'src/schemas/User/Student/studentEducationHistory.schema';
+import { StudentAddressDetail, StudentAddressDetailSchema } from 'src/schemas/User/Student/studentAddressDetail.schema';
+import { StudentAcademicDetail, StudentAcademicDetailSchema } from 'src/schemas/User/Student/studentAcademicDetail.schema';
 
 // Services
 import { ConfigService } from 'src/config/config.service';
@@ -32,6 +39,7 @@ import { GetAllDepartmentForBatchCourseController } from './get-all-departments-
 import { GetAllCoursesWithDepartmentsController } from './get-all-courses-with-departments/get-all-courses-with-departments.controller';
 import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
 import { GetDepartmentsByCourseController } from './get-departments-by-course/get-departments-by-course.controller';
+import { CreateStudentController } from './student/create-student/create-student.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -49,6 +57,13 @@ import { JwtModule } from '@nestjs/jwt';
             { name: Department.name, schema: DepartmentSchema },
             { name: BatchDepartment.name, schema: BatchDepartmentSchema },
             { name: Section.name, schema: SectionSchema },
+            { name: Student.name, schema: StudentSchema },
+            { name: StudentPersonalDetail.name, schema: StudentPersonalDetailSchema },
+            { name: StudentParentDetail.name, schema: StudentParentDetailSchema },
+            { name: StudentContactInformation.name, schema: StudentContactInformationSchema },
+            { name: StudentEducationHistory.name, schema: StudentEducationHistorySchema },
+            { name: StudentAddressDetail.name, schema: StudentAddressDetailSchema },
+            { name: StudentAcademicDetail.name, schema: StudentAcademicDetailSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -71,7 +86,8 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllDepartmentForBatchCourseController,
         GetAllCoursesWithDepartmentsController,
         GetCoursesByBatchController,
-        GetDepartmentsByCourseController
+        GetDepartmentsByCourseController,
+        CreateStudentController
     ],
     providers: [
         ConfigService,

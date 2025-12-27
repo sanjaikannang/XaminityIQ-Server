@@ -83,6 +83,13 @@ export enum EducationLevel {
   POSTGRADUATE = 'POSTGRADUATE'
 }
 
+export enum Qualification {
+  TENTH = '10th',
+  TWELFTH = '12th',
+  DIPLOMA = 'Diploma',
+  DEGREE = 'Degree',
+}
+
 export enum StudentStatus {
   ACTIVE = 'ACTIVE',
   ALUMNI = 'ALUMNI',

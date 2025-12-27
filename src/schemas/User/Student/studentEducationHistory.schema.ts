@@ -1,6 +1,6 @@
+import { Document, Types } from "mongoose";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Types } from "mongoose";
-import { EducationLevel } from "src/utils/enum";
+import { BoardType, EducationLevel, Qualification } from "src/utils/enum";
 
 export type StudentEducationHistoryDocument = StudentEducationHistory & Document;
 
@@ -10,13 +10,13 @@ export class StudentEducationHistory {
     studentId: Types.ObjectId;
 
     @Prop({ required: true, enum: Object.values(EducationLevel) })
-    level: string; // SECONDARY | HIGHER_SECONDARY | DIPLOMA | UNDERGRADUATE
+    level: string;
 
-    @Prop({ required: true })
-    qualification: string; // 10th | 12th | Diploma | Degree
+    @Prop({ required: true, enum: Object.values(Qualification) })
+    qualification: string;
 
-    @Prop({ required: true })
-    boardOrUniversity: string; // STATE_BOARD | CBSE | ICSE | University Name
+    @Prop({ required: true, enum: Object.values(BoardType) })
+    boardOrUniversity: string;
 
     @Prop({ required: true })
     institutionName: string;

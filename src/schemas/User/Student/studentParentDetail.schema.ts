@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 
 export type StudentParentDetailDocument = StudentParentDetail & Document;
@@ -16,9 +16,6 @@ export class ParentInfo {
 
     @Prop()
     occupation: string;
-
-    @Prop()
-    annualIncome: number;
 }
 
 @Schema({ _id: false })
@@ -27,7 +24,7 @@ export class GuardianInfo {
     name: string;
 
     @Prop()
-    relation: string; // FATHER | MOTHER | RELATIVE | OTHER
+    relation: string;
 
     @Prop()
     phoneNumber: string;

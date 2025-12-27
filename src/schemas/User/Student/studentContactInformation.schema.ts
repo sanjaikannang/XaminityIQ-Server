@@ -1,3 +1,4 @@
+import { Document } from "mongoose";
 import { RelationType } from "src/utils/enum";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 
@@ -9,7 +10,7 @@ export class EmergencyContact {
     name: string;
 
     @Prop({ required: true, enum: Object.values(RelationType) })
-    relation: string; // FATHER | MOTHER | GUARDIAN | OTHER
+    relation: string;
 
     @Prop({ required: true })
     phoneNumber: string;
@@ -21,7 +22,7 @@ export class StudentContactInformation {
     personalEmail: string;
 
     @Prop({ required: true, unique: true })
-    studentEmail: string; // Auto-generated @college.edu
+    studentEmail: string;
 
     @Prop({ required: true })
     phoneNumber: string;

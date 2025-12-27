@@ -49,4 +49,14 @@ export class SectionRepositoryService {
             .exec();
     }
 
+
+    // Find Section
+    async findById(id: string): Promise<SectionDocument | null> {
+        try {
+            return await this.sectionModel.findById(id).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
 }

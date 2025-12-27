@@ -1,14 +1,13 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from 'src/schemas/User/user.schema';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 
 
 @Injectable()
 export class UserRepositoryService {
     constructor(
-        @InjectModel(User.name) private userModel: Model<UserDocument>,        
-        @InjectModel('Admin') private adminModel: Model<any>,
+        @InjectModel(User.name) private userModel: Model<UserDocument>,
     ) { }
 
 
@@ -127,6 +126,23 @@ export class UserRepositoryService {
                 throw error;
             }
             throw new InternalServerErrorException('Failed to update last login', error);
+        }
+    }
+
+
+    // Start Session
+    async startSession() {
+        return await this.userModel.db.startSession();
+    }
+
+
+    // Create User
+    async create(data: Partial<User>, session?: any): Promise<UserDocument> {
+        try {
+            const user = new this.userModel(data);
+            return await user.save({ session });
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to create user', error);
         }
     }
 
