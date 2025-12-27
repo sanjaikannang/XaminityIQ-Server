@@ -10,12 +10,18 @@ import { Types } from "mongoose";
 import { Nationality, StudentStatus, UserRole } from "src/utils/enum";
 import { CloudinaryService } from "src/cloudinary/cloudinary.service";
 import { PasswordService } from "src/services/auth-service/password.service";
+import { StudentParentDetailDocument } from "src/schemas/User/Student/studentParentDetail.schema";
 
 // Requests
 import { CreateStudentRequest } from "src/api/user/admin/student-management/create-student/create-student.request";
-import { PaginationMeta } from "src/api/user/admin/get-all-batches/get-all-batches.response";
 import { GetAllStudentsRequest } from "src/api/user/admin/student-management/get-all-students/get-all-students.request";
+import { BulkUploadStudentsRequest } from "src/api/user/admin/student-management/bulk-upload-student/bulk-upload-students.request";
+
+// Response
+import { PaginationMeta } from "src/api/user/admin/get-all-batches/get-all-batches.response";
 import { StudentsData } from "src/api/user/admin/student-management/get-all-students/get-all-students.response";
+import { StudentData } from "src/api/user/admin/student-management/get-student/get-student.response";
+import { BulkUploadSummary, StudentUploadResult } from "src/api/user/admin/student-management/bulk-upload-student/bulk-upload-students.response";
 
 // Repositories
 import { BatchRepositoryService } from "src/repositories/batch-repository/batch.repository";
@@ -30,9 +36,6 @@ import { StudentAcademicDetailRepositoryService } from "src/repositories/student
 import { StudentEducationHistoryRepositoryService } from "src/repositories/student-education-history-repository/student-education-history.repository";
 import { StudentRepositoryService } from "src/repositories/student-repository/student.repository";
 import { StudentParentDetailRepositoryService } from "src/repositories/student-parent-detail-repository/student-parent-detail.repository";
-import { StudentData } from "src/api/user/admin/student-management/get-student/get-student.response";
-import { StudentParentDetailDocument } from "src/schemas/User/Student/studentParentDetail.schema";
-
 
 @Injectable()
 export class StudentManagementService {
@@ -661,5 +664,228 @@ export class StudentManagementService {
         }
     }
 
+
+    // Bulk Upload Students API Endpoint
+    async bulkUploadStudentsAPI(bulkUploadData: BulkUploadStudentsRequest): Promise<BulkUploadSummary> {
+        const successfulUploads: StudentUploadResult[] = [];
+        const failedUploads: StudentUploadResult[] = [];
+        let successCount = 0;
+        let failedCount = 0;
+
+        try {
+            // Process each student
+            for (let i = 0; i < bulkUploadData.students.length; i++) {
+                const studentData = bulkUploadData.students[i];
+                const rowNumber = i + 1;
+
+                try {
+                    // Validate batch, course, department, section exist
+                    const batch = await this.batchRepositoryService.findById(studentData.batchId);
+                    if (!batch) {
+                        throw new Error('Batch not found');
+                    }
+
+                    const course = await this.courseRepositoryService.findById(studentData.courseId);
+                    if (!course) {
+                        throw new Error('Course not found');
+                    }
+
+                    const department = await this.departmentRepositoryService.findById(studentData.departmentId);
+                    if (!department) {
+                        throw new Error('Department not found');
+                    }
+
+                    const section = await this.sectionRepositoryService.findById(studentData.sectionId);
+                    if (!section) {
+                        throw new Error('Section not found');
+                    }
+
+                    // Check if personal email already exists
+                    const existingContactByPersonalEmail = await this.studentContactInformationRepositoryService.findByPersonalEmail(studentData.personalEmail);
+                    if (existingContactByPersonalEmail) {
+                        throw new Error('Personal email already exists');
+                    }
+
+                    // Check if phone number already exists
+                    const existingContactByPhone = await this.studentContactInformationRepositoryService.findByPhoneNumber(studentData.phoneNumber);
+                    if (existingContactByPhone) {
+                        throw new Error('Phone number already exists');
+                    }
+
+                    // Generate student email
+                    const studentEmail = await this.generateStudentEmail(studentData.firstName, studentData.lastName);
+
+                    // Check if generated student email already exists
+                    const existingStudentEmail = await this.studentContactInformationRepositoryService.findByStudentEmail(studentEmail);
+                    if (existingStudentEmail) {
+                        throw new Error('Student email already exists');
+                    }
+
+                    // Generate student ID
+                    const studentId = ulid();
+
+                    // Check if student ID already exists
+                    const existingStudentId = await this.studentRepositoryService.findByStudentId(studentId);
+                    if (existingStudentId) {
+                        throw new Error('Student ID already exists, please try again');
+                    }
+
+                    // Generate roll number
+                    const rollNumber = await this.generateRollNumber(
+                        new Types.ObjectId(studentData.batchId),
+                        new Types.ObjectId(studentData.departmentId)
+                    );
+
+                    // Check if roll number already exists
+                    const existingRollNumber = await this.studentAcademicDetailRepositoryService.findByRollNumber(rollNumber);
+                    if (existingRollNumber) {
+                        throw new Error('Roll number already exists');
+                    }
+
+                    // Start transaction for this student
+                    const session = await this.userRepositoryService.startSession();
+                    session.startTransaction();
+
+                    try {
+                        // Create User
+                        const hashedPassword = await this.passwordService.hashPassword(studentData.dateOfBirth.toString());
+                        const user = await this.userRepositoryService.create({
+                            email: studentEmail,
+                            password: hashedPassword,
+                            role: UserRole.STUDENT,
+                            isActive: true,
+                            isEmailVerified: false,
+                            isFirstLogin: true,
+                            isPasswordReset: false
+                        }, session);
+
+                        // Create Personal Details
+                        const personalDetail = await this.studentPersonalDetailRepositoryService.create({
+                            firstName: studentData.firstName,
+                            lastName: studentData.lastName,
+                            gender: studentData.gender,
+                            dateOfBirth: studentData.dateOfBirth,
+                            profilePhotoUrl: studentData.profilePhotoUrl,
+                            nationality: Nationality.INDIAN,
+                            religion: studentData.religion
+                        }, session);
+
+                        // Create Contact Information
+                        const contactInformation = await this.studentContactInformationRepositoryService.create({
+                            personalEmail: studentData.personalEmail,
+                            studentEmail: studentEmail,
+                            phoneNumber: studentData.phoneNumber,
+                            alternatePhoneNumber: studentData.alternatePhoneNumber,
+                            emergencyContact: studentData.emergencyContact
+                        }, session);
+
+                        // Create Address Details
+                        const addressDetail = await this.studentAddressDetailRepositoryService.create({
+                            currentAddress: studentData.currentAddress,
+                            sameAsCurrent: studentData.sameAsCurrent,
+                            permanentAddress: studentData.sameAsCurrent ? studentData.currentAddress : studentData.permanentAddress
+                        }, session);
+
+                        // Create Academic Details
+                        const academicDetail = await this.studentAcademicDetailRepositoryService.create({
+                            rollNumber: rollNumber,
+                            batchId: new Types.ObjectId(studentData.batchId),
+                            courseId: new Types.ObjectId(studentData.courseId),
+                            departmentId: new Types.ObjectId(studentData.departmentId),
+                            sectionId: new Types.ObjectId(studentData.sectionId),
+                            currentSemester: studentData.currentSemester,
+                            admissionType: studentData.admissionType,
+                            status: StudentStatus.ACTIVE
+                        }, session);
+
+                        // Create Student
+                        const student = await this.studentRepositoryService.create({
+                            userId: user._id as Types.ObjectId,
+                            studentId: studentId,
+                            personalDetailId: personalDetail._id as Types.ObjectId,
+                            contactInformationId: contactInformation._id as Types.ObjectId,
+                            addressDetailId: addressDetail._id as Types.ObjectId,
+                            academicDetailId: academicDetail._id as Types.ObjectId,
+                            isActive: true
+                        }, session);
+
+                        // Create Education History
+                        if (studentData.educationHistory && studentData.educationHistory.length > 0) {
+                            const educationHistoryPromises = studentData.educationHistory.map(edu =>
+                                this.studentEducationHistoryRepositoryService.create({
+                                    studentId: student._id as Types.ObjectId,
+                                    level: edu.level,
+                                    qualification: edu.qualification,
+                                    boardOrUniversity: edu.boardOrUniversity,
+                                    institutionName: edu.institutionName,
+                                    yearOfPassing: edu.yearOfPassing,
+                                    percentageOrCGPA: edu.percentageOrCGPA,
+                                }, session)
+                            );
+                            await Promise.all(educationHistoryPromises);
+                        }
+
+                        // Create Parent Details if provided
+                        if (studentData.father || studentData.mother || studentData.guardian) {
+                            const parentDetail = await this.studentParentDetailRepositoryService.create({
+                                studentId: student._id as Types.ObjectId,
+                                father: studentData.father,
+                                mother: studentData.mother,
+                                guardian: studentData.guardian
+                            }, session);
+
+                            await this.studentRepositoryService.updateById(
+                                student._id as Types.ObjectId,
+                                {
+                                    parentDetailId: parentDetail._id as Types.ObjectId
+                                },
+                                session
+                            );
+                        }
+
+                        await session.commitTransaction();
+                        session.endSession();
+
+                        // Add to successful uploads
+                        successfulUploads.push({
+                            rowNumber: rowNumber,
+                            studentId: studentId,
+                            studentEmail: studentEmail,
+                            status: 'success'
+                        });
+                        successCount++;
+
+                    } catch (error) {
+                        await session.abortTransaction();
+                        session.endSession();
+                        throw error;
+                    }
+
+                } catch (error) {
+                    // Add to failed uploads
+                    failedUploads.push({
+                        rowNumber: rowNumber,
+                        status: 'failed',
+                        error: error.message || 'Unknown error occurred'
+                    });
+                    failedCount++;
+                }
+            }
+
+            // Return summary
+            const summary: BulkUploadSummary = {
+                totalRecords: bulkUploadData.students.length,
+                successCount: successCount,
+                failedCount: failedCount,
+                successfulUploads: successfulUploads,
+                failedUploads: failedUploads
+            };
+
+            return summary;
+
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to process bulk upload');
+        }
+    }
 
 }

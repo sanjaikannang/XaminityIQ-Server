@@ -44,6 +44,7 @@ import { GetDepartmentsByCourseController } from './get-departments-by-course/ge
 import { CreateStudentController } from './student-management/create-student/create-student.controller';
 import { GetAllStudentsController } from './student-management/get-all-students/get-all-students.controller';
 import { GetStudentController } from './student-management/get-student/get-student.controller';
+import { BulkUploadStudentsController } from './student-management/bulk-upload-student/bulk-upload-students.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -93,7 +94,8 @@ import { JwtModule } from '@nestjs/jwt';
         GetDepartmentsByCourseController,
         CreateStudentController,
         GetAllStudentsController,
-        GetStudentController
+        GetStudentController,
+        BulkUploadStudentsController
     ],
     providers: [
         ConfigService,
