@@ -16,7 +16,7 @@ export class StudentPersonalDetail {
     gender: Gender;
 
     @Prop({ required: true })
-    dateOfBirth: Date;
+    dateOfBirth: string;
 
     @Prop({ required: true })
     profilePhotoUrl: string;

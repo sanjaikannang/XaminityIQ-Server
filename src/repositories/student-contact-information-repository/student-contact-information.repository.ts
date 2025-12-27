@@ -68,4 +68,13 @@ export class StudentContactInformationRepositoryService {
     }
 
 
+    // Find by Phone Number
+    async findByPhoneNumber(phoneNumber: string): Promise<StudentContactInformationDocument | null> {
+    try {
+        return await this.studentContactInformationModel.findOne({ phoneNumber }).exec();
+    } catch (error) {
+        throw new InternalServerErrorException(`Database error: ${error.message}`);
+    }
+}
+
 }

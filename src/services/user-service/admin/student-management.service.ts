@@ -8,6 +8,7 @@ import {
 import { ulid } from "ulid";
 import { Types } from "mongoose";
 import { Nationality, StudentStatus, UserRole } from "src/utils/enum";
+import { CloudinaryService } from "src/cloudinary/cloudinary.service";
 import { PasswordService } from "src/services/auth-service/password.service";
 
 // Requests
@@ -31,6 +32,7 @@ import { StudentParentDetailRepositoryService } from "src/repositories/student-p
 @Injectable()
 export class StudentManagementService {
     constructor(
+        private readonly cloudinaryService: CloudinaryService,
         private readonly batchRepositoryService: BatchRepositoryService,
         private readonly courseRepositoryService: CourseRepositoryService,
         private readonly departmentRepositoryService: DepartmentRepositoryService,
@@ -46,6 +48,8 @@ export class StudentManagementService {
         private readonly passwordService: PasswordService,
     ) { }
 
+
+    // Generate Student Email
     private async generateStudentEmail(firstName: string, lastName: string): Promise<string> {
         const baseEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@college.edu`;
         const existingContact = await this.studentContactInformationRepositoryService.findByStudentEmail(baseEmail);
@@ -66,12 +70,31 @@ export class StudentManagementService {
     }
 
 
+    // Generate Roll Number
+    private async generateRollNumber(batchId: Types.ObjectId, departmentId: Types.ObjectId): Promise<string> {
+        const batch = await this.batchRepositoryService.findById(batchId.toString());
+        if (!batch) throw new Error('Batch not found');
+
+        const department = await this.departmentRepositoryService.findById(departmentId.toString());
+        if (!department) throw new Error('Department not found');
+
+        const count = await this.studentAcademicDetailRepositoryService.countByBatchAndDepartment(batchId, departmentId);
+
+        const batchYear = batch.startYear.toString().slice(-2);
+        const deptCode = department.deptCode.substring(0, 3).toUpperCase();
+        const sequence = (count + 1).toString().padStart(4, '0');
+
+        return `${batchYear}${deptCode}${sequence}`;
+    }
+
+
     // Create Student API Endpoint
     async createStudentAPI(createStudentData: CreateStudentRequest) {
+        let profilePhotoUrl: string | null = null;
+
         try {
             console.log("createStudentData", createStudentData)
             const session = await this.userRepositoryService.startSession();
-            // console.log("session...", session)
             session.startTransaction();
 
             try {
@@ -102,6 +125,19 @@ export class StudentManagementService {
                     throw new ConflictException('Personal email already exists');
                 }
 
+                // Check if phone number already exists
+                const existingContactByPhone = await this.studentContactInformationRepositoryService.findByPhoneNumber(createStudentData.phoneNumber);
+                if (existingContactByPhone) {
+                    throw new ConflictException('Phone number already exists');
+                }
+
+                // Upload profile photo to Cloudinary
+                // const profilePhotoUrl = await this.cloudinaryService.uploadImage(
+                //     profilePhotoBuffer,
+                //     'students/profile-photos'
+                // );
+                // console.log("profilePhotoUrl...", profilePhotoUrl);
+
                 // Generate student email
                 const studentEmail = await this.generateStudentEmail(createStudentData.firstName, createStudentData.lastName);
                 console.log("studentEmail...", studentEmail)
@@ -111,8 +147,11 @@ export class StudentManagementService {
                 console.log("studentId...", studentId)
 
                 // Generate roll number
-                const rollNumber = "1234567890"
-                console.log("rollNumber...", rollNumber)
+                const rollNumber = await this.generateRollNumber(
+                    new Types.ObjectId(createStudentData.batchId),
+                    new Types.ObjectId(createStudentData.departmentId)
+                );
+                console.log("rollNumber...", rollNumber);
 
                 // Create User                
                 const hashedPassword = await this.passwordService.hashPassword(createStudentData.dateOfBirth.toString());
@@ -220,12 +259,33 @@ export class StudentManagementService {
 
             } catch (error) {
                 await session.abortTransaction();
+
+                // If transaction fails, delete uploaded image from Cloudinary
+                if (profilePhotoUrl) {
+                    try {
+                        await this.cloudinaryService.deleteImage(profilePhotoUrl);
+                        console.log("Deleted uploaded image due to transaction failure");
+                    } catch (deleteError) {
+                        console.error('Failed to delete image from Cloudinary:', deleteError);
+                    }
+                }
+
                 throw error;
             } finally {
                 session.endSession();
             }
 
         } catch (error) {
+            // If error occurs before transaction, still clean up uploaded image
+            if (profilePhotoUrl && !error.message?.includes('transaction')) {
+                try {
+                    await this.cloudinaryService.deleteImage(profilePhotoUrl);
+                    console.log("Deleted uploaded image due to error");
+                } catch (deleteError) {
+                    console.error('Failed to delete image from Cloudinary:', deleteError);
+                }
+            }
+
             if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof BadRequestException) {
                 throw error;
             }

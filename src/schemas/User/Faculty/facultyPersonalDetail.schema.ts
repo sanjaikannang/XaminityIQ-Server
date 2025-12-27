@@ -15,7 +15,7 @@ export class FacultyPersonalDetail {
     gender: Gender;
 
     @Prop({ required: true })
-    dateOfBirth: Date;
+    dateOfBirth: string;
 
     @Prop({ required: true, enum: Object.values(MaritalStatus) })
     maritalStatus: string;
