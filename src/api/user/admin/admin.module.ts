@@ -28,6 +28,7 @@ import { AuthService } from 'src/services/auth-service/auth.service';
 import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
 import { AdminService } from 'src/services/user-service/admin/admin.service';
+import { StudentManagementService } from 'src/services/user-service/admin/student-management.service';
 
 // Controllers
 import { CreateBatchController } from './create-batch/create-batch.controller';
@@ -95,6 +96,7 @@ import { JwtModule } from '@nestjs/jwt';
         AuthJwtService,
         PasswordService,
         AdminService,
+        StudentManagementService,
         JwtAuthGuard,
         RoleGuard,
     ],
@@ -103,6 +105,7 @@ import { JwtModule } from '@nestjs/jwt';
         AuthService,
         AuthJwtService,
         AdminService,
+        StudentManagementService,
         JwtAuthGuard,
         RoleGuard,
     ],

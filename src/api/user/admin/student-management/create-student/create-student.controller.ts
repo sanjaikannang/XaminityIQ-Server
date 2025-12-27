@@ -5,11 +5,11 @@ import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { CreateStudentRequest } from './create-student.request';
 import { CreateStudentResponse } from './create-student.response';
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
-import { AdminService } from 'src/services/user-service/admin/admin.service';
+import { StudentManagementService } from 'src/services/user-service/admin/student-management.service';
 
 @Controller('admin')
 export class CreateStudentController {
-    constructor(private readonly adminService: AdminService) { }
+    constructor(private readonly studentManagementService: StudentManagementService) { }
 
     @Post('student')
     @UseGuards(JwtAuthGuard, RoleGuard)
@@ -17,7 +17,7 @@ export class CreateStudentController {
     async createStudent(
         @Body() createStudentData: CreateStudentRequest,
     ) {
-        await this.adminService.createStudentAPI(createStudentData);
+        await this.studentManagementService.createStudentAPI(createStudentData);
 
         const response: CreateStudentResponse = {
             success: true,
