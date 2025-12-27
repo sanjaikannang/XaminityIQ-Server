@@ -39,7 +39,7 @@ import { GetAllDepartmentForBatchCourseController } from './get-all-departments-
 import { GetAllCoursesWithDepartmentsController } from './get-all-courses-with-departments/get-all-courses-with-departments.controller';
 import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
 import { GetDepartmentsByCourseController } from './get-departments-by-course/get-departments-by-course.controller';
-import { CreateStudentController } from './student/create-student/create-student.controller';
+import { CreateStudentController } from './student-management/create-student/create-student.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';

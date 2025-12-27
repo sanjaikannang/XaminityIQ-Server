@@ -15,7 +15,7 @@ import { PasswordService } from "src/services/auth-service/password.service";
 import { CreateBatchRequest } from "src/api/user/admin/create-batch/create-batch.request";
 import { MapCourseToBatchRequest } from "src/api/user/admin/map-course-to-batch/map-course-to-batch.request";
 import { AddDepartmentToBatchCourseRequest } from "src/api/user/admin/add-department-to-batch-course/add-department-to-batch-course.request";
-import { CreateStudentRequest } from "src/api/user/admin/student/create-student/create-student.request";
+import { CreateStudentRequest } from "src/api/user/admin/student-management/create-student/create-student.request";
 
 // Repositories
 import { BatchRepositoryService } from "src/repositories/batch-repository/batch.repository";
