@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Student, StudentDocument } from 'src/schemas/User/Student/student.schema';
 
 @Injectable()
@@ -10,25 +10,73 @@ export class StudentRepositoryService {
     ) { }
 
 
-    async create(data: Partial<Student>, session?: ClientSession): Promise<StudentDocument> {
-        const student = new this.studentModel(data);
-        return await student.save({ session });
+    // Create a new student document
+    async create(
+        data: Partial<Student>,
+        session?: ClientSession
+    ): Promise<StudentDocument> {
+        try {
+            const student = new this.studentModel(data);
+            return await student.save({ session });
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
     }
 
+
+    // Find a student by MongoDB ObjectId
     async findById(id: Types.ObjectId): Promise<StudentDocument | null> {
-        return await this.studentModel.findById(id).exec();
+        try {
+            return await this.studentModel.findById(id).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
     }
 
+
+    // Find a student using the related userId
     async findByUserId(userId: Types.ObjectId): Promise<StudentDocument | null> {
-        return await this.studentModel.findOne({ userId }).exec();
+        try {
+            return await this.studentModel.findOne({ userId }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
     }
 
+
+    // Find a student by custom studentId
     async findByStudentId(studentId: string): Promise<StudentDocument | null> {
-        return await this.studentModel.findOne({ studentId }).exec();
+        try {
+            return await this.studentModel.findOne({ studentId }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
     }
 
-    async updateById(id: Types.ObjectId, data: Partial<Student>, session?: ClientSession): Promise<StudentDocument | null> {
-        return await this.studentModel.findByIdAndUpdate(id, data, { new: true, session }).exec();
+
+    // Update student data by MongoDB ObjectId
+    async updateById(
+        id: Types.ObjectId,
+        data: Partial<Student>,
+        session?: ClientSession
+    ): Promise<StudentDocument | null> {
+        try {
+            return await this.studentModel
+                .findByIdAndUpdate(id, data, { new: true, session })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
     }
 
 }
