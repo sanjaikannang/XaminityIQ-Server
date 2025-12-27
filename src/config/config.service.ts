@@ -69,4 +69,15 @@ export class ConfigService {
         return this.getValue("INITIAL_ADMIN_PASSWORD", true);
     }
 
+    getCloudinaryCloudName() {
+        return this.getValue("CLOUDINARY_CLOUD_NAME", true);
+    }
+
+    getCloudinaryApiKey() {
+        return this.getValue("CLOUDINARY_API_KEY", true);
+    }
+
+    getCloudinaryApiSecret() {
+        return this.getValue("CLOUDINARY_API_SECRET", true);
+    }
 }
