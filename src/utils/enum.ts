@@ -113,3 +113,36 @@ export enum BoardType {
   IB = 'IB',
   OTHER = 'OTHER'
 }
+
+export enum FacultyDesignation {
+  ASSISTANT_PROFESSOR = 'ASSISTANT_PROFESSOR',
+  ASSOCIATE_PROFESSOR = 'ASSOCIATE_PROFESSOR',
+  PROFESSOR = 'PROFESSOR',
+  LECTURER = 'LECTURER',
+  HOD = 'HOD',
+  PRINCIPAL = 'PRINCIPAL',
+}
+
+export enum EmploymentType {
+  PERMANENT = 'PERMANENT',
+  CONTRACT = 'CONTRACT',
+  VISITING = 'VISITING',
+  GUEST = 'GUEST',
+  ADJUNCT = 'ADJUNCT',
+}
+
+export enum HighestQualification {
+  PhD = 'PhD',
+  MTECH = 'MTECH',
+  ME = 'ME',
+  MBA = 'MBA',
+  MSC = 'MSC',
+  BE = 'BE',
+  BTECH = 'BTECH',
+  OTHER = 'OTHER',
+}
+
+export enum EmploymentStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}

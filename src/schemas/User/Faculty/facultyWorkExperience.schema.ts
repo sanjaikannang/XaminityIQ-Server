@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 
 export type FacultyWorkExperienceDocument = FacultyWorkExperience & Document;
@@ -18,10 +18,10 @@ export class FacultyWorkExperience {
     department: string;
 
     @Prop({ required: true })
-    fromDate: Date;
+    fromDate: string;
 
     @Prop({ required: true })
-    toDate: Date;
+    toDate: string;
 
     @Prop({ required: true })
     experienceYears: number;

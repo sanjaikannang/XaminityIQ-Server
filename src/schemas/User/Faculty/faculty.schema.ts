@@ -9,7 +9,7 @@ export class Faculty {
     userId: Types.ObjectId;
 
     @Prop({ required: true, unique: true })
-    facultyId: string; // Auto-generated UUID
+    facultyId: string;
 
     @Prop({ type: Types.ObjectId, ref: 'FacultyPersonalDetail', required: true })
     personalDetailId: Types.ObjectId;
@@ -20,14 +20,14 @@ export class Faculty {
     @Prop({ type: Types.ObjectId, ref: 'FacultyAddressDetail', required: true })
     addressDetailId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'FacultyEducationHistory', required: true })
-    educationHistoryId: Types.ObjectId;
+    @Prop({ type: [{ type: Types.ObjectId, ref: 'FacultyEducationHistory' }], default: [] })
+    educationHistoryIds: Types.ObjectId[];
 
     @Prop({ type: Types.ObjectId, ref: 'FacultyEmploymentDetail', required: true })
     employmentDetailId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'FacultyWorkExperience' })
-    workExperienceId: Types.ObjectId;
+    @Prop({ type: [{ type: Types.ObjectId, ref: 'FacultyWorkExperience' }], default: [] })
+    workExperienceIds: Types.ObjectId[];
 
     @Prop({ default: true })
     isActive: boolean;
