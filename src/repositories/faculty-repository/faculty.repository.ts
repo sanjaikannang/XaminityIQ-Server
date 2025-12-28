@@ -49,4 +49,25 @@ export class FacultyRepositoryService {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }
     }
+
+    async countFaculty(filter: any = {}): Promise<number> {
+        try {
+            return await this.facultyModel.countDocuments(filter).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+    async findAllWithDetails(filter: any = {}, skip: number = 0, limit: number = 10): Promise<FacultyDocument[]> {
+        try {
+            return await this.facultyModel
+                .find(filter)
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
 }

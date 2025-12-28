@@ -25,6 +25,10 @@ import { FacultyAddressRepositoryService } from "src/repositories/faculty-addres
 import { FacultyEducationHistoryRepositoryService } from "src/repositories/faculty-education-history-repository/faculty-education-history.repository";
 import { FacultyEmploymentDetailRepositoryService } from "src/repositories/faculty-employment-detail-repository/faculty-employment-detail.repository";
 import { FacultyWorkExperienceRepositoryService } from "src/repositories/faculty-work-experience-repository/faculty-work-experience.repository";
+import { FacultyDetailData } from "src/api/user/admin/faculty-management/get-faculty/get-faculty.response";
+import { GetAllFacultyRequest } from "src/api/user/admin/faculty-management/get-all-faculty/get-all-faculty.request";
+import { FacultyData } from "src/api/user/admin/faculty-management/get-all-faculty/get-all-faculty.response";
+import { PaginationMeta } from "src/api/user/admin/get-all-batches/get-all-batches.response";
 
 @Injectable()
 export class FacultyManagementService {
@@ -241,7 +245,8 @@ export class FacultyManagementService {
         }
     }
 
-    // generating faculty email
+
+    // Generating Faculty Email
     private async generateFacultyEmail(firstName: string, lastName: string): Promise<string> {
         const baseEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@college.edu`;
         const existingContact = await this.facultyContactInformationRepositoryService.findByFacultyEmail(baseEmail);
@@ -259,6 +264,325 @@ export class FacultyManagementService {
         }
 
         return newEmail;
+    }
+
+
+    // Get All Faculty API Endpoint
+    async getAllFacultyAPI(
+        query: GetAllFacultyRequest
+    ): Promise<{ faculty: FacultyData[]; pagination: PaginationMeta }> {
+        try {
+            const page = query.page || 1;
+            const limit = query.limit || 10;
+            const search = query.search || '';
+            const skip = (page - 1) * limit;
+
+            // Build search filter
+            let searchFilter: any = {};
+            if (search) {
+                searchFilter = {
+                    $or: [{ facultyId: { $regex: search, $options: 'i' } }],
+                };
+            }
+
+            // Get total count
+            const totalItems =
+                await this.facultyRepositoryService.countFaculty(searchFilter);
+
+            // Get faculty with pagination
+            const facultyList =
+                await this.facultyRepositoryService.findAllWithDetails(
+                    searchFilter,
+                    skip,
+                    limit
+                );
+
+            // Transform data
+            const facultyData: FacultyData[] = await Promise.all(
+                facultyList.map(async (faculty) => {
+                    // Fetch related documents
+                    const personalDetail =
+                        await this.facultyPersonalDetailRepositoryService.findById(
+                            faculty.personalDetailId
+                        );
+
+                    if (!personalDetail) {
+                        throw new NotFoundException(
+                            `Personal details not found for faculty ${faculty.facultyId}`
+                        );
+                    }
+
+                    const contactInfo =
+                        await this.facultyContactInformationRepositoryService.findById(
+                            faculty.contactInformationId
+                        );
+
+                    if (!contactInfo) {
+                        throw new NotFoundException(
+                            `Contact information not found for faculty ${faculty.facultyId}`
+                        );
+                    }
+
+                    const employmentDetail =
+                        await this.facultyEmploymentDetailRepositoryService.findById(
+                            faculty.employmentDetailId
+                        );
+
+                    if (!employmentDetail) {
+                        throw new NotFoundException(
+                            `Employment details not found for faculty ${faculty.facultyId}`
+                        );
+                    }
+
+                    const department =
+                        await this.departmentRepositoryService.findById(
+                            employmentDetail.departmentId.toString()
+                        );
+
+                    if (!department) {
+                        throw new NotFoundException(
+                            `Department not found for faculty ${faculty.facultyId}`
+                        );
+                    }
+
+                    // Build response object
+                    return {
+                        id: faculty.id,
+                        facultyId: faculty.facultyId,
+                        personalDetails: {
+                            firstName: personalDetail.firstName,
+                            lastName: personalDetail.lastName,
+                            gender: personalDetail.gender,
+                            dateOfBirth: personalDetail.dateOfBirth,
+                            profilePhotoUrl: personalDetail.profilePhotoUrl,
+                        },
+                        contactDetails: {
+                            personalEmail: contactInfo.personalEmail,
+                            facultyEmail: contactInfo.facultyEmail,
+                            phoneNumber: contactInfo.phoneNumber,
+                        },
+                        employmentDetails: {
+                            employeeId: employmentDetail.employeeId,
+                            designation: employmentDetail.designation,
+                            departmentName: department.deptName,
+                            employmentType: employmentDetail.employmentType,
+                            dateOfJoining: employmentDetail.dateOfJoining,
+                            status: employmentDetail.status,
+                        },
+                        isActive: faculty.isActive,
+                    };
+                })
+            );
+
+            // Build pagination metadata
+            const totalPages = Math.ceil(totalItems / limit);
+            const pagination: PaginationMeta = {
+                currentPage: page,
+                totalPages,
+                totalItems,
+                itemsPerPage: limit,
+                hasNextPage: page < totalPages,
+                hasPreviousPage: page > 1,
+            };
+
+            return {
+                faculty: facultyData,
+                pagination,
+            };
+        } catch (error) {
+            if (
+                error instanceof NotFoundException ||
+                error instanceof ConflictException ||
+                error instanceof BadRequestException
+            ) {
+                throw error;
+            }
+
+            throw new InternalServerErrorException('Failed to fetch faculty');
+        }
+    }
+
+
+    // Get Faculty By ID API Endpoint
+    async getFacultyByIdAPI(id: string): Promise<FacultyDetailData> {
+        try {
+            // Find faculty
+            const faculty = await this.facultyRepositoryService.findById(
+                new Types.ObjectId(id)
+            );
+
+            if (!faculty) {
+                throw new NotFoundException('Faculty not found');
+            }
+
+            // Get all related details
+            const personalDetail =
+                await this.facultyPersonalDetailRepositoryService.findById(
+                    faculty.personalDetailId
+                );
+            if (!personalDetail) {
+                throw new NotFoundException(
+                    `Personal details not found for faculty ${faculty.facultyId}`
+                );
+            }
+
+            const contactInfo =
+                await this.facultyContactInformationRepositoryService.findById(
+                    faculty.contactInformationId
+                );
+            if (!contactInfo) {
+                throw new NotFoundException(
+                    `Contact information not found for faculty ${faculty.facultyId}`
+                );
+            }
+
+            const addressDetail =
+                await this.facultyAddressRepositoryService.findById(
+                    faculty.addressDetailId
+                );
+            if (!addressDetail) {
+                throw new NotFoundException(
+                    `Address details not found for faculty ${faculty.facultyId}`
+                );
+            }
+
+            const employmentDetail =
+                await this.facultyEmploymentDetailRepositoryService.findById(
+                    faculty.employmentDetailId
+                );
+            if (!employmentDetail) {
+                throw new NotFoundException(
+                    `Employment details not found for faculty ${faculty.facultyId}`
+                );
+            }
+
+            // Get department name
+            const department =
+                await this.departmentRepositoryService.findById(
+                    employmentDetail.departmentId.toString()
+                );
+            if (!department) {
+                throw new NotFoundException(
+                    `Department not found for faculty ${faculty.facultyId}`
+                );
+            }
+
+            // Get education history
+            const educationHistory =
+                await this.facultyEducationHistoryRepositoryService.findByFacultyId(
+                    faculty._id as Types.ObjectId
+                );
+
+            // Get work experience
+            const workExperience =
+                await this.facultyWorkExperienceRepositoryService.findByFacultyId(
+                    faculty._id as Types.ObjectId
+                );
+
+            // Transform data
+            const facultyData: FacultyDetailData = {
+                facultyId: faculty.facultyId,
+                userId: faculty.userId.toString(),
+
+                personalDetails: {
+                    firstName: personalDetail.firstName,
+                    lastName: personalDetail.lastName,
+                    gender: personalDetail.gender,
+                    dateOfBirth: personalDetail.dateOfBirth,
+                    maritalStatus: personalDetail.maritalStatus,
+                    profilePhotoUrl: personalDetail.profilePhotoUrl,
+                    nationality: personalDetail.nationality,
+                    religion: personalDetail.religion,
+                },
+
+                contactDetails: {
+                    personalEmail: contactInfo.personalEmail,
+                    facultyEmail: contactInfo.facultyEmail,
+                    phoneNumber: contactInfo.phoneNumber,
+                    alternatePhoneNumber: contactInfo.alternatePhoneNumber,
+                    emergencyContact: {
+                        name: contactInfo.emergencyContact.name,
+                        relation: contactInfo.emergencyContact.relation,
+                        phoneNumber: contactInfo.emergencyContact.phoneNumber,
+                    },
+                },
+
+                addressDetails: {
+                    currentAddress: {
+                        addressLine1: addressDetail.currentAddress.addressLine1,
+                        addressLine2: addressDetail.currentAddress.addressLine2,
+                        city: addressDetail.currentAddress.city,
+                        state: addressDetail.currentAddress.state,
+                        pincode: addressDetail.currentAddress.pincode,
+                        country: addressDetail.currentAddress.country,
+                    },
+                    sameAsCurrent: addressDetail.sameAsCurrent,
+                    permanentAddress: addressDetail.permanentAddress
+                        ? {
+                            addressLine1:
+                                addressDetail.permanentAddress.addressLine1,
+                            addressLine2:
+                                addressDetail.permanentAddress.addressLine2,
+                            city: addressDetail.permanentAddress.city,
+                            state: addressDetail.permanentAddress.state,
+                            pincode: addressDetail.permanentAddress.pincode,
+                            country: addressDetail.permanentAddress.country,
+                        }
+                        : undefined,
+                },
+
+                employmentDetails: {
+                    employeeId: employmentDetail.employeeId,
+                    designation: employmentDetail.designation,
+                    departmentName: department.deptName,
+                    employmentType: employmentDetail.employmentType,
+                    dateOfJoining: employmentDetail.dateOfJoining,
+                    dateOfLeaving: employmentDetail.dateOfLeaving,
+                    totalExperienceYears:
+                        employmentDetail.totalExperienceYears,
+                    highestQualification:
+                        employmentDetail.highestQualification,
+                    status: employmentDetail.status,
+                    remarks: employmentDetail.remarks,
+                },
+
+                educationHistory: educationHistory.map((edu) => ({
+                    level: edu.level,
+                    qualification: edu.qualification,
+                    boardOrUniversity: edu.boardOrUniversity,
+                    institutionName: edu.institutionName,
+                    yearOfPassing: edu.yearOfPassing,
+                    percentageOrCGPA: edu.percentageOrCGPA,
+                    specialization: edu.specialization,
+                })),
+
+                workExperience: workExperience.map((work) => ({
+                    organization: work.organization,
+                    role: work.role,
+                    department: work.department,
+                    fromDate: work.fromDate,
+                    toDate: work.toDate,
+                    experienceYears: work.experienceYears,
+                    jobDescription: work.jobDescription,
+                    reasonForLeaving: work.reasonForLeaving,
+                    isCurrent: work.isCurrent,
+                })),
+
+                isActive: faculty.isActive,
+            };
+
+            return facultyData;
+        } catch (error) {
+            if (
+                error instanceof NotFoundException ||
+                error instanceof ConflictException ||
+                error instanceof BadRequestException
+            ) {
+                throw error;
+            }
+
+            throw new InternalServerErrorException('Failed to fetch faculty');
+        }
     }
 
 }
