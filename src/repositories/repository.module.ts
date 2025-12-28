@@ -35,6 +35,20 @@ import { StudentEducationHistory, StudentEducationHistorySchema } from "src/sche
 import { StudentContactInformation, StudentContactInformationSchema } from "src/schemas/User/Student/studentContactInformation.schema";
 import { StudentAddressDetail, StudentAddressDetailSchema } from "src/schemas/User/Student/studentAddressDetail.schema";
 import { StudentAcademicDetail, StudentAcademicDetailSchema } from "src/schemas/User/Student/studentAcademicDetail.schema";
+import { Faculty, FacultySchema } from "src/schemas/User/Faculty/faculty.schema";
+import { FacultyPersonalDetail, FacultyPersonalDetailSchema } from "src/schemas/User/Faculty/facultyPersonalDetail.schema";
+import { FacultyContactInformation, FacultyContactInformationSchema } from "src/schemas/User/Faculty/facultyContactInformation.schema";
+import { FacultyAddress, FacultyAddressSchema } from "src/schemas/User/Faculty/facultyAddressDetail.schema";
+import { FacultyEducationHistory, FacultyEducationHistorySchema } from "src/schemas/User/Faculty/facultyEducationHistory.schema";
+import { FacultyEmploymentDetail, FacultyEmploymentDetailSchema } from "src/schemas/User/Faculty/facultyEmploymentDetail.schema";
+import { FacultyWorkExperience, FacultyWorkExperienceSchema } from "src/schemas/User/Faculty/facultyWorkExperience.schema";
+import { FacultyRepositoryService } from "./faculty-repository/faculty.repository";
+import { FacultyPersonalDetailRepositoryService } from "./faculty-personal-detail-repository/faculty-personal-detail.repository";
+import { FacultyContactInformationRepositoryService } from "./faculty-contact-information-repository/faculty-contact-information.repository";
+import { FacultyAddressRepositoryService } from "./faculty-address-repository/faculty-address.repository";
+import { FacultyEducationHistoryRepositoryService } from "./faculty-education-history-repository/faculty-education-history.repository";
+import { FacultyEmploymentDetailRepositoryService } from "./faculty-employment-detail-repository/faculty-employment-detail.repository";
+import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experience-repository/faculty-work-experience.repository";
 
 @Module({
     imports: [
@@ -53,7 +67,14 @@ import { StudentAcademicDetail, StudentAcademicDetailSchema } from "src/schemas/
             { name: StudentContactInformation.name, schema: StudentContactInformationSchema },
             { name: StudentEducationHistory.name, schema: StudentEducationHistorySchema },
             { name: StudentAddressDetail.name, schema: StudentAddressDetailSchema },
-            { name: StudentAcademicDetail.name, schema: StudentAcademicDetailSchema },                    
+            { name: StudentAcademicDetail.name, schema: StudentAcademicDetailSchema },
+            { name: Faculty.name, schema: FacultySchema },
+            { name: FacultyPersonalDetail.name, schema: FacultyPersonalDetailSchema },
+            { name: FacultyContactInformation.name, schema: FacultyContactInformationSchema },
+            { name: FacultyAddress.name, schema: FacultyAddressSchema },
+            { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
+            { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
+            { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
         ]),
     ],
     controllers: [],
@@ -72,7 +93,14 @@ import { StudentAcademicDetail, StudentAcademicDetailSchema } from "src/schemas/
         StudentContactInformationRepositoryService,
         StudentEducationHistoryRepositoryService,
         StudentAddressDetailRepositoryService,
-        StudentAcademicDetailRepositoryService
+        StudentAcademicDetailRepositoryService,
+        FacultyRepositoryService,
+        FacultyPersonalDetailRepositoryService,
+        FacultyContactInformationRepositoryService,
+        FacultyAddressRepositoryService,
+        FacultyEducationHistoryRepositoryService,
+        FacultyEmploymentDetailRepositoryService,
+        FacultyWorkExperienceRepositoryService,
     ],
     exports: [
         AdminRepositoryService,
@@ -89,7 +117,14 @@ import { StudentAcademicDetail, StudentAcademicDetailSchema } from "src/schemas/
         StudentContactInformationRepositoryService,
         StudentEducationHistoryRepositoryService,
         StudentAddressDetailRepositoryService,
-        StudentAcademicDetailRepositoryService
+        StudentAcademicDetailRepositoryService,
+        FacultyRepositoryService,
+        FacultyPersonalDetailRepositoryService,
+        FacultyContactInformationRepositoryService,
+        FacultyAddressRepositoryService,
+        FacultyEducationHistoryRepositoryService,
+        FacultyEmploymentDetailRepositoryService,
+        FacultyWorkExperienceRepositoryService,
     ],
 })
 export class RepositoryModule { }

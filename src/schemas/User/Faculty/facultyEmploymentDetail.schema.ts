@@ -1,20 +1,21 @@
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { EmploymentType, FacultyDesignation, FacultyStatus, HighestQualification } from "src/utils/enum";
 
 export type FacultyEmploymentDetailDocument = FacultyEmploymentDetail & Document;
 
 @Schema({ timestamps: true })
 export class FacultyEmploymentDetail {
     @Prop({ required: true, unique: true })
-    employeeId: string; // Auto or Manual generated
+    employeeId: string;
 
-    @Prop({ required: true, enum: ['ASSISTANT_PROFESSOR', 'ASSOCIATE_PROFESSOR', 'PROFESSOR', 'LECTURER', 'HOD', 'PRINCIPAL'] })
+    @Prop({ required: true, enum: Object.values(FacultyDesignation) })
     designation: string;
 
     @Prop({ type: Types.ObjectId, ref: 'Department', required: true })
     departmentId: Types.ObjectId;
 
-    @Prop({ required: true, enum: ['PERMANENT', 'CONTRACT', 'VISITING', 'GUEST', 'ADJUNCT'] })
+    @Prop({ required: true, enum: Object.values(EmploymentType) })
     employmentType: string;
 
     @Prop({ required: true })
@@ -24,16 +25,13 @@ export class FacultyEmploymentDetail {
     dateOfLeaving: Date;
 
     @Prop({ required: true, default: 0 })
-    totalExperienceYears: number; // Total experience including previous work
+    totalExperienceYears: number;
 
-    @Prop({ required: true, enum: ['PhD', 'MTECH', 'ME', 'MBA', 'MSC', 'BE', 'BTECH', 'OTHER'] })
+    @Prop({ required: true, enum: Object.values(HighestQualification) })
     highestQualification: string;
 
-    @Prop({ default: 'ACTIVE' }) // ACTIVE | ON_LEAVE | RESIGNED | RETIRED | TERMINATED
+    @Prop({ required: true, enum: Object.values(FacultyStatus) })
     status: string;
-
-    @Prop()
-    basicSalary: number;
 
     @Prop()
     remarks: string;
@@ -41,7 +39,6 @@ export class FacultyEmploymentDetail {
 
 export const FacultyEmploymentDetailSchema = SchemaFactory.createForClass(FacultyEmploymentDetail);
 
-// Indexes
 FacultyEmploymentDetailSchema.index({ employeeId: 1 });
 FacultyEmploymentDetailSchema.index({ departmentId: 1 });
 FacultyEmploymentDetailSchema.index({ designation: 1, status: 1 });

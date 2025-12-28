@@ -1,5 +1,6 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document } from "mongoose";
 import { RelationType } from "src/utils/enum";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 
 export type FacultyContactInformationDocument = FacultyContactInformation & Document;
 
@@ -21,7 +22,7 @@ export class FacultyContactInformation {
     personalEmail: string;
 
     @Prop({ required: true, unique: true })
-    facultyEmail: string; // Auto-generated @college.edu
+    facultyEmail: string;
 
     @Prop({ required: true })
     phoneNumber: string;

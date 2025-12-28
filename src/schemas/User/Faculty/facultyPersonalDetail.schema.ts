@@ -1,3 +1,4 @@
+import { Document } from "mongoose";
 import { Gender, MaritalStatus, Nationality } from "src/utils/enum";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 

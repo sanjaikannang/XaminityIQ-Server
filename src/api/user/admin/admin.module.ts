@@ -30,6 +30,14 @@ import { PasswordService } from 'src/services/auth-service/password.service';
 import { AdminService } from 'src/services/user-service/admin/admin.service';
 import { StudentManagementService } from 'src/services/user-service/admin/student-management.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { FacultyManagementService } from 'src/services/user-service/admin/faculty-management.service';
+import { Faculty, FacultySchema } from 'src/schemas/User/Faculty/faculty.schema';
+import { FacultyPersonalDetail, FacultyPersonalDetailSchema } from 'src/schemas/User/Faculty/facultyPersonalDetail.schema';
+import { FacultyContactInformation, FacultyContactInformationSchema } from 'src/schemas/User/Faculty/facultyContactInformation.schema';
+import { FacultyAddress, FacultyAddressSchema } from 'src/schemas/User/Faculty/facultyAddressDetail.schema';
+import { FacultyEducationHistory, FacultyEducationHistorySchema } from 'src/schemas/User/Faculty/facultyEducationHistory.schema';
+import { FacultyEmploymentDetail, FacultyEmploymentDetailSchema } from 'src/schemas/User/Faculty/facultyEmploymentDetail.schema';
+import { FacultyWorkExperience, FacultyWorkExperienceSchema } from 'src/schemas/User/Faculty/facultyWorkExperience.schema';
 
 // Controllers
 import { CreateBatchController } from './create-batch/create-batch.controller';
@@ -45,6 +53,9 @@ import { CreateStudentController } from './student-management/create-student/cre
 import { GetAllStudentsController } from './student-management/get-all-students/get-all-students.controller';
 import { GetStudentController } from './student-management/get-student/get-student.controller';
 import { BulkUploadStudentsController } from './student-management/bulk-upload-student/bulk-upload-students.controller';
+import { CreateFacultyController } from './faculty-management/create-faculty/create-faculty.controller';
+import { GetFacultyController } from './faculty-management/get-faculty/get-faculty.controller';
+import { GetAllFacultyController } from './faculty-management/get-all-faculty/get-all-faculty.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -69,6 +80,13 @@ import { JwtModule } from '@nestjs/jwt';
             { name: StudentEducationHistory.name, schema: StudentEducationHistorySchema },
             { name: StudentAddressDetail.name, schema: StudentAddressDetailSchema },
             { name: StudentAcademicDetail.name, schema: StudentAcademicDetailSchema },
+            { name: Faculty.name, schema: FacultySchema },
+            { name: FacultyPersonalDetail.name, schema: FacultyPersonalDetailSchema },
+            { name: FacultyContactInformation.name, schema: FacultyContactInformationSchema },
+            { name: FacultyAddress.name, schema: FacultyAddressSchema },
+            { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
+            { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
+            { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -95,7 +113,10 @@ import { JwtModule } from '@nestjs/jwt';
         CreateStudentController,
         GetAllStudentsController,
         GetStudentController,
-        BulkUploadStudentsController
+        BulkUploadStudentsController,
+        CreateFacultyController,
+        GetFacultyController,
+        GetAllFacultyController
     ],
     providers: [
         ConfigService,
@@ -104,6 +125,7 @@ import { JwtModule } from '@nestjs/jwt';
         PasswordService,
         AdminService,
         StudentManagementService,
+        FacultyManagementService,
         JwtAuthGuard,
         RoleGuard,
         CloudinaryService
@@ -114,6 +136,7 @@ import { JwtModule } from '@nestjs/jwt';
         AuthJwtService,
         AdminService,
         StudentManagementService,
+        FacultyManagementService,
         JwtAuthGuard,
         RoleGuard,
         CloudinaryService
