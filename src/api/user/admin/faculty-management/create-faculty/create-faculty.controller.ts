@@ -1,4 +1,3 @@
-// create-faculty.controller.ts
 import { UserRole } from 'src/utils/enum';
 import { RoleGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/roles.decorator';
