@@ -103,4 +103,13 @@ export class StudentRepositoryService {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }
     }
+
+
+    // Find multiple students by IDs
+    async findByIds(studentIds: Types.ObjectId[]): Promise<StudentDocument[]> {
+        return this.studentModel
+            .find({ _id: { $in: studentIds }, isActive: true })
+            .populate('userId')
+            .exec();
+    }
 }

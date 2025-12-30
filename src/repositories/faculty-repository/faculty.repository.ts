@@ -70,4 +70,13 @@ export class FacultyRepositoryService {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }
     }
+
+    // Find multiple faculty by IDs
+    async findByIds(facultyIds: Types.ObjectId[]): Promise<FacultyDocument[]> {
+        return this.facultyModel
+            .find({ _id: { $in: facultyIds }, isActive: true })
+            .populate('userId')
+            .exec();
+    }
+
 }

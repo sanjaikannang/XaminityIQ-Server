@@ -49,6 +49,14 @@ import { FacultyAddressRepositoryService } from "./faculty-address-repository/fa
 import { FacultyEducationHistoryRepositoryService } from "./faculty-education-history-repository/faculty-education-history.repository";
 import { FacultyEmploymentDetailRepositoryService } from "./faculty-employment-detail-repository/faculty-employment-detail.repository";
 import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experience-repository/faculty-work-experience.repository";
+import { Exam, ExamSchema } from "src/schemas/Exam/exam.schema";
+import { ExamRoom, ExamRoomSchema } from "src/schemas/Exam/examRooms.schema";
+import { StudentEnrollment, StudentEnrollmentSchema } from "src/schemas/Exam/studentEnrollments.schema";
+import { FacultyAssignment, FacultyAssignmentSchema } from "src/schemas/Exam/facultyAssignments.schema";
+import { ExamRepositoryService } from "./exam-repository/exam.repository";
+import { ExamRoomRepositoryService } from "./exam-room-repository/exam-room.repository";
+import { StudentEnrollmentRepositoryService } from "./student-enrollment-repository/student-enrollment.repository";
+import { FacultyAssignmentRepositoryService } from "./faculty-assignment-repository/faculty-assignment.repository";
 
 @Module({
     imports: [
@@ -75,6 +83,10 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
             { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
             { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
             { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
+            { name: Exam.name, schema: ExamSchema },
+            { name: ExamRoom.name, schema: ExamRoomSchema },
+            { name: StudentEnrollment.name, schema: StudentEnrollmentSchema },
+            { name: FacultyAssignment.name, schema: FacultyAssignmentSchema },
         ]),
     ],
     controllers: [],
@@ -101,6 +113,10 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
         FacultyEducationHistoryRepositoryService,
         FacultyEmploymentDetailRepositoryService,
         FacultyWorkExperienceRepositoryService,
+        ExamRepositoryService,
+        ExamRoomRepositoryService,
+        FacultyAssignmentRepositoryService,
+        StudentEnrollmentRepositoryService,
     ],
     exports: [
         AdminRepositoryService,
@@ -125,6 +141,10 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
         FacultyEducationHistoryRepositoryService,
         FacultyEmploymentDetailRepositoryService,
         FacultyWorkExperienceRepositoryService,
+        ExamRepositoryService,
+        ExamRoomRepositoryService,
+        FacultyAssignmentRepositoryService,
+        StudentEnrollmentRepositoryService,
     ],
 })
 export class RepositoryModule { }
