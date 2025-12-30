@@ -36,6 +36,31 @@ export enum ExamMode {
   PROCTORING = 'PROCTORING'
 }
 
+export enum ExamStatus {
+  DRAFT = 'DRAFT',
+  SCHEDULED = 'SCHEDULED',
+  ONGOING = 'ONGOING',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum ExamRoomStatus {
+  CREATED = 'CREATED',
+  ACTIVE = 'ACTIVE',
+  ENDED = 'ENDED',
+}
+
+export enum EnrollmentStatus {
+  ENROLLED = 'ENROLLED',
+  CANCELLED = 'CANCELLED',
+  BLOCKED = 'BLOCKED',
+}
+
+export enum FacultyRole {
+  PROCTOR = 'PROCTOR',
+  OBSERVER = 'OBSERVER',
+}
+
 export enum CourseType {
   UG = 'UG',
   PG = 'PG',
