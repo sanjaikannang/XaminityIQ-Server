@@ -1,46 +1,38 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { ExamMode, ExamRoomStatus } from 'src/utils/enum';
+import { ExamRoomStatus } from 'src/utils/enum';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 export type ExamRoomDocument = ExamRoom & Document;
 
 @Schema({ timestamps: true })
 export class ExamRoom {
+  @Prop({ type: Types.ObjectId, ref: 'Exam', required: true })
+  examId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'Exam', required: true, unique: true })
-    examId: Types.ObjectId;
+  @Prop({ required: true })
+  hmsRoomId: string; // 100ms Room ID
 
-    @Prop({ required: true })
-    hmsRoomId: string;
+  @Prop({ required: true })
+  hmsRoomName: string; // 100ms Room Name
 
-    @Prop({ required: true })
-    hmsRoomName: string;
+  @Prop({ required: true, default: 20 })
+  maxStudents: number; // Maximum 20 students per room
 
-    @Prop({ required: true })
-    maxStudents: number;
+  @Prop({ required: true, default: 0 })
+  currentStudents: number; // Current number of students in the room
 
-    @Prop({ default: 0 })
-    currentStudents: number;
+  @Prop({ 
+    required: true, 
+    enum: Object.values(ExamRoomStatus), 
+    default: ExamRoomStatus.ACTIVE 
+  })
+  status: ExamRoomStatus;
 
-    @Prop({
-        type: String,
-        enum: Object.values(ExamRoomStatus),
-        default: ExamRoomStatus.CREATED,
-    })
-    status: ExamRoomStatus;
+  @Prop()
+  facultyJoinedAt: Date; // Timestamp when faculty joined the room
 
-    @Prop({
-        type: String,
-        enum: Object.values(ExamMode),
-        required: true,
-    })
-    mode: ExamMode;
-
-    @Prop()
-    facultyJoinedAt?: Date;
-
-    @Prop()
-    roomEndedAt?: Date;
+  @Prop({ default: true })
+  isActive: boolean;
 }
 
 export const ExamRoomSchema = SchemaFactory.createForClass(ExamRoom);

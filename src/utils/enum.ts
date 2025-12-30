@@ -54,11 +54,15 @@ export enum EnrollmentStatus {
   ENROLLED = 'ENROLLED',
   CANCELLED = 'CANCELLED',
   BLOCKED = 'BLOCKED',
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED"
 }
 
-export enum FacultyRole {
-  PROCTOR = 'PROCTOR',
-  OBSERVER = 'OBSERVER',
+export enum AssignmentStatus {
+  ASSIGNED = 'ASSIGNED',
+  JOINED = 'JOINED',
+  LEFT = 'LEFT',
+  COMPLETED = 'COMPLETED'
 }
 
 export enum CourseType {

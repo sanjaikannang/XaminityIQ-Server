@@ -1,47 +1,46 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { ExamMode, ExamStatus } from 'src/utils/enum';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
-export type ExamDocument = Exam & Document;
+export type ExamDocument = Exam & Document<Types.ObjectId>;
 
 @Schema({ timestamps: true })
 export class Exam {
-
     @Prop({ required: true })
     examName: string;
 
     @Prop({ required: true })
-    examDate: string; // YYYY-MM-DD
+    examDate: Date;
 
     @Prop({ required: true })
-    startTime: string; // HH:mm
+    startTime: string; // Format: "HH:mm"
 
     @Prop({ required: true })
-    endTime: string; // HH:mm
+    endTime: string; // Format: "HH:mm"
 
     @Prop({ required: true })
-    duration: number; // in minutes
+    duration: number; // Duration in minutes
 
-    @Prop({
-        type: String,
-        enum: Object.values(ExamMode),
-        required: true,
-    })
+    @Prop({ required: true, enum: Object.values(ExamMode) })
     mode: ExamMode;
 
     @Prop({
-        type: String,
+        required: true,
         enum: Object.values(ExamStatus),
-        default: ExamStatus.DRAFT,
+        default: ExamStatus.SCHEDULED
     })
     status: ExamStatus;
 
     @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-    createdBy: Types.ObjectId; // Super Admin
+    createdBy: Types.ObjectId;
+
+    @Prop({ default: true })
+    isActive: boolean;
 }
 
 export const ExamSchema = SchemaFactory.createForClass(Exam);
 
 // Indexes
 ExamSchema.index({ examDate: 1, startTime: 1 });
-ExamSchema.index({ mode: 1, status: 1 });
+ExamSchema.index({ status: 1 });
+ExamSchema.index({ mode: 1 });
