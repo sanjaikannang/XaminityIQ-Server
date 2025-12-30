@@ -163,6 +163,8 @@ export class StudentManagementService {
 
                 // Create User                
                 const hashedPassword = await this.passwordService.hashPassword(createStudentData.dateOfBirth.toString());
+                console.log("password...", createStudentData.dateOfBirth.toString());
+                console.log("hashPassword...", hashedPassword);
                 const user = await this.userRepositoryService.create({
                     email: studentEmail,
                     password: hashedPassword,
