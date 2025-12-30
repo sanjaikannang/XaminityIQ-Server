@@ -80,4 +80,21 @@ export class ConfigService {
     getCloudinaryApiSecret() {
         return this.getValue("CLOUDINARY_API_SECRET", true);
     }
+
+    getHMSApiUrl() {
+        return this.getValue("HMS_API_URL", true);
+    }
+
+    getHMSAppAccessKey() {
+        return this.getValue("HMS_APP_ACCESS_KEY", true);
+    }
+
+    getHMSAppSecretKey() {
+        return this.getValue("HMS_APP_SECRET", true);
+    }
+
+    getHMSTemplateId() {
+        return this.getValue("HMS_TEMPLATE_ID", true);
+    }
+
 }
