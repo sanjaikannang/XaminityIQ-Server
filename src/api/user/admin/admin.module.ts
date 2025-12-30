@@ -61,6 +61,13 @@ import { GetAllFacultyController } from './faculty-management/get-all-faculty/ge
 import { ServiceModule } from 'src/services/service.module';
 import { RepositoryModule } from 'src/repositories/repository.module';
 import { JwtModule } from '@nestjs/jwt';
+import { Exam, ExamSchema } from 'src/schemas/Exam/exam.schema';
+import { ExamRoom, ExamRoomSchema } from 'src/schemas/Exam/examRooms.schema';
+import { StudentEnrollment, StudentEnrollmentSchema } from 'src/schemas/Exam/studentEnrollments.schema';
+import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/facultyAssignments.schema';
+import { CreateExamController } from './exam-management/create-exam/create-exam.controller';
+import { ExamManagementService } from 'src/services/user-service/admin/exam-management.service';
+import { Hms100msService } from 'src/100ms/100ms.service';
 
 @Module({
     imports: [
@@ -87,6 +94,10 @@ import { JwtModule } from '@nestjs/jwt';
             { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
             { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
             { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
+            { name: Exam.name, schema: ExamSchema },
+            { name: ExamRoom.name, schema: ExamRoomSchema },
+            { name: StudentEnrollment.name, schema: StudentEnrollmentSchema },
+            { name: FacultyAssignment.name, schema: FacultyAssignmentSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -116,7 +127,8 @@ import { JwtModule } from '@nestjs/jwt';
         BulkUploadStudentsController,
         CreateFacultyController,
         GetFacultyController,
-        GetAllFacultyController
+        GetAllFacultyController,
+        CreateExamController
     ],
     providers: [
         ConfigService,
@@ -126,9 +138,11 @@ import { JwtModule } from '@nestjs/jwt';
         AdminService,
         StudentManagementService,
         FacultyManagementService,
+        ExamManagementService,
         JwtAuthGuard,
         RoleGuard,
-        CloudinaryService
+        CloudinaryService,
+        Hms100msService
     ],
     exports: [
         ConfigService,
@@ -137,9 +151,11 @@ import { JwtModule } from '@nestjs/jwt';
         AdminService,
         StudentManagementService,
         FacultyManagementService,
+        ExamManagementService,
         JwtAuthGuard,
         RoleGuard,
-        CloudinaryService
+        CloudinaryService,
+        Hms100msService
     ],
 })
 export class AdminModule { }
