@@ -15,4 +15,18 @@ export class ExamRoomRepositoryService {
         return created.toObject() as ExamRoom & { _id: Types.ObjectId };
     }
 
+    // Find exam room by exam ID
+    async findByExamId(examId: Types.ObjectId): Promise<ExamRoomDocument | null> {
+        return this.examRoomModel
+            .findOne({ examId, isActive: true })
+            .exec();
+    }
+
+    // Find exam room by HMS room ID
+    async findByHmsRoomId(hmsRoomId: string): Promise<ExamRoomDocument | null> {
+        return this.examRoomModel
+            .findOne({ hmsRoomId, isActive: true })
+            .exec();
+    }
+
 }
