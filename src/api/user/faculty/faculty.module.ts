@@ -15,8 +15,6 @@ import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/guards/role.guard';
 
 // Services
-import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
-import { Hms100msService } from 'src/100ms/100ms.service';
 import { AuthService } from 'src/services/auth-service/auth.service';
 import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
@@ -57,9 +55,7 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
         AuthJwtService,
         PasswordService,
         JwtAuthGuard,
-        RoleGuard,
-        CloudinaryService,
-        Hms100msService
+        RoleGuard
     ],
     exports: [
         ConfigService,
@@ -68,8 +64,6 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
         PasswordService,
         JwtAuthGuard,
         RoleGuard,
-        CloudinaryService,
-        Hms100msService
     ],
 })
 export class FacultyModule { }
