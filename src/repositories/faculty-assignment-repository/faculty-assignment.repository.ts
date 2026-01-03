@@ -1,6 +1,6 @@
 import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { FacultyAssignment, FacultyAssignmentDocument } from 'src/schemas/Exam/facultyAssignments.schema';
 
 @Injectable()
@@ -39,5 +39,21 @@ export class FacultyAssignmentRepositoryService {
         return this.facultyAssignmentModel
             .findOne({ examRoomId, isActive: true })
             .exec();
+    }
+
+    async findByExamIdAndFacultyId(
+        examId: Types.ObjectId,
+        facultyId: Types.ObjectId
+    ) {
+        try {
+            return await this.facultyAssignmentModel.findOne({
+                examId: examId,
+                facultyId: facultyId,
+            }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                'Error finding faculty assignment'
+            );
+        }
     }
 }

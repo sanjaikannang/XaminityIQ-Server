@@ -9,6 +9,8 @@ import { ServiceModule } from 'src/services/service.module';
 
 // Controller
 import { GetExamsController } from './get-exams/get-exams.controller';
+import { JoinExamController } from './join-exam/join-exam.controller';
+
 
 // Guards
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
@@ -19,6 +21,8 @@ import { AuthService } from 'src/services/auth-service/auth.service';
 import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
 import { ConfigService } from 'src/config/config.service';
+import { Hms100msService } from 'src/100ms/100ms.service';
+
 
 // Schemas
 import { Exam, ExamSchema } from 'src/schemas/Exam/exam.schema';
@@ -47,7 +51,8 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
         RepositoryModule
     ],
     controllers: [
-        GetExamsController
+        GetExamsController,
+        JoinExamController
     ],
     providers: [
         ConfigService,
@@ -55,7 +60,8 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
         AuthJwtService,
         PasswordService,
         JwtAuthGuard,
-        RoleGuard
+        RoleGuard,
+        Hms100msService
     ],
     exports: [
         ConfigService,
@@ -64,6 +70,7 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
         PasswordService,
         JwtAuthGuard,
         RoleGuard,
+        Hms100msService
     ],
 })
 export class FacultyModule { }

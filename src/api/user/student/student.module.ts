@@ -10,6 +10,7 @@ import { RepositoryModule } from 'src/repositories/repository.module';
 
 // Controller
 import { GetExamsController } from './get-exams/get-exams.controller';
+import { JoinExamController } from './join-exam/join-exam.controller';
 
 
 // Guards
@@ -22,7 +23,7 @@ import { ConfigService } from 'src/config/config.service';
 import { AuthService } from 'src/services/auth-service/auth.service';
 import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 import { PasswordService } from 'src/services/auth-service/password.service';
-
+import { Hms100msService } from 'src/100ms/100ms.service';
 
 
 // Schemas
@@ -53,7 +54,8 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
         RepositoryModule
     ],
     controllers: [
-        GetExamsController
+        GetExamsController,
+        JoinExamController
     ],
     providers: [
         ConfigService,
@@ -61,7 +63,8 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
         AuthJwtService,
         PasswordService,
         JwtAuthGuard,
-        RoleGuard
+        RoleGuard,
+        Hms100msService
     ],
     exports: [
         ConfigService,
@@ -69,7 +72,8 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
         AuthJwtService,
         PasswordService,
         JwtAuthGuard,
-        RoleGuard
+        RoleGuard,
+        Hms100msService
     ],
 })
 export class StudentModule { }

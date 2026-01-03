@@ -1,6 +1,6 @@
 import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { StudentEnrollment, StudentEnrollmentDocument } from 'src/schemas/Exam/studentEnrollments.schema';
 
 @Injectable()
@@ -45,6 +45,22 @@ export class StudentEnrollmentRepositoryService {
         return this.studentEnrollmentModel
             .find({ examRoomId, isActive: true })
             .exec();
+    }
+
+    async findByExamIdAndStudentId(
+        examId: Types.ObjectId,
+        studentId: Types.ObjectId
+    ) {
+        try {
+            return await this.studentEnrollmentModel.findOne({
+                examId: examId,
+                studentId: studentId
+            })
+        } catch (error) {
+            throw new InternalServerErrorException(
+                'Error finding student enrollment'
+            );
+        }
     }
 
 }

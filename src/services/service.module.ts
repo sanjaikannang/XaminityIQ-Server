@@ -9,6 +9,8 @@ import { AdminService } from "./user-service/admin/admin.service";
 import { FacultyService } from "./user-service/faculty/faculty.service";
 import { StudentService } from "./user-service/student/student.service";
 import { ConfigService } from "src/config/config.service";
+import { Hms100msService } from "src/100ms/100ms.service";
+
 
 // Modules
 import { ConfigModule } from "src/config/config.module";
@@ -34,7 +36,8 @@ import { RepositoryModule } from "src/repositories/repository.module";
         PasswordService,
         AdminService,
         FacultyService,
-        StudentService
+        StudentService,
+        Hms100msService
     ],
     exports: [
         AuthService,
@@ -42,7 +45,8 @@ import { RepositoryModule } from "src/repositories/repository.module";
         AuthJwtService,
         AdminService,
         FacultyService,
-        StudentService
+        StudentService,
+        Hms100msService
     ],
 })
 export class ServiceModule { }
