@@ -33,13 +33,10 @@ export class FacultyService {
         try {
 
             const facultyObjectId = new Types.ObjectId(facultyId);
-            console.log("facultyObjectId...", facultyObjectId);
 
             // Get all assignments for this faculty
             const assignments = await this.facultyAssignmentRepositoryService
                 .findByFacultyId(facultyObjectId);
-                
-                console.log("assignments...", assignments);
 
             if (!assignments || assignments.length === 0) {
                 return [];
@@ -47,15 +44,12 @@ export class FacultyService {
 
             // Get exam IDs from assignments
             const examIds = assignments.map(assignment => assignment.examId);
-            console.log("examIds", examIds)
 
             // Fetch all exams
             const exams = await this.examRepositoryService.findByIds(examIds);
-            console.log("exams", exams);
 
             // Build response
             const facultyExams: FacultyExam[] = [];
-            console.log("facultyExams...", facultyExams)
 
             for (const exam of exams) {
                 // Find assignment for this exam

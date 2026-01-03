@@ -18,7 +18,7 @@ export class GetExamsController {
     async getExams(
         @Req() req: any
     ): Promise<GetExamsResponse> {
-        const studentId = req.user.userId; // Extract from JWT token
+        const studentId = req.user.sub;
 
         const exams = await this.studentService.getExams(studentId);
 
