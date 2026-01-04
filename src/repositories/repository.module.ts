@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 
+
 // Repositories
 import { AdminRepositoryService } from "./admin-repository/admin.repository";
 import { UserRepositoryService } from "./user-repository/user.repository";
@@ -17,6 +18,18 @@ import { StudentContactInformationRepositoryService } from "./student-contact-in
 import { StudentAddressDetailRepositoryService } from "./student-address-detail-repository/student-address-detail.repository";
 import { StudentEducationHistoryRepositoryService } from "./student-education-history-repository/student-education-history.repository";
 import { StudentAcademicDetailRepositoryService } from "./student-academic-detail-repository/student-academic-detail.repository";
+import { ExamRepositoryService } from "./exam-repository/exam.repository";
+import { ExamRoomRepositoryService } from "./exam-room-repository/exam-room.repository";
+import { StudentEnrollmentRepositoryService } from "./student-enrollment-repository/student-enrollment.repository";
+import { FacultyAssignmentRepositoryService } from "./faculty-assignment-repository/faculty-assignment.repository";
+import { StudentJoinRequestRepositoryService } from "./student-join-request-repository/student-join-request-repository";
+import { FacultyRepositoryService } from "./faculty-repository/faculty.repository";
+import { FacultyPersonalDetailRepositoryService } from "./faculty-personal-detail-repository/faculty-personal-detail.repository";
+import { FacultyContactInformationRepositoryService } from "./faculty-contact-information-repository/faculty-contact-information.repository";
+import { FacultyAddressRepositoryService } from "./faculty-address-repository/faculty-address.repository";
+import { FacultyEducationHistoryRepositoryService } from "./faculty-education-history-repository/faculty-education-history.repository";
+import { FacultyEmploymentDetailRepositoryService } from "./faculty-employment-detail-repository/faculty-employment-detail.repository";
+import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experience-repository/faculty-work-experience.repository";
 
 
 // Schemas
@@ -42,21 +55,12 @@ import { FacultyAddress, FacultyAddressSchema } from "src/schemas/User/Faculty/f
 import { FacultyEducationHistory, FacultyEducationHistorySchema } from "src/schemas/User/Faculty/facultyEducationHistory.schema";
 import { FacultyEmploymentDetail, FacultyEmploymentDetailSchema } from "src/schemas/User/Faculty/facultyEmploymentDetail.schema";
 import { FacultyWorkExperience, FacultyWorkExperienceSchema } from "src/schemas/User/Faculty/facultyWorkExperience.schema";
-import { FacultyRepositoryService } from "./faculty-repository/faculty.repository";
-import { FacultyPersonalDetailRepositoryService } from "./faculty-personal-detail-repository/faculty-personal-detail.repository";
-import { FacultyContactInformationRepositoryService } from "./faculty-contact-information-repository/faculty-contact-information.repository";
-import { FacultyAddressRepositoryService } from "./faculty-address-repository/faculty-address.repository";
-import { FacultyEducationHistoryRepositoryService } from "./faculty-education-history-repository/faculty-education-history.repository";
-import { FacultyEmploymentDetailRepositoryService } from "./faculty-employment-detail-repository/faculty-employment-detail.repository";
-import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experience-repository/faculty-work-experience.repository";
 import { Exam, ExamSchema } from "src/schemas/Exam/exam.schema";
 import { ExamRoom, ExamRoomSchema } from "src/schemas/Exam/examRooms.schema";
 import { StudentEnrollment, StudentEnrollmentSchema } from "src/schemas/Exam/studentEnrollments.schema";
 import { FacultyAssignment, FacultyAssignmentSchema } from "src/schemas/Exam/facultyAssignments.schema";
-import { ExamRepositoryService } from "./exam-repository/exam.repository";
-import { ExamRoomRepositoryService } from "./exam-room-repository/exam-room.repository";
-import { StudentEnrollmentRepositoryService } from "./student-enrollment-repository/student-enrollment.repository";
-import { FacultyAssignmentRepositoryService } from "./faculty-assignment-repository/faculty-assignment.repository";
+import { StudentJoinRequest, StudentJoinRequestSchema } from "src/schemas/Exam/studentJoinRequest.schema";
+
 
 @Module({
     imports: [
@@ -87,6 +91,7 @@ import { FacultyAssignmentRepositoryService } from "./faculty-assignment-reposit
             { name: ExamRoom.name, schema: ExamRoomSchema },
             { name: StudentEnrollment.name, schema: StudentEnrollmentSchema },
             { name: FacultyAssignment.name, schema: FacultyAssignmentSchema },
+            { name: StudentJoinRequest.name, schema: StudentJoinRequestSchema },
         ]),
     ],
     controllers: [],
@@ -117,6 +122,7 @@ import { FacultyAssignmentRepositoryService } from "./faculty-assignment-reposit
         ExamRoomRepositoryService,
         FacultyAssignmentRepositoryService,
         StudentEnrollmentRepositoryService,
+        StudentJoinRequestRepositoryService
     ],
     exports: [
         AdminRepositoryService,
@@ -145,6 +151,7 @@ import { FacultyAssignmentRepositoryService } from "./faculty-assignment-reposit
         ExamRoomRepositoryService,
         FacultyAssignmentRepositoryService,
         StudentEnrollmentRepositoryService,
+        StudentJoinRequestRepositoryService
     ],
 })
 export class RepositoryModule { }

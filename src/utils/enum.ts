@@ -175,3 +175,17 @@ export enum EmploymentStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
 }
+
+export enum JoinRequestStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
+
+export enum StudentExamStatus {
+  NOT_JOINED = 'NOT_JOINED',
+  WAITING_APPROVAL = 'WAITING_APPROVAL',
+  IN_ROOM = 'IN_ROOM',
+  LEFT = 'LEFT',
+  REMOVED = 'REMOVED'
+}
