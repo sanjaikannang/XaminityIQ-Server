@@ -29,4 +29,10 @@ export class ExamRoomRepositoryService {
             .exec();
     }
 
+    async findById(
+        roomId: Types.ObjectId | string
+    ): Promise<ExamRoomDocument | null> {
+        return this.examRoomModel.findById(roomId).exec();
+    }
+
 }

@@ -22,6 +22,7 @@ import { ExamRoomRepositoryService } from "src/repositories/exam-room-repository
 import { StudentEnrollmentRepositoryService } from "src/repositories/student-enrollment-repository/student-enrollment.repository";
 import { FacultyAssignmentRepositoryService } from "src/repositories/faculty-assignment-repository/faculty-assignment.repository";
 import { FacultyRepositoryService } from "src/repositories/faculty-repository/faculty.repository";
+import { StudentJoinRequestRepositoryService } from "src/repositories/student-join-request-repository/student-join-request-repository";
 
 
 @Injectable()
@@ -140,7 +141,7 @@ export class StudentService {
 
             // Get faculty details
             const facultyAssignment = await this.facultyAssignmentRepositoryService
-                .findByExamRoomId(examRoom._id);
+                .findByExamRoomId(examRoom._id as Types.ObjectId);
 
             if (!facultyAssignment) {
                 throw new NotFoundException('Faculty not assigned to this exam');
@@ -168,11 +169,11 @@ export class StudentService {
                     "Any suspicious activity will be flagged",
                     "Contact the proctor if you face any technical issues"
                 ],
-                faculty: {
-                    name: faculty.name,
-                    email: faculty.email,
-                    phone: faculty.phone
-                }
+                // faculty: {
+                //     name: faculty.name,
+                //     email: faculty.email,
+                //     phone: faculty.phone
+                // }
             };
 
         } catch (error) {
@@ -200,9 +201,9 @@ export class StudentService {
                 throw new NotFoundException('Exam not found');
             }
 
-            if (exam.status !== ExamStatus.ONGOING) {
-                throw new BadRequestException('Exam is not currently ongoing');
-            }
+            // if (exam.status !== ExamStatus.ONGOING) {
+            //     throw new BadRequestException('Exam is not currently ongoing');
+            // }
 
             // 2. Check if within exam time window
             const now = new Date();
@@ -242,7 +243,7 @@ export class StudentService {
 
             // 5. Get faculty assignment
             const facultyAssignment = await this.facultyAssignmentRepositoryService
-                .findByExamRoomId(examRoom._id);
+                .findByExamRoomId(examRoom._id as Types.ObjectId);
 
             if (!facultyAssignment) {
                 throw new NotFoundException('No faculty assigned to this exam');
@@ -267,7 +268,7 @@ export class StudentService {
             const joinRequest = await this.studentJoinRequestRepositoryService.create({
                 examId: examObjectId,
                 studentId: studentObjectId,
-                examRoomId: examRoom._id,
+                examRoomId: examRoom._id as Types.ObjectId,
                 facultyId: facultyAssignment.facultyId,
                 status: JoinRequestStatus.PENDING,
                 isRejoin

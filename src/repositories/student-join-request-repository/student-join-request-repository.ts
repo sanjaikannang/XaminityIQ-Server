@@ -31,6 +31,25 @@ export class StudentJoinRequestRepositoryService {
         }
     }
 
+    // find pending request for a student
+    async findPendingRequest(
+        examId: Types.ObjectId,
+        studentId: Types.ObjectId
+    ): Promise<StudentJoinRequestDocument | null> {
+        try {
+            return await this.studentJoinRequestModel.findOne({
+                examId,
+                studentId,
+                status: JoinRequestStatus.PENDING,
+                isActive: true
+            }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                'Error finding pending join request'
+            );
+        }
+    }
+
     // Find join request by ID
     async findById(
         requestId: Types.ObjectId | string
@@ -60,6 +79,19 @@ export class StudentJoinRequestRepositoryService {
         } catch (error) {
             throw new InternalServerErrorException(
                 'Error updating join request'
+            );
+        }
+    }
+
+    // create join request
+    async create(
+        data: Partial<StudentJoinRequest>
+    ): Promise<StudentJoinRequestDocument> {
+        try {
+            return await this.studentJoinRequestModel.create(data);
+        } catch (error) {
+            throw new InternalServerErrorException(
+                'Error creating join request'
             );
         }
     }

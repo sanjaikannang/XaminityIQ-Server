@@ -80,4 +80,11 @@ export class StudentEnrollmentRepositoryService {
         }
     }
 
+    async update(
+        enrollmentId: Types.ObjectId | string,
+        updateData: Partial<StudentEnrollment>
+    ): Promise<StudentEnrollmentDocument | null> {
+        return this.updateById(enrollmentId, updateData);
+    }
+
 }

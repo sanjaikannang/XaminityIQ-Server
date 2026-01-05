@@ -2,9 +2,8 @@ export class JoinRequestItem {
 
     requestId: string;
     studentId: string;
-    studentName: string;
+    // studentName: string;
     isRejoin: boolean;
-    createdAt: Date;
 
 }
 

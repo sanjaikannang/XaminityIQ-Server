@@ -10,7 +10,11 @@ import { RepositoryModule } from 'src/repositories/repository.module';
 
 // Controller
 import { GetExamsController } from './get-exams/get-exams.controller';
-import { JoinExamController } from './join-exam/join-exam.controller';
+import { CheckJoinRequestStatusController } from './check-join-request-status/check-join-request-status.controller';
+import { GetExamDetailsController } from './get-exam-details/get-exam-details.controller';
+import { JoinExamRoomController } from './join-exam-room/join-exam-room.controller';
+import { RequestJoinExamController } from './request-join-exam/request-join-exam.controller';
+import { UpdateStudentLeftController } from './update-student-left/update-student-left.controller';
 
 
 // Guards
@@ -31,6 +35,7 @@ import { Exam, ExamSchema } from 'src/schemas/Exam/exam.schema';
 import { ExamRoom, ExamRoomSchema } from 'src/schemas/Exam/examRooms.schema';
 import { StudentEnrollment, StudentEnrollmentSchema } from 'src/schemas/Exam/studentEnrollments.schema';
 import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/facultyAssignments.schema';
+import { StudentJoinRequest, StudentJoinRequestSchema } from 'src/schemas/Exam/studentJoinRequest.schema';
 
 
 @Module({
@@ -40,6 +45,7 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
             { name: ExamRoom.name, schema: ExamRoomSchema },
             { name: StudentEnrollment.name, schema: StudentEnrollmentSchema },
             { name: FacultyAssignment.name, schema: FacultyAssignmentSchema },
+            { name: StudentJoinRequest.name, schema: StudentJoinRequestSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -54,8 +60,12 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
         RepositoryModule
     ],
     controllers: [
+        CheckJoinRequestStatusController,
+        GetExamDetailsController,
         GetExamsController,
-        JoinExamController
+        JoinExamRoomController,
+        RequestJoinExamController,
+        UpdateStudentLeftController
     ],
     providers: [
         ConfigService,

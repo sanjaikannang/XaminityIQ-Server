@@ -1,35 +1,34 @@
 import { UserRole } from 'src/utils/enum';
 import { RoleGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/roles.decorator';
-import { JoinExamRequest } from './join-exam.request';
-import { JoinExamResponse } from './join-exam.response';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
-import { Controller, UseGuards, Post, Body, Req } from '@nestjs/common';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import { StudentService } from 'src/services/user-service/student/student.service';
+import { CheckJoinRequestStatusResponse } from './check-join-request-status.response';
 
 @Controller('student')
-export class JoinExamController {
+export class CheckJoinRequestStatusController {
     constructor(
         private readonly studentService: StudentService
     ) { }
 
-    @Post('exam/join')
+    @Get('exam/request/:requestId/status')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.STUDENT)
-    async joinExam(
-        @Body() body: JoinExamRequest,
-        @Req() req: any
-    ): Promise<JoinExamResponse> {
+    async checkStatus(
+        @Req() req: any,
+        @Param('requestId') requestId: string
+    ): Promise<CheckJoinRequestStatusResponse> {
         const studentId = req.user.sub;
 
-        const result = await this.studentService.joinExam(
-            body.examId,
+        const result = await this.studentService.checkJoinRequestStatus(
+            requestId,
             studentId
         );
 
         return {
             success: true,
-            message: "Successfully joined exam room",
+            message: 'Join request status fetched',
             data: result,
         };
     }
