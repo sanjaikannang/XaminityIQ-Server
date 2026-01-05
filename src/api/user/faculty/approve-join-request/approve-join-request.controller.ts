@@ -1,36 +1,32 @@
 import { UserRole } from 'src/utils/enum';
 import { RoleGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/roles.decorator';
-import { JoinExamRequest } from './join-exam.request';
-import { JoinExamResponse } from './join-exam.response';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
-import { Controller, UseGuards, Post, Body, Req } from '@nestjs/common';
+import { Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { ApproveJoinRequestResponse } from './approve-join-request.response';
 import { FacultyService } from 'src/services/user-service/faculty/faculty.service';
 
 @Controller('faculty')
-export class JoinExamController {
+export class ApproveJoinRequestController {
     constructor(
         private readonly facultyService: FacultyService
     ) { }
 
-    @Post('exam/join')
+    @Post('exam/request/:requestId/approve')
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.FACULTY)
-    async joinExam(
-        @Body() body: JoinExamRequest,
-        @Req() req: any
-    ): Promise<JoinExamResponse> {
+    async approve(
+        @Req() req: any,
+        @Param('requestId') requestId: string
+    ): Promise<ApproveJoinRequestResponse> {
         const facultyId = req.user.sub;
 
-        const result = await this.facultyService.joinExam(
-            body.examId,
-            facultyId
-        );
+        const result = await this.facultyService.approveJoinRequest(requestId, facultyId);
 
         return {
             success: true,
-            message: 'Joined exam room successfully',
-            data: result,
+            message: 'Join request approved',
+            data: result
         };
     }
 }

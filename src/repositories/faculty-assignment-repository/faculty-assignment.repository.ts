@@ -56,4 +56,22 @@ export class FacultyAssignmentRepositoryService {
             );
         }
     }
+
+
+    async updateById(
+        assignmentId: Types.ObjectId,
+        updateData: Partial<FacultyAssignment>
+    ): Promise<FacultyAssignmentDocument | null> {
+        try {
+            return await this.facultyAssignmentModel.findByIdAndUpdate(
+                assignmentId,
+                { $set: updateData },
+                { new: true }
+            ).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                'Error updating faculty assignment'
+            );
+        }
+    }
 }

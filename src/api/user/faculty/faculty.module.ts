@@ -10,6 +10,10 @@ import { ServiceModule } from 'src/services/service.module';
 // Controller
 import { GetExamsController } from './get-exams/get-exams.controller';
 import { JoinExamController } from './join-exam/join-exam.controller';
+import { ApproveJoinRequestController } from './approve-join-request/approve-join-request.controller';
+import { GetJoinRequestsController } from './get-join-requests/get-join-requests.controller';
+import { RejectJoinRequestController } from './reject-join-request/reject-join-request.controller';
+import { RemoveStudentController } from './remove-student/remove-student.controller';
 
 
 // Guards
@@ -29,6 +33,7 @@ import { Exam, ExamSchema } from 'src/schemas/Exam/exam.schema';
 import { ExamRoom, ExamRoomSchema } from 'src/schemas/Exam/examRooms.schema';
 import { StudentEnrollment, StudentEnrollmentSchema } from 'src/schemas/Exam/studentEnrollments.schema';
 import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/facultyAssignments.schema';
+import { StudentJoinRequest, StudentJoinRequestSchema } from 'src/schemas/Exam/studentJoinRequest.schema';
 
 @Module({
     imports: [
@@ -37,6 +42,7 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
             { name: ExamRoom.name, schema: ExamRoomSchema },
             { name: StudentEnrollment.name, schema: StudentEnrollmentSchema },
             { name: FacultyAssignment.name, schema: FacultyAssignmentSchema },
+            { name: StudentJoinRequest.name, schema: StudentJoinRequestSchema }
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -51,8 +57,12 @@ import { FacultyAssignment, FacultyAssignmentSchema } from 'src/schemas/Exam/fac
         RepositoryModule
     ],
     controllers: [
+        ApproveJoinRequestController,
         GetExamsController,
-        JoinExamController
+        GetJoinRequestsController,
+        JoinExamController,
+        RejectJoinRequestController,
+        RemoveStudentController
     ],
     providers: [
         ConfigService,

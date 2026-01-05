@@ -6,6 +6,7 @@ import {
     NotFoundException
 } from "@nestjs/common";
 import { Types } from "mongoose";
+import { EnrollmentStatus, ExamStatus, JoinRequestStatus } from "src/utils/enum";
 
 // Service
 import { Hms100msService } from "src/100ms/100ms.service";
@@ -20,8 +21,8 @@ import { ExamRepositoryService } from "src/repositories/exam-repository/exam.rep
 import { ExamRoomRepositoryService } from "src/repositories/exam-room-repository/exam-room.repository";
 import { FacultyAssignmentRepositoryService } from "src/repositories/faculty-assignment-repository/faculty-assignment.repository";
 import { StudentEnrollmentRepositoryService } from "src/repositories/student-enrollment-repository/student-enrollment.repository";
+import { StudentJoinRequestRepositoryService } from "src/repositories/student-join-request-repository/student-join-request-repository";
 import { StudentRepositoryService } from "src/repositories/student-repository/student.repository";
-import { ExamStatus, JoinRequestStatus } from "src/utils/enum";
 
 @Injectable()
 export class FacultyService {
@@ -31,7 +32,7 @@ export class FacultyService {
         private readonly studentEnrollmentRepositoryService: StudentEnrollmentRepositoryService,
         private readonly facultyAssignmentRepositoryService: FacultyAssignmentRepositoryService,
         private readonly hms100msService: Hms100msService,
-        private readonly studentJoinRequestRepositoryService: ,
+        private readonly studentJoinRequestRepositoryService: StudentJoinRequestRepositoryService,
         private readonly studentRepositoryService: StudentRepositoryService
     ) { }
 
@@ -92,7 +93,6 @@ export class FacultyService {
                     totalStudents: enrolledStudents,
                     roomCreated: !!examRoom,
                     hmsRoomId: examRoom?.hmsRoomId,
-                    // canMonitor
                 });
             }
 
@@ -164,7 +164,8 @@ export class FacultyService {
                 .countByExamId(examObjectId);
 
             // Update faculty assignment join time
-            await this.facultyAssignmentRepositoryService.update(assignment._id, {
+            await this.facultyAssignmentRepositoryService.updateById(
+                assignment._id as Types.ObjectId, {
                 joinedAt: new Date()
             });
 
@@ -187,6 +188,7 @@ export class FacultyService {
             throw new InternalServerErrorException('Failed to join exam room');
         }
     }
+
 
     // Get Pending Join Requests
     async getPendingJoinRequests(examId: string, facultyId: string) {
@@ -213,9 +215,9 @@ export class FacultyService {
                     return {
                         requestId: request._id.toString(),
                         studentId: request.studentId.toString(),
-                        studentName: student?.name || 'Unknown',
+                        studentName: student?._id || 'Unknown',
                         isRejoin: request.isRejoin,
-                        createdAt: request.createdAt
+                        // createdAt: request.createdAt
                     };
                 })
             );
@@ -229,6 +231,7 @@ export class FacultyService {
             throw new InternalServerErrorException('Error getting join requests');
         }
     }
+
 
     // Approve Join Request
     async approveJoinRequest(requestId: string, facultyId: string) {
@@ -251,11 +254,14 @@ export class FacultyService {
                 throw new BadRequestException('Request has already been processed');
             }
 
-            await this.studentJoinRequestRepositoryService.update(requestObjectId, {
-                status: JoinRequestStatus.APPROVED,
-                approvedAt: new Date(),
-                reviewedBy: facultyObjectId
-            });
+            await this.studentJoinRequestRepositoryService.updateById(
+                requestObjectId,
+                {
+                    status: JoinRequestStatus.APPROVED,
+                    approvedAt: new Date(),
+                    reviewedBy: facultyObjectId
+                }
+            );
 
             return {
                 message: 'Join request approved',
@@ -272,6 +278,7 @@ export class FacultyService {
             throw new InternalServerErrorException('Error approving join request');
         }
     }
+
 
     // Reject Join Request
     async rejectJoinRequest(requestId: string, facultyId: string, reason?: string) {
@@ -294,12 +301,15 @@ export class FacultyService {
                 throw new BadRequestException('Request has already been processed');
             }
 
-            await this.studentJoinRequestRepositoryService.update(requestObjectId, {
-                status: JoinRequestStatus.REJECTED,
-                rejectedAt: new Date(),
-                reviewedBy: facultyObjectId,
-                rejectionReason: reason || 'No reason provided'
-            });
+            await this.studentJoinRequestRepositoryService.updateById(
+                requestObjectId,
+                {
+                    status: JoinRequestStatus.REJECTED,
+                    rejectedAt: new Date(),
+                    reviewedBy: facultyObjectId,
+                    rejectionReason: reason || 'No reason provided'
+                }
+            );
 
             return {
                 message: 'Join request rejected',
@@ -316,6 +326,7 @@ export class FacultyService {
             throw new InternalServerErrorException('Error rejecting join request');
         }
     }
+
 
     // Remove Student from Exam
     async removeStudent(examId: string, studentId: string, facultyId: string, reason: string) {
@@ -337,10 +348,13 @@ export class FacultyService {
                 .findByExamIdAndStudentId(examObjectId, studentObjectId);
 
             if (enrollment) {
-                await this.studentEnrollmentRepositoryService.update(enrollment._id, {
-                    status: 'removed',
-                    leftAt: new Date()
-                });
+                await this.studentEnrollmentRepositoryService.updateById(
+                    enrollment._id,
+                    {
+                        status: EnrollmentStatus.BLOCKED,
+                        leftAt: new Date()
+                    }
+                );
             }
 
             // You can also use 100ms API to remove the student from the room
@@ -359,5 +373,6 @@ export class FacultyService {
             throw new InternalServerErrorException('Error removing student');
         }
     }
+
 
 }

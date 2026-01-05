@@ -63,4 +63,21 @@ export class StudentEnrollmentRepositoryService {
         }
     }
 
+    async updateById(
+        enrollmentId: Types.ObjectId | string,
+        updateData: Partial<StudentEnrollment>
+    ): Promise<StudentEnrollmentDocument | null> {
+        try {
+            return await this.studentEnrollmentModel.findByIdAndUpdate(
+                enrollmentId,
+                { $set: updateData },
+                { new: true }
+            ).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                'Error updating student enrollment'
+            );
+        }
+    }
+
 }
