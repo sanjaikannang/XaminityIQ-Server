@@ -147,12 +147,12 @@ export class StudentService {
                 throw new NotFoundException('Faculty not assigned to this exam');
             }
 
-            const faculty = await this.facultyRepositoryService
-                .findById(facultyAssignment.facultyId);
+            // const faculty = await this.facultyRepositoryService
+            //     .findById(facultyAssignment.facultyId);
 
-            if (!faculty) {
-                throw new NotFoundException('Faculty details not found');
-            }
+            // if (!faculty) {
+            //     throw new NotFoundException('Faculty details not found');
+            // }
 
             return {
                 examName: exam.examName,
