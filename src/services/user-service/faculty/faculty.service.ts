@@ -1,7 +1,308 @@
-import { Injectable } from '@nestjs/common';
+import { Types } from 'mongoose';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+
+// Enums
+import { ExamStatus, MessageType, ParticipantRole, ParticipantStatus, StudentActionType } from 'src/utils/enum';
+
+// Service
+import { AgoraService } from 'src/agora/agora.service';
+
+// Repository
+import { AgoraTokenRepositoryService } from 'src/repositories/agora-token-repository/agora-token.repository';
+import { ChatMessageRepositoryService } from 'src/repositories/chat-message-repository/chat-message.repository';
+import { ExamParticipantRepositoryService } from 'src/repositories/exam-participant-repository/exam-participant.repository';
+import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
+import { JoinRequestRepositoryService } from 'src/repositories/join-request-repository/join-request.repository';
+import { StudentActionRepositoryService } from 'src/repositories/student-action-repository/student-action.repository';
+
 
 @Injectable()
 export class FacultyService {
-    constructor() { }
+    constructor(
+        private readonly examRepository: ExamRepositoryService,
+        private readonly examParticipantRepository: ExamParticipantRepositoryService,
+        private readonly joinRequestRepository: JoinRequestRepositoryService,
+        private readonly agoraTokenRepository: AgoraTokenRepositoryService,
+        private readonly chatMessageRepository: ChatMessageRepositoryService,
+        private readonly studentActionRepository: StudentActionRepositoryService,
+        private readonly agoraService: AgoraService
+    ) { }
+
+    async getFacultyExams(facultyId: string, status?: ExamStatus) {
+        try {
+            // Find all exams where faculty is a participant
+            const participants = await this.examParticipantRepository.findByUserId(
+                facultyId,
+                ParticipantRole.FACULTY
+            );
+
+            const exams = participants
+                .map(p => (p as any).examId)
+                .filter(exam => !status || exam.status === status);
+
+            return exams.map(exam => ({
+                examId: exam._id.toString(),
+                examName: exam.examName,
+                date: exam.date,
+                time: exam.time,
+                duration: exam.duration,
+                status: exam.status
+            }));
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch faculty exams');
+        }
+    }
+
+    async facultyJoinExam(examId: string, facultyId: string) {
+        try {
+            // Verify exam exists
+            const exam = await this.examRepository.findById(examId);
+            if (!exam) {
+                throw new NotFoundException('Exam not found');
+            }
+
+            // Verify faculty is assigned to this exam
+            const participant = await this.examParticipantRepository.findByExamAndUser(
+                examId,
+                facultyId
+            );
+
+            if (!participant || participant.role !== ParticipantRole.FACULTY) {
+                throw new BadRequestException('Faculty not assigned to this exam');
+            }
+
+            // Generate Agora tokens
+            const uid = this.agoraService.generateUid(facultyId, 'faculty');
+            const tokens = this.agoraService.generateTokens(
+                exam.agoraChannelName,
+                uid,
+                'publisher'
+            );
+
+            // Save tokens to database
+            await this.agoraTokenRepository.create({
+                examId: new Types.ObjectId(examId),
+                userId: new Types.ObjectId(facultyId),
+                rtcToken: tokens.rtcToken,
+                rtmToken: tokens.rtmToken,
+                uid,
+                expiresAt: tokens.expiresAt
+            });
+
+            // Update participant status
+            await this.examParticipantRepository.updateJoinedAt(examId, facultyId);
+
+            // Update exam start time if not started
+            if (!exam.startedAt) {
+                await this.examRepository.updateStartTime(examId, new Date());
+            }
+
+            return {
+                rtcToken: tokens.rtcToken,
+                rtmToken: tokens.rtmToken,
+                channelName: exam.agoraChannelName,
+                uid,
+                expiresAt: tokens.expiresAt
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to join exam');
+        }
+    }
+
+    async getPendingJoinRequests(examId: string) {
+        try {
+            const requests = await this.joinRequestRepository.findPendingByExam(examId);
+
+            return requests.map(req => ({
+                requestId: req._id as any,
+                studentId: (req.studentId as any)._id.toString(),
+                studentName: (req.studentId as any).name,
+                timestamp: req.requestedAt,
+                deviceStatus: req.deviceStatus
+            }));
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch join requests');
+        }
+    }
+
+    async approveJoinRequest(requestId: string) {
+        try {
+            const request = await this.joinRequestRepository.findById(requestId);
+            if (!request) {
+                throw new NotFoundException('Join request not found');
+            }
+
+            // Approve request
+            await this.joinRequestRepository.approve(requestId);
+
+            // Get exam details
+            const exam = await this.examRepository.findById(request.examId.toString());
+            if (!exam) {
+                throw new NotFoundException('Exam not found');
+            }
+
+            // Generate tokens for student
+            const uid = this.agoraService.generateUid(
+                request.studentId.toString(),
+                'student'
+            );
+            const tokens = this.agoraService.generateTokens(
+                exam.agoraChannelName,
+                uid,
+                'publisher'
+            );
+
+            // Save tokens
+            await this.agoraTokenRepository.create({
+                examId: request.examId,
+                userId: request.studentId,
+                rtcToken: tokens.rtcToken,
+                rtmToken: tokens.rtmToken,
+                uid,
+                expiresAt: tokens.expiresAt
+            });
+
+            // Update participant status
+            await this.examParticipantRepository.updateStatus(
+                request.examId.toString(),
+                request.studentId.toString(),
+                ParticipantStatus.JOINED
+            );
+
+            return {
+                success: true,
+                tokens: {
+                    rtcToken: tokens.rtcToken,
+                    rtmToken: tokens.rtmToken,
+                    channelName: exam.agoraChannelName,
+                    uid,
+                    expiresAt: tokens.expiresAt
+                }
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) throw error;
+            throw new InternalServerErrorException('Failed to approve join request');
+        }
+    }
+
+    async rejectJoinRequest(requestId: string, reason: string) {
+        try {
+            const request = await this.joinRequestRepository.findById(requestId);
+            if (!request) {
+                throw new NotFoundException('Join request not found');
+            }
+
+            await this.joinRequestRepository.reject(requestId, reason);
+
+            await this.examParticipantRepository.updateStatus(
+                request.examId.toString(),
+                request.studentId.toString(),
+                ParticipantStatus.REJECTED
+            );
+
+            return { success: true };
+        } catch (error) {
+            if (error instanceof NotFoundException) throw error;
+            throw new InternalServerErrorException('Failed to reject join request');
+        }
+    }
+
+    async sendMessage(data: {
+        examId: string;
+        senderId: string;
+        recipientId?: string;
+        message: string;
+        type: MessageType;
+    }) {
+        try {
+            const messageDoc = await this.chatMessageRepository.create({
+                examId: new Types.ObjectId(data.examId),
+                senderId: new Types.ObjectId(data.senderId),
+                recipientId: data.recipientId ? new Types.ObjectId(data.recipientId) : undefined,
+                message: data.message,
+                type: data.type
+            });
+
+            return {
+                messageId: messageDoc._id as any,
+                timestamp: messageDoc.timestamp
+            };
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to send message');
+        }
+    }
+
+    async getChatHistory(examId: string, recipientId?: string) {
+        try {
+            const messages = await this.chatMessageRepository.findByExam(examId);
+
+            let filteredMessages = messages;
+            if (recipientId) {
+                filteredMessages = messages.filter(
+                    msg => msg.recipientId?.toString() === recipientId ||
+                        msg.type === MessageType.BROADCAST
+                );
+            }
+
+            return filteredMessages.map(msg => ({
+                messageId: msg._id as any,
+                senderId: (msg.senderId as any)._id.toString(),
+                senderName: (msg.senderId as any).name,
+                recipientId: msg.recipientId ? (msg.recipientId as any)._id.toString() : undefined,
+                message: msg.message,
+                type: msg.type,
+                timestamp: msg.timestamp
+            }));
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch chat history');
+        }
+    }
+
+    async removeStudent(examId: string, studentId: string, reason: string) {
+        try {
+            // Update participant status
+            await this.examParticipantRepository.updateStatus(
+                examId,
+                studentId,
+                ParticipantStatus.REMOVED
+            );
+
+            // Log action
+            await this.studentActionRepository.create({
+                examId: new Types.ObjectId(examId),
+                studentId: new Types.ObjectId(studentId),
+                action: StudentActionType.REMOVED,
+                reason
+            });
+
+            // Delete Agora tokens
+            await this.agoraTokenRepository.deleteByExamAndUser(examId, studentId);
+
+            return { success: true };
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to remove student');
+        }
+    }
+
+    async endExam(examId: string) {
+        try {
+            // Update exam status
+            await this.examRepository.updateEndTime(examId, new Date());
+
+            // Update all participants
+            await this.examParticipantRepository.updateAllParticipantsStatus(
+                examId,
+                ParticipantStatus.EXAM_ENDED
+            );
+
+            return { success: true };
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to end exam');
+        }
+    }
+
 
 }
