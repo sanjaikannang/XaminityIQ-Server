@@ -20,6 +20,10 @@ import { BatchCourseRepositoryService } from "src/repositories/batch-course-repo
 import { DepartmentRepositoryService } from "src/repositories/department-repository/department.repository";
 import { BatchDepartmentRepositoryService } from "src/repositories/batch-department-repository/batch-department.repository";
 import { SectionRepositoryService } from "src/repositories/section-repository/section.repository";
+import { ParticipantRole, ParticipantStatus } from "src/utils/enum";
+import { AgoraService } from "src/agora/agora.service";
+import { ExamRepositoryService } from "src/repositories/exam-repository/exam.repository";
+import { ExamParticipantRepositoryService } from "src/repositories/exam-participant-repository/exam-participant.repository";
 
 @Injectable()
 export class AdminService {
@@ -29,7 +33,10 @@ export class AdminService {
         private readonly batchCourseRepositoryService: BatchCourseRepositoryService,
         private readonly departmentRepositoryService: DepartmentRepositoryService,
         private readonly batchDepartmentRepositoryService: BatchDepartmentRepositoryService,
-        private readonly sectionRepositoryService: SectionRepositoryService,        
+        private readonly sectionRepositoryService: SectionRepositoryService,
+        private readonly agoraService: AgoraService,
+        private readonly examRepository: ExamRepositoryService,
+        private readonly examParticipantRepository: ExamParticipantRepositoryService
     ) { }
 
 
@@ -623,5 +630,71 @@ export class AdminService {
             }
             throw new InternalServerErrorException('Failed to fetch departments for course');
         }
-    }   
+    }
+
+
+    // Create Exam API Endpoint
+    async createExam(data: {
+        examName: string;
+        date: Date;
+        time: string;
+        duration: number;
+        facultyId: string;
+        studentIds: string[];
+        adminId: string;
+    }) {
+        try {
+            // Validate student count
+            if (data.studentIds.length > 20) {
+                throw new BadRequestException('Maximum 20 students allowed per exam');
+            }
+
+            // Generate Agora channel name
+            const agoraChannelName = this.agoraService.generateChannelName(
+                `${data.examName}_${Date.now()}`
+            );
+
+            // Create exam
+            const exam = await this.examRepository.create({
+                examName: data.examName,
+                date: data.date,
+                time: data.time,
+                duration: data.duration,
+                agoraChannelName,
+                createdBy: new Types.ObjectId(data.adminId)
+            });
+
+            // Create participants
+            const participants = [
+                // Faculty participant
+                {
+                    examId: exam._id,
+                    userId: new Types.ObjectId(data.facultyId),
+                    role: ParticipantRole.FACULTY,
+                    status: ParticipantStatus.INVITED
+                },
+                // Student participants
+                ...data.studentIds.map(studentId => ({
+                    examId: exam._id,
+                    userId: new Types.ObjectId(studentId),
+                    role: ParticipantRole.STUDENT,
+                    status: ParticipantStatus.INVITED
+                }))
+            ];
+
+            await this.examParticipantRepository.bulkCreate(participants);
+
+            return {
+                examId: exam._id as any,
+                examName: exam.examName,
+                channelName: agoraChannelName,
+                participantsCount: participants.length
+            };
+        } catch (error) {
+            if (error instanceof BadRequestException) throw error;
+            throw new InternalServerErrorException('Failed to create exam');
+        }
+    }
+
+
 }
