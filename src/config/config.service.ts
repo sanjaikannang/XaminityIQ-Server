@@ -80,4 +80,12 @@ export class ConfigService {
     getCloudinaryApiSecret() {
         return this.getValue("CLOUDINARY_API_SECRET", true);
     }
+
+    getAgoraAppId() {
+        return this.getValue("AGORA_APP_ID", true);
+    }
+
+    getAgoraCertificate() {
+        return this.getValue("AGORA_CERTIFICATE", true);
+    }
 }
