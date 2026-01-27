@@ -19,6 +19,7 @@ export class ExamRepositoryService {
     }
 
     async create(examData: {
+        examMode: string;
         examName: string;
         date: Date;
         time: string;

@@ -5,10 +5,15 @@ import {
     IsNumber,
     IsArray,
     ArrayMaxSize,
-    Min
+    Min,
+    IsEnum
 } from 'class-validator';
+import { ExamMode } from 'src/utils/enum';
 
 export class CreateExamRequest {
+    @IsEnum(ExamMode)
+    examMode: ExamMode;
+
     @IsString()
     @IsNotEmpty()
     examName: string;

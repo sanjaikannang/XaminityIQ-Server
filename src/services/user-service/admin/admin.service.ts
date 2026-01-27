@@ -639,6 +639,7 @@ export class AdminService {
 
     // Create Exam API Endpoint
     async createExam(data: {
+        examMode: string;
         examName: string;
         date: Date;
         time: string;
@@ -660,6 +661,7 @@ export class AdminService {
 
             // Create exam
             const exam = await this.examRepository.create({
+                examMode: data.examMode,
                 examName: data.examName,
                 date: data.date,
                 time: data.time,
