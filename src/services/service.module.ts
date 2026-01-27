@@ -13,6 +13,7 @@ import { ConfigService } from "src/config/config.service";
 // Modules
 import { ConfigModule } from "src/config/config.module";
 import { RepositoryModule } from "src/repositories/repository.module";
+import { AgoraService } from "src/agora/agora.service";
 
 @Module({
     imports: [
@@ -34,7 +35,8 @@ import { RepositoryModule } from "src/repositories/repository.module";
         PasswordService,
         AdminService,
         FacultyService,
-        StudentService
+        StudentService,
+        AgoraService
     ],
     exports: [
         AuthService,
@@ -42,7 +44,8 @@ import { RepositoryModule } from "src/repositories/repository.module";
         AuthJwtService,
         AdminService,
         FacultyService,
-        StudentService
+        StudentService,
+        AgoraService
     ],
 })
 export class ServiceModule { }

@@ -17,6 +17,19 @@ import { StudentContactInformationRepositoryService } from "./student-contact-in
 import { StudentAddressDetailRepositoryService } from "./student-address-detail-repository/student-address-detail.repository";
 import { StudentEducationHistoryRepositoryService } from "./student-education-history-repository/student-education-history.repository";
 import { StudentAcademicDetailRepositoryService } from "./student-academic-detail-repository/student-academic-detail.repository";
+import { ExamRepositoryService } from "./exam-repository/exam.repository";
+import { AgoraTokenRepositoryService } from "./agora-token-repository/agora-token.repository";
+import { ChatMessageRepositoryService } from "./chat-message-repository/chat-message.repository";
+import { ExamParticipantRepositoryService } from "./exam-participant-repository/exam-participant.repository";
+import { JoinRequestRepositoryService } from "./join-request-repository/join-request.repository";
+import { StudentActionRepositoryService } from "./student-action-repository/student-action.repository";
+import { FacultyRepositoryService } from "./faculty-repository/faculty.repository";
+import { FacultyPersonalDetailRepositoryService } from "./faculty-personal-detail-repository/faculty-personal-detail.repository";
+import { FacultyContactInformationRepositoryService } from "./faculty-contact-information-repository/faculty-contact-information.repository";
+import { FacultyAddressRepositoryService } from "./faculty-address-repository/faculty-address.repository";
+import { FacultyEducationHistoryRepositoryService } from "./faculty-education-history-repository/faculty-education-history.repository";
+import { FacultyEmploymentDetailRepositoryService } from "./faculty-employment-detail-repository/faculty-employment-detail.repository";
+import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experience-repository/faculty-work-experience.repository";
 
 
 // Schemas
@@ -42,13 +55,13 @@ import { FacultyAddress, FacultyAddressSchema } from "src/schemas/User/Faculty/f
 import { FacultyEducationHistory, FacultyEducationHistorySchema } from "src/schemas/User/Faculty/facultyEducationHistory.schema";
 import { FacultyEmploymentDetail, FacultyEmploymentDetailSchema } from "src/schemas/User/Faculty/facultyEmploymentDetail.schema";
 import { FacultyWorkExperience, FacultyWorkExperienceSchema } from "src/schemas/User/Faculty/facultyWorkExperience.schema";
-import { FacultyRepositoryService } from "./faculty-repository/faculty.repository";
-import { FacultyPersonalDetailRepositoryService } from "./faculty-personal-detail-repository/faculty-personal-detail.repository";
-import { FacultyContactInformationRepositoryService } from "./faculty-contact-information-repository/faculty-contact-information.repository";
-import { FacultyAddressRepositoryService } from "./faculty-address-repository/faculty-address.repository";
-import { FacultyEducationHistoryRepositoryService } from "./faculty-education-history-repository/faculty-education-history.repository";
-import { FacultyEmploymentDetailRepositoryService } from "./faculty-employment-detail-repository/faculty-employment-detail.repository";
-import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experience-repository/faculty-work-experience.repository";
+import { Exam, ExamSchema } from "src/schemas/Exam/exam.schema";
+import { AgoraToken, AgoraTokenSchema } from "src/schemas/Exam/agoraToken.schema";
+import { ChatMessage, ChatMessageSchema } from "src/schemas/Exam/chatMessage.schema";
+import { ExamParticipant, ExamParticipantSchema } from "src/schemas/Exam/examParticipant.schema";
+import { JoinRequest, JoinRequestSchema } from "src/schemas/Exam/joinRequest.schema";
+import { StudentAction, StudentActionSchema } from "src/schemas/Exam/studentAction.schema";
+
 
 @Module({
     imports: [
@@ -75,6 +88,12 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
             { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
             { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
             { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
+            { name: Exam.name, schema: ExamSchema },
+            { name: AgoraToken.name, schema: AgoraTokenSchema },
+            { name: ChatMessage.name, schema: ChatMessageSchema },
+            { name: ExamParticipant.name, schema: ExamParticipantSchema },
+            { name: JoinRequest.name, schema: JoinRequestSchema },
+            { name: StudentAction.name, schema: StudentActionSchema }
         ]),
     ],
     controllers: [],
@@ -101,6 +120,12 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
         FacultyEducationHistoryRepositoryService,
         FacultyEmploymentDetailRepositoryService,
         FacultyWorkExperienceRepositoryService,
+        ExamRepositoryService,
+        AgoraTokenRepositoryService,
+        ChatMessageRepositoryService,
+        ExamParticipantRepositoryService,
+        JoinRequestRepositoryService,
+        StudentActionRepositoryService
     ],
     exports: [
         AdminRepositoryService,
@@ -125,6 +150,12 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
         FacultyEducationHistoryRepositoryService,
         FacultyEmploymentDetailRepositoryService,
         FacultyWorkExperienceRepositoryService,
+        ExamRepositoryService,
+        AgoraTokenRepositoryService,
+        ChatMessageRepositoryService,
+        ExamParticipantRepositoryService,
+        JoinRequestRepositoryService,
+        StudentActionRepositoryService
     ],
 })
 export class RepositoryModule { }
