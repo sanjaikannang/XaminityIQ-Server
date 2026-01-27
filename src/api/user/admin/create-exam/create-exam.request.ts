@@ -34,6 +34,6 @@ export class CreateExamRequest {
     facultyId: string;
 
     @IsArray()
-    @ArrayMaxSize(20)
+    @ArrayMaxSize(1)
     studentIds: string[];
 }

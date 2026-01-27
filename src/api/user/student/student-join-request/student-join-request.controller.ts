@@ -20,6 +20,9 @@ export class StudentJoinRequestController {
         @Param('examId') examId: string,
         @Body() body: StudentJoinRequestRequest
     ): Promise<StudentJoinRequestResponse> {
+
+        console.log("Join request body...", body);
+
         const result = await this.studentService.requestToJoinExam({
             examId,
             ...body

@@ -14,7 +14,7 @@ export class JoinRequestRepositoryService {
     async create(requestData: {
         examId: Types.ObjectId;
         studentId: Types.ObjectId;
-        deviceStatus: any;
+        // deviceStatus: any;
     }): Promise<JoinRequestDocument> {
         try {
             const request = new this.joinRequestModel({
@@ -41,7 +41,7 @@ export class JoinRequestRepositoryService {
                 examId: new Types.ObjectId(examId),
                 status: JoinRequestStatus.PENDING
             })
-                .populate('studentId')
+                // .populate('studentId')
                 .sort({ requestedAt: 1 })
                 .exec();
         } catch (error) {

@@ -13,8 +13,8 @@ export class StudentJoinRequestRequest {
     @IsNotEmpty()
     studentId: string;
 
-    @IsObject()
-    @ValidateNested()
-    @Type(() => DeviceStatus)
-    deviceStatus: DeviceStatus;
+    // @IsObject()
+    // @ValidateNested()
+    // @Type(() => DeviceStatus)
+    // deviceStatus: DeviceStatus;
 }

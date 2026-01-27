@@ -116,12 +116,14 @@ export class FacultyService {
         try {
             const requests = await this.joinRequestRepository.findPendingByExam(examId);
 
+            console.log("requests", requests);
+
             return requests.map(req => ({
                 requestId: req._id as any,
                 studentId: (req.studentId as any)._id.toString(),
                 studentName: (req.studentId as any).name,
                 timestamp: req.requestedAt,
-                deviceStatus: req.deviceStatus
+                // deviceStatus: req.deviceStatus
             }));
         } catch (error) {
             throw new InternalServerErrorException('Failed to fetch join requests');

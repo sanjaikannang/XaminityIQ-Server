@@ -31,6 +31,8 @@ export class StudentService {
                 ParticipantRole.STUDENT
             );
 
+            console.log("participents...", participants);
+
             const exams = participants
                 .map(p => {
                     const exam = (p as any).examId;
@@ -55,9 +57,11 @@ export class StudentService {
     async requestToJoinExam(data: {
         examId: string;
         studentId: string;
-        deviceStatus: any;
+        // deviceStatus: any;
     }) {
         try {
+
+            console.log("data...", data);
             // Check if already requested
             const existing = await this.joinRequestRepository.findByExamAndStudent(
                 data.examId,
@@ -71,7 +75,7 @@ export class StudentService {
             const request = await this.joinRequestRepository.create({
                 examId: new Types.ObjectId(data.examId),
                 studentId: new Types.ObjectId(data.studentId),
-                deviceStatus: data.deviceStatus
+                // deviceStatus: data.deviceStatus
             });
 
             // Update participant status to waiting

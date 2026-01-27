@@ -20,7 +20,7 @@ export class JoinRequest {
     })
     status: JoinRequestStatus;
 
-    @Prop({ required: true, type: Object })
+    @Prop({ type: Object })
     deviceStatus: {
         camera: boolean;
         microphone: boolean;
