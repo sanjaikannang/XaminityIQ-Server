@@ -21,6 +21,20 @@ import { StudentContactInformation, StudentContactInformationSchema } from 'src/
 import { StudentEducationHistory, StudentEducationHistorySchema } from 'src/schemas/User/Student/studentEducationHistory.schema';
 import { StudentAddressDetail, StudentAddressDetailSchema } from 'src/schemas/User/Student/studentAddressDetail.schema';
 import { StudentAcademicDetail, StudentAcademicDetailSchema } from 'src/schemas/User/Student/studentAcademicDetail.schema';
+import { Faculty, FacultySchema } from 'src/schemas/User/Faculty/faculty.schema';
+import { FacultyPersonalDetail, FacultyPersonalDetailSchema } from 'src/schemas/User/Faculty/facultyPersonalDetail.schema';
+import { FacultyContactInformation, FacultyContactInformationSchema } from 'src/schemas/User/Faculty/facultyContactInformation.schema';
+import { FacultyAddress, FacultyAddressSchema } from 'src/schemas/User/Faculty/facultyAddressDetail.schema';
+import { FacultyEducationHistory, FacultyEducationHistorySchema } from 'src/schemas/User/Faculty/facultyEducationHistory.schema';
+import { FacultyEmploymentDetail, FacultyEmploymentDetailSchema } from 'src/schemas/User/Faculty/facultyEmploymentDetail.schema';
+import { FacultyWorkExperience, FacultyWorkExperienceSchema } from 'src/schemas/User/Faculty/facultyWorkExperience.schema';
+import { Exam, ExamSchema } from 'src/schemas/Exam/exam.schema';
+import { AgoraToken, AgoraTokenSchema } from 'src/schemas/Exam/agoraToken.schema';
+import { ChatMessage, ChatMessageSchema } from 'src/schemas/Exam/chatMessage.schema';
+import { ExamParticipant, ExamParticipantSchema } from 'src/schemas/Exam/examParticipant.schema';
+import { JoinRequest, JoinRequestSchema } from 'src/schemas/Exam/joinRequest.schema';
+import { StudentAction, StudentActionSchema } from 'src/schemas/Exam/studentAction.schema';
+
 
 // Services
 import { ConfigService } from 'src/config/config.service';
@@ -31,13 +45,7 @@ import { AdminService } from 'src/services/user-service/admin/admin.service';
 import { StudentManagementService } from 'src/services/user-service/admin/student-management.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { FacultyManagementService } from 'src/services/user-service/admin/faculty-management.service';
-import { Faculty, FacultySchema } from 'src/schemas/User/Faculty/faculty.schema';
-import { FacultyPersonalDetail, FacultyPersonalDetailSchema } from 'src/schemas/User/Faculty/facultyPersonalDetail.schema';
-import { FacultyContactInformation, FacultyContactInformationSchema } from 'src/schemas/User/Faculty/facultyContactInformation.schema';
-import { FacultyAddress, FacultyAddressSchema } from 'src/schemas/User/Faculty/facultyAddressDetail.schema';
-import { FacultyEducationHistory, FacultyEducationHistorySchema } from 'src/schemas/User/Faculty/facultyEducationHistory.schema';
-import { FacultyEmploymentDetail, FacultyEmploymentDetailSchema } from 'src/schemas/User/Faculty/facultyEmploymentDetail.schema';
-import { FacultyWorkExperience, FacultyWorkExperienceSchema } from 'src/schemas/User/Faculty/facultyWorkExperience.schema';
+import { AgoraService } from 'src/agora/agora.service';
 
 // Controllers
 import { CreateBatchController } from './create-batch/create-batch.controller';
@@ -56,6 +64,7 @@ import { BulkUploadStudentsController } from './student-management/bulk-upload-s
 import { CreateFacultyController } from './faculty-management/create-faculty/create-faculty.controller';
 import { GetFacultyController } from './faculty-management/get-faculty/get-faculty.controller';
 import { GetAllFacultyController } from './faculty-management/get-all-faculty/get-all-faculty.controller';
+import { CreateExamController } from './create-exam/create-exam.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -65,14 +74,19 @@ import { JwtModule } from '@nestjs/jwt';
 @Module({
     imports: [
         MongooseModule.forFeature([
+            // User
             { name: User.name, schema: UserSchema },
             { name: Admin.name, schema: AdminSchema },
+
+            // Academic
             { name: Batch.name, schema: BatchSchema },
             { name: Course.name, schema: CourseSchema },
             { name: BatchCourse.name, schema: BatchCourseSchema },
             { name: Department.name, schema: DepartmentSchema },
             { name: BatchDepartment.name, schema: BatchDepartmentSchema },
             { name: Section.name, schema: SectionSchema },
+
+            // Student
             { name: Student.name, schema: StudentSchema },
             { name: StudentPersonalDetail.name, schema: StudentPersonalDetailSchema },
             { name: StudentParentDetail.name, schema: StudentParentDetailSchema },
@@ -80,6 +94,8 @@ import { JwtModule } from '@nestjs/jwt';
             { name: StudentEducationHistory.name, schema: StudentEducationHistorySchema },
             { name: StudentAddressDetail.name, schema: StudentAddressDetailSchema },
             { name: StudentAcademicDetail.name, schema: StudentAcademicDetailSchema },
+
+            // Faculty
             { name: Faculty.name, schema: FacultySchema },
             { name: FacultyPersonalDetail.name, schema: FacultyPersonalDetailSchema },
             { name: FacultyContactInformation.name, schema: FacultyContactInformationSchema },
@@ -87,6 +103,14 @@ import { JwtModule } from '@nestjs/jwt';
             { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
             { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
             { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
+
+            // Exam
+            { name: Exam.name, schema: ExamSchema },
+            { name: AgoraToken.name, schema: AgoraTokenSchema },
+            { name: ChatMessage.name, schema: ChatMessageSchema },
+            { name: ExamParticipant.name, schema: ExamParticipantSchema },
+            { name: JoinRequest.name, schema: JoinRequestSchema },
+            { name: StudentAction.name, schema: StudentActionSchema }
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -116,7 +140,8 @@ import { JwtModule } from '@nestjs/jwt';
         BulkUploadStudentsController,
         CreateFacultyController,
         GetFacultyController,
-        GetAllFacultyController
+        GetAllFacultyController,
+        CreateExamController
     ],
     providers: [
         ConfigService,
@@ -128,7 +153,8 @@ import { JwtModule } from '@nestjs/jwt';
         FacultyManagementService,
         JwtAuthGuard,
         RoleGuard,
-        CloudinaryService
+        CloudinaryService,
+        AgoraService
     ],
     exports: [
         ConfigService,
@@ -139,7 +165,8 @@ import { JwtModule } from '@nestjs/jwt';
         FacultyManagementService,
         JwtAuthGuard,
         RoleGuard,
-        CloudinaryService
+        CloudinaryService,
+        AgoraService
     ],
 })
 export class AdminModule { }

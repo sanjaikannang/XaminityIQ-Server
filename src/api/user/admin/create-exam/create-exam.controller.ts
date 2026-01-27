@@ -1,10 +1,10 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { UserRole } from 'src/utils/enum';
 import { RoleGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/roles.decorator';
-import { UserRole } from 'src/utils/enum';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { CreateExamRequest } from './create-exam.request';
 import { CreateExamResponse } from './create-exam.response';
+import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { AdminService } from 'src/services/user-service/admin/admin.service';
 
 @Controller('admin/exams')

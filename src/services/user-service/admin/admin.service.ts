@@ -8,6 +8,12 @@ import {
 import { Types } from "mongoose";
 import { generateSectionName } from "src/utils/utils";
 
+// Enums
+import { ParticipantRole, ParticipantStatus } from "src/utils/enum";
+
+// Services
+import { AgoraService } from "src/agora/agora.service";
+
 // Requests
 import { CreateBatchRequest } from "src/api/user/admin/create-batch/create-batch.request";
 import { MapCourseToBatchRequest } from "src/api/user/admin/map-course-to-batch/map-course-to-batch.request";
@@ -20,8 +26,6 @@ import { BatchCourseRepositoryService } from "src/repositories/batch-course-repo
 import { DepartmentRepositoryService } from "src/repositories/department-repository/department.repository";
 import { BatchDepartmentRepositoryService } from "src/repositories/batch-department-repository/batch-department.repository";
 import { SectionRepositoryService } from "src/repositories/section-repository/section.repository";
-import { ParticipantRole, ParticipantStatus } from "src/utils/enum";
-import { AgoraService } from "src/agora/agora.service";
 import { ExamRepositoryService } from "src/repositories/exam-repository/exam.repository";
 import { ExamParticipantRepositoryService } from "src/repositories/exam-participant-repository/exam-participant.repository";
 
