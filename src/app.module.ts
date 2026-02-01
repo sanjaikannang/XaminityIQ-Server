@@ -5,6 +5,7 @@ import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ApiModule } from './api/api.module';
+import { CronModule } from './cron/cron.module';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { ApiModule } from './api/api.module';
       inject: [ConfigService],
     }),
     ConfigModule,
-    ApiModule
+    ApiModule,
+    CronModule
   ],
   controllers: [AppController],
   providers: [AppService],
