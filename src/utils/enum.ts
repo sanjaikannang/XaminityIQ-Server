@@ -152,8 +152,7 @@ export enum ExamMode {
 export enum ExamStatus {
   UPCOMING = 'UPCOMING',
   ONGOING = 'ONGOING',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED'
+  COMPLETED = 'COMPLETED'
 }
 
 export enum ParticipantRole {

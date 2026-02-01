@@ -5,11 +5,12 @@ import {
     InternalServerErrorException,
     NotFoundException
 } from "@nestjs/common";
+import moment from "moment";
 import { Types } from "mongoose";
 import { generateSectionName } from "src/utils/utils";
 
 // Enums
-import { ParticipantRole, ParticipantStatus } from "src/utils/enum";
+import { ExamMode, ParticipantRole, ParticipantStatus } from "src/utils/enum";
 
 // Services
 import { AgoraService } from "src/agora/agora.service";
@@ -28,6 +29,7 @@ import { BatchDepartmentRepositoryService } from "src/repositories/batch-departm
 import { SectionRepositoryService } from "src/repositories/section-repository/section.repository";
 import { ExamRepositoryService } from "src/repositories/exam-repository/exam.repository";
 import { ExamParticipantRepositoryService } from "src/repositories/exam-participant-repository/exam-participant.repository";
+import { validateExamCreation } from "./helper/validation";
 
 @Injectable()
 export class AdminService {
@@ -639,56 +641,93 @@ export class AdminService {
 
     // Create Exam API Endpoint
     async createExam(data: {
-        examMode: string;
+        examMode: ExamMode;
         examName: string;
-        date: Date;
-        time: string;
         duration: number;
-        facultyId: string;
-        studentIds: string[];
+        examDate?: string;
+        startTime?: string;
+        endTime?: string;
+        examStartDate?: string;
+        examEndDate?: string;
+        facultyId?: string;
+        studentIds?: string[];
         adminId: string;
     }) {
         try {
-            // Validate student count
-            if (data.studentIds.length > 20) {
-                throw new BadRequestException('Maximum 20 students allowed per exam');
-            }
+            // Validate based on exam mode
+            validateExamCreation(data);
 
             // Generate Agora channel name
             const agoraChannelName = this.agoraService.generateChannelName(
                 `${data.examName}_${Date.now()}`
             );
 
-            // Create exam
-            const exam = await this.examRepository.create({
+            // Prepare exam data based on mode
+            const examData: any = {
                 examMode: data.examMode,
                 examName: data.examName,
-                date: data.date,
-                time: data.time,
                 duration: data.duration,
                 agoraChannelName,
                 createdBy: new Types.ObjectId(data.adminId)
-            });
+            };
+
+            if (data.examMode === ExamMode.PROCTORING) {
+                examData.examDate = moment(data.examDate!).toDate();
+                examData.startTime = data.startTime!;
+                examData.endTime = data.endTime!;
+                examData.faculty = new Types.ObjectId(data.facultyId!);
+                examData.students = data.studentIds!.map(id => new Types.ObjectId(id));
+            } else if (data.examMode === ExamMode.AUTO) {
+                examData.examStartDate = moment(data.examStartDate!).toDate();
+                examData.examEndDate = moment(data.examEndDate!).toDate();
+                examData.faculty = null;
+                examData.students = data.studentIds?.map(id => new Types.ObjectId(id)) || [];
+            }
+
+            // Create exam
+            const exam = await this.examRepository.create(examData);
 
             // Create participants
-            const participants = [
-                // Faculty participant
-                {
-                    examId: exam._id,
-                    userId: new Types.ObjectId(data.facultyId),
+            const participants: Array<{
+                examId: Types.ObjectId;
+                userId: Types.ObjectId;
+                role: ParticipantRole;
+                status: ParticipantStatus;
+            }> = [];
+
+            if (data.examMode === ExamMode.PROCTORING) {
+                // Add faculty participant
+                participants.push({
+                    examId: exam._id as Types.ObjectId,
+                    userId: new Types.ObjectId(data.facultyId!),
                     role: ParticipantRole.FACULTY,
                     status: ParticipantStatus.INVITED
-                },
-                // Student participants
-                ...data.studentIds.map(studentId => ({
-                    examId: exam._id,
-                    userId: new Types.ObjectId(studentId),
-                    role: ParticipantRole.STUDENT,
-                    status: ParticipantStatus.INVITED
-                }))
-            ];
+                });
 
-            await this.examParticipantRepository.bulkCreate(participants);
+                // Add student participants
+                data.studentIds!.forEach(studentId => {
+                    participants.push({
+                        examId: exam._id as Types.ObjectId,
+                        userId: new Types.ObjectId(studentId),
+                        role: ParticipantRole.STUDENT,
+                        status: ParticipantStatus.INVITED
+                    });
+                });
+            } else if (data.examMode === ExamMode.AUTO && data.studentIds && data.studentIds.length > 0) {
+                // Add student participants for AUTO mode
+                data.studentIds.forEach(studentId => {
+                    participants.push({
+                        examId: exam._id as Types.ObjectId,
+                        userId: new Types.ObjectId(studentId),
+                        role: ParticipantRole.STUDENT,
+                        status: ParticipantStatus.INVITED
+                    });
+                });
+            }
+
+            if (participants.length > 0) {
+                await this.examParticipantRepository.bulkCreate(participants);
+            }
 
             return {
                 examId: exam._id as any,
@@ -701,6 +740,5 @@ export class AdminService {
             throw new InternalServerErrorException('Failed to create exam');
         }
     }
-
 
 }

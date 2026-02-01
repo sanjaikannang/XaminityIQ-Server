@@ -24,7 +24,12 @@ export class ExamParticipantRepositoryService {
         }
     }
 
-    async bulkCreate(participants: any[]): Promise<any> {
+    async bulkCreate(participants: Array<{
+        examId: Types.ObjectId;
+        userId: Types.ObjectId;
+        role: ParticipantRole;
+        status: ParticipantStatus;
+    }>): Promise<ExamParticipantDocument[]> {
         try {
             return this.examParticipantModel.insertMany(participants);
         } catch (error) {

@@ -22,8 +22,7 @@ export class CreateExamController {
     ): Promise<CreateExamResponse> {
         const result = await this.adminService.createExam({
             ...body,
-            date: new Date(body.date),
-            adminId: req.user.userId
+            adminId: req.user.sub
         });
 
         return {

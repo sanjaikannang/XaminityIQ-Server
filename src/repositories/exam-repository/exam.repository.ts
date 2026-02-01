@@ -1,5 +1,5 @@
 import { Model, Types } from 'mongoose';
-import { ExamStatus } from 'src/utils/enum';
+import { ExamMode, ExamStatus } from 'src/utils/enum';
 import { InjectModel } from '@nestjs/mongoose';
 import { Exam, ExamDocument } from 'src/schemas/Exam/exam.schema';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
@@ -19,13 +19,18 @@ export class ExamRepositoryService {
     }
 
     async create(examData: {
-        examMode: string;
+        examMode: ExamMode;
         examName: string;
-        date: Date;
-        time: string;
         duration: number;
         agoraChannelName: string;
         createdBy: Types.ObjectId;
+        examDate?: Date;
+        startTime?: string;
+        endTime?: string;
+        examStartDate?: Date;
+        examEndDate?: Date;
+        faculty?: Types.ObjectId | null;
+        students?: Types.ObjectId[];
     }): Promise<ExamDocument> {
         try {
             const exam = new this.examModel(examData);
@@ -42,6 +47,14 @@ export class ExamRepositoryService {
                 { status },
                 { new: true }
             ).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+    async findAll(filter: any = {}): Promise<ExamDocument[]> {
+        try {
+            return this.examModel.find(filter).exec();
         } catch (error) {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }

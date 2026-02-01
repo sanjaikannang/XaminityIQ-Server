@@ -4,9 +4,12 @@ import {
     IsDateString,
     IsNumber,
     IsArray,
-    ArrayMaxSize,
     Min,
-    IsEnum
+    IsEnum,
+    ValidateIf,
+    ArrayMinSize,
+    ArrayMaxSize,
+    IsOptional
 } from 'class-validator';
 import { ExamMode } from 'src/utils/enum';
 
@@ -18,22 +21,49 @@ export class CreateExamRequest {
     @IsNotEmpty()
     examName: string;
 
-    @IsDateString()
-    date: string;
-
-    @IsString()
-    @IsNotEmpty()
-    time: string;
-
     @IsNumber()
     @Min(1)
     duration: number;
 
+    // PROCTORING mode fields
+    @ValidateIf(o => o.examMode === ExamMode.PROCTORING)
+    @IsDateString()
+    @IsNotEmpty()
+    examDate?: string;
+
+    @ValidateIf(o => o.examMode === ExamMode.PROCTORING)
     @IsString()
     @IsNotEmpty()
-    facultyId: string;
+    startTime?: string;
 
+    @ValidateIf(o => o.examMode === ExamMode.PROCTORING)
+    @IsString()
+    @IsNotEmpty()
+    endTime?: string;
+
+    @ValidateIf(o => o.examMode === ExamMode.PROCTORING)
+    @IsString()
+    @IsNotEmpty()
+    facultyId?: string;
+
+    // AUTO mode fields
+    @ValidateIf(o => o.examMode === ExamMode.AUTO)
+    @IsDateString()
+    @IsNotEmpty()
+    examStartDate?: string;
+
+    @ValidateIf(o => o.examMode === ExamMode.AUTO)
+    @IsDateString()
+    @IsNotEmpty()
+    examEndDate?: string;
+
+    // studentIds - used by both modes with different validation
+    @ValidateIf(o => o.examMode === ExamMode.PROCTORING)
     @IsArray()
-    @ArrayMaxSize(1)
-    studentIds: string[];
+    @ArrayMinSize(5)
+    @ArrayMaxSize(5)
+    @ValidateIf(o => o.examMode === ExamMode.AUTO)
+    @IsArray()
+    @IsOptional()
+    studentIds?: string[];
 }
