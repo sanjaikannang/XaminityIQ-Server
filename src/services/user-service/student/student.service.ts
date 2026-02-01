@@ -1,8 +1,9 @@
+import moment from 'moment';
 import { Types } from 'mongoose';
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 
 // Enums
-import { ExamStatus, MessageType, ParticipantRole, ParticipantStatus, StudentActionType } from 'src/utils/enum';
+import { ExamMode, ExamStatus, MessageType, ParticipantRole, ParticipantStatus, StudentActionType } from 'src/utils/enum';
 
 // Repository
 import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
@@ -11,6 +12,8 @@ import { JoinRequestRepositoryService } from 'src/repositories/join-request-repo
 import { AgoraTokenRepositoryService } from 'src/repositories/agora-token-repository/agora-token.repository';
 import { ChatMessageRepositoryService } from 'src/repositories/chat-message-repository/chat-message.repository';
 import { StudentActionRepositoryService } from 'src/repositories/student-action-repository/student-action.repository';
+import { StudentExamDto } from 'src/api/user/student/get-student-exams/get-student-exams.response';
+import { canStudentJoin } from './helper/validation';
 
 
 @Injectable()
@@ -24,27 +27,47 @@ export class StudentService {
         private readonly studentActionRepository: StudentActionRepositoryService
     ) { }
 
-    async getStudentExams(studentId: string, status?: ExamStatus) {
+
+    // Get Exams for Student API Endpoint
+    async getStudentExams(studentId: string, status?: ExamStatus): Promise<StudentExamDto[]> {
         try {
             const participants = await this.examParticipantRepository.findByUserId(
                 studentId,
                 ParticipantRole.STUDENT
             );
 
-            console.log("participents...", participants);
-
             const exams = participants
                 .map(p => {
                     const exam = (p as any).examId;
-                    return {
+
+                    // Get the current status from database (updated by cron job)
+                    const examStatus = exam.status;
+
+                    // Determine if student can join
+                    const canJoin = canStudentJoin(exam, examStatus, p.status);
+
+                    const examDto: StudentExamDto = {
                         examId: exam._id.toString(),
                         examName: exam.examName,
-                        date: exam.date,
-                        time: exam.time,
+                        examMode: exam.examMode,
                         duration: exam.duration,
-                        status: exam.status,
-                        myStatus: p.status
+                        status: examStatus,
+                        myStatus: p.status,
+                        canJoin: canJoin,
+                        totalStudents: exam.students?.length || 0
                     };
+
+                    // Add mode-specific fields
+                    if (exam.examMode === ExamMode.PROCTORING) {
+                        examDto.examDate = moment(exam.examDate).format('YYYY-MM-DD');
+                        examDto.startTime = exam.startTime;
+                        examDto.endTime = exam.endTime;
+                    } else if (exam.examMode === ExamMode.AUTO) {
+                        examDto.examStartDate = moment(exam.examStartDate).format('YYYY-MM-DD');
+                        examDto.examEndDate = moment(exam.examEndDate).format('YYYY-MM-DD');
+                    }
+
+                    return examDto;
                 })
                 .filter(exam => !status || exam.status === status);
 
