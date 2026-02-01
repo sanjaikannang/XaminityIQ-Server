@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RepositoryModule } from 'src/repositories/repository.module';
+import { ExamStatusUpdaterService } from './exam-status-updater.service';
 
 @Global()
 @Module({
@@ -9,7 +10,9 @@ import { RepositoryModule } from 'src/repositories/repository.module';
         RepositoryModule
     ],
     controllers: [],
-    providers: [],
+    providers: [
+        ExamStatusUpdaterService
+    ],
     exports: [],
 })
 export class CronModule { }
