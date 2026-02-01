@@ -65,6 +65,8 @@ import { CreateFacultyController } from './faculty-management/create-faculty/cre
 import { GetFacultyController } from './faculty-management/get-faculty/get-faculty.controller';
 import { GetAllFacultyController } from './faculty-management/get-all-faculty/get-all-faculty.controller';
 import { CreateExamController } from './create-exam/create-exam.controller';
+import { GetAllExamsController } from './get-all-exams/get-all-exams.controller';
+
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -141,7 +143,8 @@ import { JwtModule } from '@nestjs/jwt';
         CreateFacultyController,
         GetFacultyController,
         GetAllFacultyController,
-        CreateExamController
+        CreateExamController,
+        GetAllExamsController
     ],
     providers: [
         ConfigService,

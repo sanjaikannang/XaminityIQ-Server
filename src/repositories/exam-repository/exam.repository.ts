@@ -99,4 +99,30 @@ export class ExamRepositoryService {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }
     }
+
+    async countDocuments(filter: any): Promise<number> {
+        try {
+            return this.examModel.countDocuments(filter).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+    async findWithPagination(
+        filter: any,
+        skip: number,
+        limit: number
+    ): Promise<ExamDocument[]> {
+        try {
+            return this.examModel
+                .find(filter)
+                .populate('faculty', 'firstName lastName')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
 }

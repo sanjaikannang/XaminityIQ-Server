@@ -10,7 +10,10 @@ import { Types } from "mongoose";
 import { generateSectionName } from "src/utils/utils";
 
 // Enums
-import { ExamMode, ParticipantRole, ParticipantStatus } from "src/utils/enum";
+import { ExamMode, ExamStatus, ParticipantRole, ParticipantStatus } from "src/utils/enum";
+
+// Validation
+import { validateExamCreation } from "./helper/validation";
 
 // Services
 import { AgoraService } from "src/agora/agora.service";
@@ -29,7 +32,7 @@ import { BatchDepartmentRepositoryService } from "src/repositories/batch-departm
 import { SectionRepositoryService } from "src/repositories/section-repository/section.repository";
 import { ExamRepositoryService } from "src/repositories/exam-repository/exam.repository";
 import { ExamParticipantRepositoryService } from "src/repositories/exam-participant-repository/exam-participant.repository";
-import { validateExamCreation } from "./helper/validation";
+
 
 @Injectable()
 export class AdminService {
@@ -740,5 +743,97 @@ export class AdminService {
             throw new InternalServerErrorException('Failed to create exam');
         }
     }
+
+
+    // Get All Exams API Endpoint
+    async getAllExamsAPI(queryParams: {
+        page?: number;
+        limit?: number;
+        search?: string;
+        examMode?: ExamMode;
+        status?: ExamStatus;
+    }) {
+        try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const search = queryParams.search || '';
+            const examMode = queryParams.examMode;
+            const status = queryParams.status;
+
+            // Calculate skip value for pagination
+            const skip = (page - 1) * limit;
+
+            // Build search filter
+            let searchFilter: any = {};
+
+            if (search && search.trim() !== '') {
+                searchFilter.examName = { $regex: search, $options: 'i' };
+            }
+
+            if (examMode) {
+                searchFilter.examMode = examMode;
+            }
+
+            if (status) {
+                searchFilter.status = status;
+            }
+
+            // Get total count for pagination
+            const totalItems = await this.examRepository.countDocuments(searchFilter);
+
+            // Get exams with pagination and populate faculty
+            const exams = await this.examRepository.findWithPagination(
+                searchFilter,
+                skip,
+                limit
+            );
+
+            // Calculate pagination metadata
+            const totalPages = Math.ceil(totalItems / limit);
+            const hasNextPage = page < totalPages;
+            const hasPreviousPage = page > 1;
+
+            return {
+                exams: exams.map(exam => {
+                    const examData: any = {
+                        _id: (exam._id as any).toString(),
+                        examName: exam.examName,
+                        examMode: exam.examMode,
+                        duration: exam.duration,
+                        status: exam.status,
+                        totalStudents: exam.students?.length || 0,
+                        createdAt: (exam as any).createdAt,
+                    };
+
+                    // Add mode-specific fields
+                    if (exam.examMode === ExamMode.PROCTORING) {
+                        examData.examDate = moment(exam.examDate).format('YYYY-MM-DD');
+                        examData.startTime = exam.startTime;
+                        examData.endTime = exam.endTime;
+                        examData.facultyName = (exam as any).faculty?.firstName && (exam as any).faculty?.lastName
+                            ? `${(exam as any).faculty.firstName} ${(exam as any).faculty.lastName}`
+                            : 'N/A';
+                    } else if (exam.examMode === ExamMode.AUTO) {
+                        examData.examStartDate = moment(exam.examStartDate).format('YYYY-MM-DD');
+                        examData.examEndDate = moment(exam.examEndDate).format('YYYY-MM-DD');
+                    }
+
+                    return examData;
+                }),
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage,
+                    hasPreviousPage
+                }
+            };
+
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch exams');
+        }
+    }
+
 
 }
