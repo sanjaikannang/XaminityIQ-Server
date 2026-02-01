@@ -51,6 +51,23 @@ export class ExamParticipantRepositoryService {
         }
     }
 
+    async findByExamId(examId: string, role?: ParticipantRole): Promise<ExamParticipantDocument[]> {
+        try {
+            const query: any = { examId: new Types.ObjectId(examId) };
+
+            if (role) {
+                query.role = role;
+            }
+
+            return this.examParticipantModel
+                .find(query)
+                .populate('userId')
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
     async updateStatus(
         examId: string,
         userId: string,

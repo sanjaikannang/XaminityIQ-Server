@@ -42,11 +42,15 @@ export class ExamRepositoryService {
 
     async updateStatus(examId: string, status: ExamStatus): Promise<ExamDocument | null> {
         try {
-            return this.examModel.findByIdAndUpdate(
+            console.log('Repository - Updating exam:', examId, 'to status:', status);
+            const result = await this.examModel.findByIdAndUpdate(
                 examId,
                 { status },
                 { new: true }
             ).exec();
+
+            return result;
+            console.log("result", result);
         } catch (error) {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }

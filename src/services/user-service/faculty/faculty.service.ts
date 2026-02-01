@@ -2,7 +2,7 @@ import { Types } from 'mongoose';
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 
 // Enums
-import { ExamStatus, MessageType, ParticipantRole, ParticipantStatus, StudentActionType } from 'src/utils/enum';
+import { ExamMode, ExamStatus, MessageType, ParticipantRole, ParticipantStatus, StudentActionType } from 'src/utils/enum';
 
 // Service
 import { AgoraService } from 'src/agora/agora.service';
@@ -14,6 +14,8 @@ import { ExamParticipantRepositoryService } from 'src/repositories/exam-particip
 import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
 import { JoinRequestRepositoryService } from 'src/repositories/join-request-repository/join-request.repository';
 import { StudentActionRepositoryService } from 'src/repositories/student-action-repository/student-action.repository';
+import { FacultyExamDto } from 'src/api/user/faculty/get-faculty-exams/get-faculty-exams.response';
+import moment from 'moment';
 
 
 @Injectable()
@@ -28,7 +30,9 @@ export class FacultyService {
         private readonly agoraService: AgoraService
     ) { }
 
-    async getFacultyExams(facultyId: string, status?: ExamStatus) {
+
+    // Get Faculty Exam API Endpoint
+    async getFacultyExams(facultyId: string, status?: ExamStatus): Promise<FacultyExamDto[]> {
         try {
             // Find all exams where faculty is a participant
             const participants = await this.examParticipantRepository.findByUserId(
@@ -36,22 +40,60 @@ export class FacultyService {
                 ParticipantRole.FACULTY
             );
 
-            const exams = participants
-                .map(p => (p as any).examId)
+            const exams = await Promise.all(
+                participants.map(async (p) => {
+                    const exam = (p as any).examId;
+
+                    // Skip AUTO mode exams (faculty only handles PROCTORING mode)
+                    if (exam.examMode === ExamMode.AUTO) {
+                        return null;
+                    }
+
+                    // Get the current status from database (updated by cron job)
+                    const examStatus = exam.status;
+
+                    // Faculty can join if exam status is ONGOING
+                    const canJoin = examStatus === ExamStatus.ONGOING;
+
+                    // Get student participant counts
+                    const studentParticipants = await this.examParticipantRepository.findByExamId(
+                        exam._id.toString(),
+                        ParticipantRole.STUDENT
+                    );
+
+                    const joinedStudents = studentParticipants.filter(
+                        sp => sp.status === ParticipantStatus.JOINED
+                    ).length;
+
+                    const examDto: FacultyExamDto = {
+                        examId: exam._id.toString(),
+                        examName: exam.examName,
+                        examDate: moment(exam.examDate).format('YYYY-MM-DD'),
+                        startTime: exam.startTime,
+                        endTime: exam.endTime,
+                        duration: exam.duration,
+                        status: examStatus,
+                        canJoin: canJoin,
+                        totalStudents: exam.students?.length || 0,
+                        joinedStudents: joinedStudents
+                    };
+
+                    return examDto;
+                })
+            );
+
+            // Filter out null values (AUTO mode exams) and filter by status if provided
+            const filteredExams = exams
+                .filter(exam => exam !== null)
                 .filter(exam => !status || exam.status === status);
 
-            return exams.map(exam => ({
-                examId: exam._id.toString(),
-                examName: exam.examName,
-                date: exam.date,
-                time: exam.time,
-                duration: exam.duration,
-                status: exam.status
-            }));
+            return filteredExams;
         } catch (error) {
             throw new InternalServerErrorException('Failed to fetch faculty exams');
         }
     }
+
+
 
     async facultyJoinExam(examId: string, facultyId: string) {
         try {

@@ -13,7 +13,6 @@ import { AgoraTokenRepositoryService } from 'src/repositories/agora-token-reposi
 import { ChatMessageRepositoryService } from 'src/repositories/chat-message-repository/chat-message.repository';
 import { StudentActionRepositoryService } from 'src/repositories/student-action-repository/student-action.repository';
 import { StudentExamDto } from 'src/api/user/student/get-student-exams/get-student-exams.response';
-import { canStudentJoin } from './helper/validation';
 
 
 @Injectable()
@@ -44,7 +43,7 @@ export class StudentService {
                     const examStatus = exam.status;
 
                     // Determine if student can join
-                    const canJoin = canStudentJoin(exam, examStatus, p.status);
+                    const canJoin = examStatus === ExamStatus.ONGOING;
 
                     const examDto: StudentExamDto = {
                         examId: exam._id.toString(),

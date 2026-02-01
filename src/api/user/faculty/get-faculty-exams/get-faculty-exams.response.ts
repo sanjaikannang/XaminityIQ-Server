@@ -1,14 +1,20 @@
-export class FacultyExamData {
+import { ExamStatus } from 'src/utils/enum';
+
+export class FacultyExamDto {
     examId: string;
     examName: string;
-    date: Date;
-    time: string;
+    examDate: string;
+    startTime: string;
+    endTime: string;
     duration: number;
-    status: string;
+    status: ExamStatus;
+    canJoin: boolean;
+    totalStudents: number;
+    joinedStudents: number;
 }
 
 export class GetFacultyExamsResponse {
     success: boolean;
     message: string;
-    data?: FacultyExamData[];
+    data: FacultyExamDto[];
 }
