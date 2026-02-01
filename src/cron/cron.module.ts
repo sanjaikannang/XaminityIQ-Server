@@ -1,20 +1,15 @@
 import { Global, Module } from '@nestjs/common';
-import { ExamStatusUpdaterService } from './exam-status-updater.service';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
+import { RepositoryModule } from 'src/repositories/repository.module';
 
 @Global()
 @Module({
     imports: [
         ScheduleModule.forRoot(),
-        ExamRepositoryService
+        RepositoryModule
     ],
     controllers: [],
-    providers: [
-        ExamStatusUpdaterService
-    ],
-    exports: [
-        ExamStatusUpdaterService
-    ],
+    providers: [],
+    exports: [],
 })
 export class CronModule { }
