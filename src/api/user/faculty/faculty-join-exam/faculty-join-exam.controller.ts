@@ -1,10 +1,9 @@
-import { Controller, Post, Param, Body, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { UserRole } from 'src/utils/enum';
 import { RoleGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/roles.decorator';
-import { UserRole } from 'src/utils/enum';
-import { FacultyJoinExamRequest } from './faculty-join-exam.request';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { FacultyJoinExamResponse } from './faculty-join-exam.response';
+import { Controller, Post, Param, UseGuards, Request } from '@nestjs/common';
 import { FacultyService } from 'src/services/user-service/faculty/faculty.service';
 
 @Controller('faculty/exams')
@@ -17,10 +16,14 @@ export class FacultyJoinExamController {
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.FACULTY)
     async facultyJoinExam(
+        @Request() req: any,
         @Param('examId') examId: string,
-        @Body() body: FacultyJoinExamRequest
     ): Promise<FacultyJoinExamResponse> {
-        const result = await this.facultyService.facultyJoinExam(examId, body.facultyId);
+        const facultyId = req.user.sub;
+        const result = await this.facultyService.facultyJoinExam(
+            facultyId,
+            examId
+        );
 
         return {
             success: true,

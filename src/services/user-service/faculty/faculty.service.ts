@@ -95,7 +95,8 @@ export class FacultyService {
 
 
 
-    async facultyJoinExam(examId: string, facultyId: string) {
+    // Faculty Join Exam API Endpoint
+    async facultyJoinExam(facultyId: string, examId: string) {
         try {
             // Verify exam exists
             const exam = await this.examRepository.findById(examId);
