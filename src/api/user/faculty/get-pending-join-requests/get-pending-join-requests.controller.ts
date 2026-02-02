@@ -1,10 +1,10 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { UserRole } from 'src/utils/enum';
 import { RoleGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/roles.decorator';
-import { UserRole } from 'src/utils/enum';
-import { GetPendingJoinRequestsResponse } from './get-pending-join-requests.response';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { FacultyService } from 'src/services/user-service/faculty/faculty.service';
+import { GetPendingJoinRequestsResponse } from './get-pending-join-requests.response';
 
 @Controller('faculty/exams')
 export class GetPendingJoinRequestsController {

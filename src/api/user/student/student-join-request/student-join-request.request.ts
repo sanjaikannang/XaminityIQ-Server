@@ -9,9 +9,6 @@ class DeviceStatus {
 }
 
 export class StudentJoinRequestRequest {
-    @IsString()
-    @IsNotEmpty()
-    studentId: string;
 
     // @IsObject()
     // @ValidateNested()

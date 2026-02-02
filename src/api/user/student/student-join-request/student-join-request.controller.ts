@@ -1,8 +1,8 @@
-import { Controller, Post, Param, Body, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { UserRole } from 'src/utils/enum';
 import { RoleGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/roles.decorator';
-import { UserRole } from 'src/utils/enum';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { Controller, Post, Param, Body, UseGuards, Request } from '@nestjs/common';
 import { StudentJoinRequestRequest } from './student-join-request.request';
 import { StudentJoinRequestResponse } from './student-join-request.response';
 import { StudentService } from 'src/services/user-service/student/student.service';
@@ -17,15 +17,14 @@ export class StudentJoinRequestController {
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.STUDENT)
     async studentJoinRequest(
+        @Request() req: any,
         @Param('examId') examId: string,
-        @Body() body: StudentJoinRequestRequest
     ): Promise<StudentJoinRequestResponse> {
-
-        console.log("Join request body...", body);
+        const studentId = req.user.sub;
 
         const result = await this.studentService.requestToJoinExam({
             examId,
-            ...body
+            studentId
         });
 
         return {

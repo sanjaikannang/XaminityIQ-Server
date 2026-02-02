@@ -155,6 +155,8 @@ export class FacultyService {
         }
     }
 
+
+    // Get Pending Join Requests API Endpoint
     async getPendingJoinRequests(examId: string) {
         try {
             const requests = await this.joinRequestRepository.findPendingByExam(examId);
@@ -169,6 +171,7 @@ export class FacultyService {
                 // deviceStatus: req.deviceStatus
             }));
         } catch (error) {
+            console.log("error", error)
             throw new InternalServerErrorException('Failed to fetch join requests');
         }
     }
