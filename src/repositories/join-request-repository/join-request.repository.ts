@@ -41,19 +41,8 @@ export class JoinRequestRepositoryService {
                 examId: new Types.ObjectId(examId),
                 status: JoinRequestStatus.PENDING
             })
-                .populate({
-                    path: 'studentId',
-                    populate: [
-                        {
-                            path: 'userId',
-                            select: 'email',
-                        },
-                        {
-                            path: 'personalDetailId',
-                            select: 'firstName lastName',
-                        },
-                    ],
-                })
+                .sort({ requestedAt: 1 })
+                .exec();
         } catch (error) {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }

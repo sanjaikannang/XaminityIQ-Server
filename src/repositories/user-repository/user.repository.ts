@@ -22,6 +22,15 @@ export class UserRepositoryService {
     }
 
 
+    async findById(id: Types.ObjectId | string): Promise<UserDocument | null> {
+        try {
+            return await this.userModel.findById(id).exec();
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to find user by id', error);
+        }
+    }
+
+
     // Update user
     async updateUser(id: string, updates: Partial<User>): Promise<UserDocument | null> {
         try {

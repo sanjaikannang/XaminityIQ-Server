@@ -1,5 +1,9 @@
+import moment from 'moment';
 import { Types } from 'mongoose';
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+
+// Requests
+import { FacultyExamDto } from 'src/api/user/faculty/get-faculty-exams/get-faculty-exams.response';
 
 // Enums
 import { ExamMode, ExamStatus, MessageType, ParticipantRole, ParticipantStatus, StudentActionType } from 'src/utils/enum';
@@ -14,8 +18,10 @@ import { ExamParticipantRepositoryService } from 'src/repositories/exam-particip
 import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
 import { JoinRequestRepositoryService } from 'src/repositories/join-request-repository/join-request.repository';
 import { StudentActionRepositoryService } from 'src/repositories/student-action-repository/student-action.repository';
-import { FacultyExamDto } from 'src/api/user/faculty/get-faculty-exams/get-faculty-exams.response';
-import moment from 'moment';
+import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
+import { UserRepositoryService } from 'src/repositories/user-repository/user.repository';
+import { StudentPersonalDetailRepositoryService } from 'src/repositories/student-personal-detail-repository/student-personal-detail.repository';
+import { StudentAcademicDetailRepositoryService } from 'src/repositories/student-academic-detail-repository/student-academic-detail.repository';
 
 
 @Injectable()
@@ -27,7 +33,11 @@ export class FacultyService {
         private readonly agoraTokenRepository: AgoraTokenRepositoryService,
         private readonly chatMessageRepository: ChatMessageRepositoryService,
         private readonly studentActionRepository: StudentActionRepositoryService,
-        private readonly agoraService: AgoraService
+        private readonly agoraService: AgoraService,
+        private readonly studentRepository: StudentRepositoryService,
+        private readonly userRepository: UserRepositoryService,
+        private readonly studentPersonalDetailRepository: StudentPersonalDetailRepositoryService,
+        private readonly studentAcademicDetailRepository: StudentAcademicDetailRepositoryService
     ) { }
 
 
@@ -92,7 +102,6 @@ export class FacultyService {
             throw new InternalServerErrorException('Failed to fetch faculty exams');
         }
     }
-
 
 
     // Faculty Join Exam API Endpoint
@@ -161,20 +170,71 @@ export class FacultyService {
         try {
             const requests = await this.joinRequestRepository.findPendingByExam(examId);
 
-            console.log("requests", requests);
+            // If no requests found, return empty array
+            if (!requests || requests.length === 0) {
+                return [];
+            }
 
-            return requests.map(req => ({
-                requestId: req._id as any,
-                studentId: (req.studentId as any)._id.toString(),
-                studentName: (req.studentId as any).name,
-                timestamp: req.requestedAt,
-                // deviceStatus: req.deviceStatus
-            }));
+            // Process only the first request (one by one approach)
+            const req = requests[0];
+
+            // Check if studentId exists
+            if (!req.studentId) {
+                throw new InternalServerErrorException('Invalid join request: student not found');
+            }
+
+            // This is actually the User._id stored incorrectly as studentId
+            const userId = req.studentId.toString();
+
+            // 1. Get Student document using userId field (NOT Student._id)
+            const student = await this.studentRepository.findByUserId(new Types.ObjectId(userId));
+
+            if (!student) {
+                throw new NotFoundException(`Student profile not found for user ${userId}`);
+            }
+
+            // 2. Get User (for email) - can reuse the userId we already have
+            const user = await this.userRepository.findById(new Types.ObjectId(userId));
+
+            if (!user) {
+                throw new NotFoundException(`User ${userId} not found`);
+            }
+
+            // 3. Get Personal Details (for name)
+            const personalDetail = await this.studentPersonalDetailRepository.findById(
+                student.personalDetailId
+            );
+
+            if (!personalDetail) {
+                throw new NotFoundException(`Personal detail ${student.personalDetailId} not found`);
+            }
+
+            // 4. Get Academic Details (for roll number)
+            const academicDetail = await this.studentAcademicDetailRepository.findById(
+                student.academicDetailId
+            );
+
+            if (!academicDetail) {
+                throw new NotFoundException(`Academic detail ${student.academicDetailId} not found`);
+            }
+
+            return [{
+                requestId: (req._id as any).toString(),
+                studentEmail: user.email,
+                studentName: `${personalDetail.firstName} ${personalDetail.lastName}`.trim(),
+                studentRollNumber: academicDetail.rollNumber,
+                timestamp: req.requestedAt
+            }];
+
         } catch (error) {
-            console.log("error", error)
+            console.log("error", error);
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
             throw new InternalServerErrorException('Failed to fetch join requests');
         }
     }
+
 
     async approveJoinRequest(requestId: string) {
         try {

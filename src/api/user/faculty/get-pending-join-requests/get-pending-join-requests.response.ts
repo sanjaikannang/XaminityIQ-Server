@@ -1,7 +1,8 @@
 export class JoinRequestData {
     requestId: string;
-    studentId: string;
+    studentEmail: string;
     studentName: string;
+    studentRollNumber: string;
     timestamp: Date;
     // deviceStatus: {
     //     camera: boolean;

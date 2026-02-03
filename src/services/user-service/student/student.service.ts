@@ -76,6 +76,8 @@ export class StudentService {
         }
     }
 
+
+    // Request To Join Exam API Endpoint
     async requestToJoinExam(data: {
         examId: string;
         studentId: string;

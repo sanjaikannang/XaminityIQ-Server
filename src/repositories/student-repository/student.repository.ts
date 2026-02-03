@@ -29,7 +29,9 @@ export class StudentRepositoryService {
     // Find a student by MongoDB ObjectId
     async findById(id: Types.ObjectId): Promise<StudentDocument | null> {
         try {
-            return await this.studentModel.findById(id).exec();
+            const result = await this.studentModel.findById(id).exec();
+            console.log("result", result);
+            return result;
         } catch (error) {
             throw new InternalServerErrorException(
                 `Database error: ${error.message}`
