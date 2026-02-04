@@ -9,7 +9,9 @@ export class ChatMessageData {
 }
 
 export class GetChatHistoryResponse {
+
     success: boolean;
     message: string;
     data?: ChatMessageData[];
+
 }

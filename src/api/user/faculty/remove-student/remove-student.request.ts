@@ -1,6 +1,7 @@
 import { IsString, IsNotEmpty } from 'class-validator';
 
 export class RemoveStudentRequest {
+
     @IsString()
     @IsNotEmpty()
     studentId: string;
@@ -8,4 +9,5 @@ export class RemoveStudentRequest {
     @IsString()
     @IsNotEmpty()
     reason: string;
+
 }

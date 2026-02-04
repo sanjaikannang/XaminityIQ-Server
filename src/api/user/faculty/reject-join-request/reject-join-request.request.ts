@@ -1,6 +1,7 @@
 import { IsString, IsNotEmpty } from 'class-validator';
 
 export class RejectJoinRequestRequest {
+
     @IsString()
     @IsNotEmpty()
     requestId: string;
@@ -8,4 +9,5 @@ export class RejectJoinRequestRequest {
     @IsString()
     @IsNotEmpty()
     reason: string;
+    
 }

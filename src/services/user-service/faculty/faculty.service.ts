@@ -236,6 +236,7 @@ export class FacultyService {
     }
 
 
+    // Approve JoinRequest API Endpoint
     async approveJoinRequest(requestId: string) {
         try {
             const request = await this.joinRequestRepository.findById(requestId);
@@ -296,6 +297,8 @@ export class FacultyService {
         }
     }
 
+
+    // Reject Join Request API Endpoint
     async rejectJoinRequest(requestId: string, reason: string) {
         try {
             const request = await this.joinRequestRepository.findById(requestId);
@@ -318,6 +321,8 @@ export class FacultyService {
         }
     }
 
+
+    // Send Message API Endpoint
     async sendMessage(data: {
         examId: string;
         senderId: string;
@@ -343,6 +348,8 @@ export class FacultyService {
         }
     }
 
+
+    // Get ChatHistory API Endpoint
     async getChatHistory(examId: string, recipientId?: string) {
         try {
             const messages = await this.chatMessageRepository.findByExam(examId);
@@ -369,6 +376,8 @@ export class FacultyService {
         }
     }
 
+
+    // Remove Student API Endpoint
     async removeStudent(examId: string, studentId: string, reason: string) {
         try {
             // Update participant status
@@ -395,6 +404,8 @@ export class FacultyService {
         }
     }
 
+
+    // End Exam API Endpoint
     async endExam(examId: string) {
         try {
             // Update exam status

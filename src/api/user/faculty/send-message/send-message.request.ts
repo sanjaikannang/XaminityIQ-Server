@@ -1,7 +1,8 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
 import { MessageType } from 'src/utils/enum';
+import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
 
 export class SendMessageRequest {
+
     @IsString()
     @IsNotEmpty()
     senderId: string;
@@ -16,4 +17,5 @@ export class SendMessageRequest {
 
     @IsEnum(MessageType)
     type: MessageType;
+    
 }

@@ -1,9 +1,9 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { UserRole } from 'src/utils/enum';
 import { RoleGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/roles.decorator';
-import { UserRole } from 'src/utils/enum';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { GetChatHistoryResponse } from './get-chat-history.response';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { FacultyService } from 'src/services/user-service/faculty/faculty.service';
 
 @Controller('faculty/exams')
