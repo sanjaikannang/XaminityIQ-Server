@@ -40,6 +40,12 @@ export class User {
     @Prop()
     refreshToken: string;
 
+    @Prop()
+    resetPasswordTokenHash: string;
+
+    @Prop()
+    resetPasswordTokenExpiresAt: Date;
+
     @Prop({ type: Types.ObjectId, ref: 'User' })
     createdBy: Types.ObjectId;
 

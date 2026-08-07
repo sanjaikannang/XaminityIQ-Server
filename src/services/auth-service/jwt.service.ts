@@ -6,8 +6,14 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 export interface JwtPayload {
     sub: string;
     email: string;
-    role: UserRole;    
+    role: UserRole;
     type: 'access' | 'refresh';
+}
+
+export interface PasswordResetJwtPayload {
+    sub: string;
+    email: string;
+    purpose: 'password-reset';
 }
 
 @Injectable()
@@ -76,6 +82,37 @@ export class AuthJwtService {
             return payload;
         } catch (error) {
             throw new UnauthorizedException('Invalid or expired refresh token', error);
+        }
+    }
+
+
+    // Generate Password Reset Token
+    generatePasswordResetToken(payload: Omit<PasswordResetJwtPayload, 'purpose'>): string {
+        try {
+            const token = this.jwtService.sign(
+                { ...payload, purpose: 'password-reset' },
+                {
+                    secret: this.configService.getPasswordResetJwtSecretKey(),
+                    expiresIn: '10m',
+                },
+            );
+            return token;
+        } catch (error) {
+            throw new UnauthorizedException('Failed to generate password reset token', error);
+        }
+    }
+
+
+    // Verify Password Reset Token
+    verifyPasswordResetToken(token: string): PasswordResetJwtPayload {
+        try {
+            const payload = this.jwtService.verify(token, {
+                secret: this.configService.getPasswordResetJwtSecretKey(),
+            });
+
+            return payload;
+        } catch (error) {
+            throw new UnauthorizedException('Invalid or expired password reset token', error);
         }
     }
 
