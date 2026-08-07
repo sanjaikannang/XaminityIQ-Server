@@ -1,23 +1,39 @@
+import * as crypto from 'crypto';
 import { Types } from "mongoose";
 import { AuthJwtService } from './jwt.service';
+import { UserRole } from 'src/utils/enum';
 import { PasswordService } from './password.service';
+import { ConfigService } from 'src/config/config.service';
 import { LoginRequest } from 'src/api/auth/login/login.request';
-import { RefreshTokenRequest } from 'src/api/auth/refresh-token/refresh-token.request';
+import { AuthAction } from 'src/schemas/AuthActivityLog/auth-activity-log.schema';
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { UserRepositoryService } from 'src/repositories/user-repository/user.repository';
+import { ResetPasswordRequest } from 'src/api/auth/reset-password/reset-password.request';
 import { ChangePasswordRequest } from 'src/api/auth/change-password/change-password.request';
+import { AuthActivityLogRepositoryService } from 'src/repositories/auth-activity-log-repository/auth-activity-log.repository';
+
+export interface RequestMetadata {
+    ipAddress?: string;
+    userAgent?: string;
+}
+
+function hashResetToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 @Injectable()
 export class AuthService {
     constructor(
         private readonly userRepositoryService: UserRepositoryService,
+        private readonly authActivityLogRepositoryService: AuthActivityLogRepositoryService,
         private readonly passwordService: PasswordService,
         private readonly jwtService: AuthJwtService,
+        private readonly configService: ConfigService,
     ) { }
 
 
     // Login API Endpoint
-    async loginAPI(loginData: LoginRequest) {
+    async loginAPI(loginData: LoginRequest, meta: RequestMetadata = {}) {
         const { email, password } = loginData;
 
         // Find user by email
@@ -51,6 +67,16 @@ export class AuthService {
         await this.userRepositoryService.updateUserTokens(userId, accessToken, refreshToken);
         await this.userRepositoryService.updateLastLogin(userId);
 
+        // Record login activity
+        await this.authActivityLogRepositoryService.create({
+            userId: user._id as Types.ObjectId,
+            email: user.email,
+            role: user.role,
+            action: AuthAction.LOGIN,
+            ipAddress: meta.ipAddress,
+            userAgent: meta.userAgent,
+        });
+
         return {
             user: {
                 id: (user._id as Types.ObjectId).toString(),
@@ -67,9 +93,7 @@ export class AuthService {
 
 
     // Refresh Token API Endpoint
-    async refreshTokenAPI(refreshData: RefreshTokenRequest) {
-        const { refreshToken } = refreshData;
-
+    async refreshTokenAPI(refreshToken: string) {
         try {
             // Verify refresh token
             const payload = this.jwtService.verifyRefreshToken(refreshToken);
@@ -154,10 +178,20 @@ export class AuthService {
 
 
     // Logout API Endpoint
-    async logoutAPI(userId: string) {
+    async logoutAPI(userId: string, meta: RequestMetadata & { email: string; role: UserRole }) {
         try {
             // Clear tokens from user
             await this.userRepositoryService.clearUserTokens(userId);
+
+            // Record logout activity
+            await this.authActivityLogRepositoryService.create({
+                userId: new Types.ObjectId(userId),
+                email: meta.email,
+                role: meta.role,
+                action: AuthAction.LOGOUT,
+                ipAddress: meta.ipAddress,
+                userAgent: meta.userAgent,
+            });
 
             return {
                 message: 'Logged out successfully'
@@ -166,6 +200,82 @@ export class AuthService {
         } catch (error) {
             throw new UnauthorizedException('Failed to logout');
         }
+    }
+
+
+    // Forgot Password API Endpoint
+    async forgotPasswordAPI(email: string) {
+        const user = await this.userRepositoryService.findUserByEmail(email);
+
+        if (user && user.role === UserRole.ADMIN) {
+            throw new BadRequestException('Forgot password is not available for admin accounts');
+        }
+
+        if (user) {
+            const userId = (user._id as Types.ObjectId).toString();
+
+            const resetToken = this.jwtService.generatePasswordResetToken({
+                sub: userId,
+                email: user.email,
+            });
+
+            const tokenHash = hashResetToken(resetToken);
+            const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+            await this.userRepositoryService.setPasswordResetToken(userId, tokenHash, expiresAt);
+
+            const resetLink = `${this.configService.getFrontEndBaseUrl2()}/reset-password/${resetToken}`;
+
+            // TODO: integrate email service to send resetLink to user.email
+            console.log(`Password reset link for ${user.email}: ${resetLink}`);
+        }
+
+        return {
+            message: 'If this email is registered, a password reset link has been generated.',
+        };
+    }
+
+
+    // Reset Password API Endpoint
+    async resetPasswordAPI(resetData: ResetPasswordRequest) {
+        const { token, newPassword, confirmPassword } = resetData;
+
+        if (newPassword !== confirmPassword) {
+            throw new BadRequestException('New password and confirm password do not match');
+        }
+
+        let payload;
+        try {
+            payload = this.jwtService.verifyPasswordResetToken(token);
+        } catch (error) {
+            throw new BadRequestException('Reset link is invalid or has expired');
+        }
+
+        const user = await this.userRepositoryService.findById(payload.sub);
+        if (!user || !user.resetPasswordTokenHash || !user.resetPasswordTokenExpiresAt) {
+            throw new BadRequestException('Reset link is invalid or has expired');
+        }
+
+        if (user.resetPasswordTokenExpiresAt.getTime() < Date.now()) {
+            throw new BadRequestException('Reset link is invalid or has expired');
+        }
+
+        if (hashResetToken(token) !== user.resetPasswordTokenHash) {
+            throw new BadRequestException('Reset link is invalid or has expired');
+        }
+
+        const passwordValidation = this.passwordService.validatePasswordStrength(newPassword);
+        if (!passwordValidation.isValid) {
+            throw new BadRequestException(passwordValidation.message);
+        }
+
+        const hashedPassword = await this.passwordService.hashPassword(newPassword);
+
+        await this.userRepositoryService.resetPassword((user._id as Types.ObjectId).toString(), hashedPassword);
+
+        return {
+            message: 'Password has been reset successfully. Please log in with your new password.',
+        };
     }
 
 }
