@@ -49,11 +49,14 @@ import { FacultyAddressRepositoryService } from "./faculty-address-repository/fa
 import { FacultyEducationHistoryRepositoryService } from "./faculty-education-history-repository/faculty-education-history.repository";
 import { FacultyEmploymentDetailRepositoryService } from "./faculty-employment-detail-repository/faculty-employment-detail.repository";
 import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experience-repository/faculty-work-experience.repository";
+import { AuthActivityLog, AuthActivityLogSchema } from "src/schemas/AuthActivityLog/auth-activity-log.schema";
+import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository/auth-activity-log.repository";
 
 @Module({
     imports: [
         MongooseModule.forFeature([
             { name: Admin.name, schema: AdminSchema },
+            { name: AuthActivityLog.name, schema: AuthActivityLogSchema },
             { name: User.name, schema: UserSchema },
             { name: Batch.name, schema: BatchSchema },
             { name: Course.name, schema: CourseSchema },
@@ -81,6 +84,7 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
     providers: [
         AdminRepositoryService,
         UserRepositoryService,
+        AuthActivityLogRepositoryService,
         BatchRepositoryService,
         CourseRepositoryService,
         BatchCourseRepositoryService,
@@ -105,6 +109,7 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
     exports: [
         AdminRepositoryService,
         UserRepositoryService,
+        AuthActivityLogRepositoryService,
         BatchRepositoryService,
         CourseRepositoryService,
         BatchCourseRepositoryService,
