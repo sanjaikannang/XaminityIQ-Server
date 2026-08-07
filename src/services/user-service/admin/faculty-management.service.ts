@@ -12,6 +12,7 @@ import { PasswordService } from "src/services/auth-service/password.service";
 
 // Requests
 import { CreateFacultyRequest } from "src/api/user/admin/faculty-management/create-faculty/create-faculty.request";
+import { EditFacultyRequest } from "src/api/user/admin/faculty-management/edit-faculty/edit-faculty.request";
 
 // Response
 
@@ -279,13 +280,11 @@ export class FacultyManagementService {
             const search = query.search || '';
             const skip = (page - 1) * limit;
 
-            // Build search filter
-            let searchFilter: any = {};
-            if (search) {
-                searchFilter = {
-                    $or: [{ facultyId: { $regex: search, $options: 'i' } }],
-                };
-            }
+            // Build search filter (only active/non-deleted faculty by default)
+            const searchFilter: any = {
+                isActive: true,
+                ...(search && { $or: [{ facultyId: { $regex: search, $options: 'i' } }] }),
+            };
 
             // Get total count
             const totalItems =
@@ -584,6 +583,186 @@ export class FacultyManagementService {
             }
 
             throw new InternalServerErrorException('Failed to fetch faculty');
+        }
+    }
+
+
+    // Edit Faculty API Endpoint
+    async editFacultyAPI(id: string, editFacultyData: EditFacultyRequest) {
+        try {
+            const session = await this.userRepositoryService.startSession();
+            session.startTransaction();
+
+            try {
+                const faculty = await this.facultyRepositoryService.findById(new Types.ObjectId(id));
+                if (!faculty) {
+                    throw new NotFoundException('Faculty not found');
+                }
+
+                // Check personal email uniqueness (excluding this faculty's own record)
+                const existingContactByPersonalEmail = await this.facultyContactInformationRepositoryService.findByPersonalEmail(editFacultyData.personalEmail);
+                if (existingContactByPersonalEmail && (existingContactByPersonalEmail._id as Types.ObjectId).toString() !== faculty.contactInformationId.toString()) {
+                    throw new ConflictException('Personal email already exists');
+                }
+
+                // Check phone number uniqueness (excluding this faculty's own record)
+                const existingContactByPhone = await this.facultyContactInformationRepositoryService.findByPhoneNumber(editFacultyData.phoneNumber);
+                if (existingContactByPhone && (existingContactByPhone._id as Types.ObjectId).toString() !== faculty.contactInformationId.toString()) {
+                    throw new ConflictException('Phone number already exists');
+                }
+
+                // Update Personal Details
+                await this.facultyPersonalDetailRepositoryService.updateById(
+                    faculty.personalDetailId,
+                    {
+                        firstName: editFacultyData.firstName,
+                        lastName: editFacultyData.lastName,
+                        gender: editFacultyData.gender,
+                        dateOfBirth: editFacultyData.dateOfBirth,
+                        maritalStatus: editFacultyData.maritalStatus,
+                        profilePhotoUrl: editFacultyData.profilePhotoUrl,
+                        religion: editFacultyData.religion,
+                    },
+                    session
+                );
+
+                // Update Contact Information (facultyEmail is never editable)
+                await this.facultyContactInformationRepositoryService.updateById(
+                    faculty.contactInformationId,
+                    {
+                        personalEmail: editFacultyData.personalEmail,
+                        phoneNumber: editFacultyData.phoneNumber,
+                        alternatePhoneNumber: editFacultyData.alternatePhoneNumber,
+                        emergencyContact: editFacultyData.emergencyContact,
+                    },
+                    session
+                );
+
+                // Update Address Details
+                await this.facultyAddressRepositoryService.updateById(
+                    faculty.addressDetailId,
+                    {
+                        currentAddress: editFacultyData.currentAddress,
+                        sameAsCurrent: editFacultyData.sameAsCurrent,
+                        permanentAddress: editFacultyData.sameAsCurrent ? editFacultyData.currentAddress : editFacultyData.permanentAddress,
+                    },
+                    session
+                );
+
+                // Replace Education History
+                await this.facultyEducationHistoryRepositoryService.deleteByFacultyId(faculty._id as Types.ObjectId, session);
+                const educationHistoryDocs = await Promise.all(
+                    editFacultyData.educationHistory.map(edu =>
+                        this.facultyEducationHistoryRepositoryService.create({
+                            facultyId: faculty._id as Types.ObjectId,
+                            level: edu.level,
+                            qualification: edu.qualification,
+                            boardOrUniversity: edu.boardOrUniversity,
+                            institutionName: edu.institutionName,
+                            yearOfPassing: edu.yearOfPassing,
+                            percentageOrCGPA: edu.percentageOrCGPA,
+                            specialization: edu.specialization,
+                        }, session)
+                    )
+                );
+                const educationHistoryIds = educationHistoryDocs.map(doc => doc._id as Types.ObjectId);
+                await this.facultyRepositoryService.updateById(
+                    faculty._id as Types.ObjectId,
+                    { educationHistoryIds },
+                    session
+                );
+
+                // Replace Work Experience
+                await this.facultyWorkExperienceRepositoryService.deleteByFacultyId(faculty._id as Types.ObjectId, session);
+                if (editFacultyData.workExperience && editFacultyData.workExperience.length > 0) {
+                    const workExperienceDocs = await Promise.all(
+                        editFacultyData.workExperience.map(work =>
+                            this.facultyWorkExperienceRepositoryService.create({
+                                facultyId: faculty._id as Types.ObjectId,
+                                organization: work.organization,
+                                role: work.role,
+                                department: work.department,
+                                fromDate: work.fromDate,
+                                toDate: work.toDate,
+                                experienceYears: work.experienceYears,
+                                jobDescription: work.jobDescription,
+                                reasonForLeaving: work.reasonForLeaving,
+                                isCurrent: work.isCurrent || false
+                            }, session)
+                        )
+                    );
+                    const workExperienceIds = workExperienceDocs.map(doc => doc._id as Types.ObjectId);
+                    await this.facultyRepositoryService.updateById(
+                        faculty._id as Types.ObjectId,
+                        { workExperienceIds },
+                        session
+                    );
+                } else {
+                    await this.facultyRepositoryService.updateById(
+                        faculty._id as Types.ObjectId,
+                        { workExperienceIds: [] },
+                        session
+                    );
+                }
+
+                await session.commitTransaction();
+                return faculty;
+
+            } catch (error) {
+                await session.abortTransaction();
+                throw error;
+            } finally {
+                session.endSession();
+            }
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to update faculty');
+        }
+    }
+
+
+    // Delete Faculty API Endpoint (soft delete)
+    async deleteFacultyAPI(id: string) {
+        try {
+            const session = await this.userRepositoryService.startSession();
+            session.startTransaction();
+
+            try {
+                const faculty = await this.facultyRepositoryService.findById(new Types.ObjectId(id));
+                if (!faculty) {
+                    throw new NotFoundException('Faculty not found');
+                }
+
+                await this.facultyRepositoryService.updateById(
+                    faculty._id as Types.ObjectId,
+                    { isActive: false },
+                    session
+                );
+
+                await this.userRepositoryService.updateUser(
+                    faculty.userId.toString(),
+                    { isActive: false },
+                    session
+                );
+
+                await session.commitTransaction();
+                return { message: 'Faculty deactivated successfully' };
+
+            } catch (error) {
+                await session.abortTransaction();
+                throw error;
+            } finally {
+                session.endSession();
+            }
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to delete faculty');
         }
     }
 

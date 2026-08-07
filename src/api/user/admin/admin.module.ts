@@ -53,9 +53,14 @@ import { CreateStudentController } from './student-management/create-student/cre
 import { GetAllStudentsController } from './student-management/get-all-students/get-all-students.controller';
 import { GetStudentController } from './student-management/get-student/get-student.controller';
 import { BulkUploadStudentsController } from './student-management/bulk-upload-student/bulk-upload-students.controller';
+import { EditStudentController } from './student-management/edit-student/edit-student.controller';
+import { DeleteStudentController } from './student-management/delete-student/delete-student.controller';
 import { CreateFacultyController } from './faculty-management/create-faculty/create-faculty.controller';
 import { GetFacultyController } from './faculty-management/get-faculty/get-faculty.controller';
 import { GetAllFacultyController } from './faculty-management/get-all-faculty/get-all-faculty.controller';
+import { EditFacultyController } from './faculty-management/edit-faculty/edit-faculty.controller';
+import { DeleteFacultyController } from './faculty-management/delete-faculty/delete-faculty.controller';
+import { GetAllDepartmentsController } from './get-all-departments/get-all-departments.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -114,9 +119,14 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllStudentsController,
         GetStudentController,
         BulkUploadStudentsController,
+        EditStudentController,
+        DeleteStudentController,
         CreateFacultyController,
         GetFacultyController,
-        GetAllFacultyController
+        GetAllFacultyController,
+        EditFacultyController,
+        DeleteFacultyController,
+        GetAllDepartmentsController
     ],
     providers: [
         ConfigService,

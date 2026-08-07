@@ -623,5 +623,22 @@ export class AdminService {
             }
             throw new InternalServerErrorException('Failed to fetch departments for course');
         }
-    }   
+    }
+
+
+    // Get All Departments API Endpoint (unscoped - used for Faculty department dropdown)
+    async getAllDepartmentsAPI() {
+        try {
+            const departments = await this.departmentRepositoryService.findAll();
+
+            return departments.map(dept => ({
+                _id: (dept._id as any).toString(),
+                deptCode: dept.deptCode,
+                deptName: dept.deptName
+            }));
+
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch departments');
+        }
+    }
 }

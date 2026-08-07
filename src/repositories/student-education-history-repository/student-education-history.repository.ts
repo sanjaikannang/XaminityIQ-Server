@@ -39,4 +39,18 @@ export class StudentEducationHistoryRepositoryService {
         }
     }
 
+
+    // Delete all education history records for a student (used to replace on edit)
+    async deleteByStudentId(studentId: Types.ObjectId, session?: ClientSession): Promise<void> {
+        try {
+            await this.studentEducationHistoryModel
+                .deleteMany({ studentId }, { session })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
+    }
+
 }

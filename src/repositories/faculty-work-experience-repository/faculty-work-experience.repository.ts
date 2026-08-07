@@ -25,4 +25,13 @@ export class FacultyWorkExperienceRepositoryService {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }
     }
+
+    // Delete all work experience records for a faculty (used to replace on edit)
+    async deleteByFacultyId(facultyId: Types.ObjectId, session?: ClientSession): Promise<void> {
+        try {
+            await this.facultyWorkExperienceModel.deleteMany({ facultyId }, { session }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
 }

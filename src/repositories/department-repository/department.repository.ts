@@ -29,6 +29,13 @@ export class DepartmentRepositoryService {
     }
 
 
-
+    // Find all departments (unscoped - used for Faculty department dropdown)
+    async findAll(): Promise<DepartmentDocument[]> {
+        try {
+            return await this.departmentModel.find().sort({ deptName: 1 }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
 
 }

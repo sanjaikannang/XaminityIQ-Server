@@ -14,6 +14,7 @@ import { StudentParentDetailDocument } from "src/schemas/User/Student/studentPar
 
 // Requests
 import { CreateStudentRequest } from "src/api/user/admin/student-management/create-student/create-student.request";
+import { EditStudentRequest } from "src/api/user/admin/student-management/edit-student/edit-student.request";
 import { GetAllStudentsRequest } from "src/api/user/admin/student-management/get-all-students/get-all-students.request";
 import { BulkUploadStudentsRequest } from "src/api/user/admin/student-management/bulk-upload-student/bulk-upload-students.request";
 
@@ -314,12 +315,11 @@ export class StudentManagementService {
             const search = query.search ?? '';
             const skip = (page - 1) * limit;
 
-            // Build search filter
-            const searchFilter: any = search
-                ? {
-                    $or: [{ studentId: { $regex: search, $options: 'i' } }],
-                }
-                : {};
+            // Build search filter (only active/non-deleted students by default)
+            const searchFilter: any = {
+                isActive: true,
+                ...(search && { $or: [{ studentId: { $regex: search, $options: 'i' } }] }),
+            };
 
             // Get total count
             const totalItems =
@@ -887,6 +887,172 @@ export class StudentManagementService {
 
         } catch (error) {
             throw new InternalServerErrorException('Failed to process bulk upload');
+        }
+    }
+
+
+    // Edit Student API Endpoint
+    async editStudentAPI(id: string, editStudentData: EditStudentRequest) {
+        try {
+            const session = await this.userRepositoryService.startSession();
+            session.startTransaction();
+
+            try {
+                const student = await this.studentRepositoryService.findById(new Types.ObjectId(id));
+                if (!student) {
+                    throw new NotFoundException('Student not found');
+                }
+
+                // Check personal email uniqueness (excluding this student's own record)
+                const existingContactByPersonalEmail = await this.studentContactInformationRepositoryService.findByPersonalEmail(editStudentData.personalEmail);
+                if (existingContactByPersonalEmail && (existingContactByPersonalEmail._id as Types.ObjectId).toString() !== student.contactInformationId.toString()) {
+                    throw new ConflictException('Personal email already exists');
+                }
+
+                // Check phone number uniqueness (excluding this student's own record)
+                const existingContactByPhone = await this.studentContactInformationRepositoryService.findByPhoneNumber(editStudentData.phoneNumber);
+                if (existingContactByPhone && (existingContactByPhone._id as Types.ObjectId).toString() !== student.contactInformationId.toString()) {
+                    throw new ConflictException('Phone number already exists');
+                }
+
+                // Update Personal Details
+                await this.studentPersonalDetailRepositoryService.updateById(
+                    student.personalDetailId,
+                    {
+                        firstName: editStudentData.firstName,
+                        lastName: editStudentData.lastName,
+                        gender: editStudentData.gender,
+                        dateOfBirth: editStudentData.dateOfBirth,
+                        profilePhotoUrl: editStudentData.profilePhotoUrl,
+                        religion: editStudentData.religion,
+                    },
+                    session
+                );
+
+                // Update Contact Information (studentEmail is never editable)
+                await this.studentContactInformationRepositoryService.updateById(
+                    student.contactInformationId,
+                    {
+                        personalEmail: editStudentData.personalEmail,
+                        phoneNumber: editStudentData.phoneNumber,
+                        alternatePhoneNumber: editStudentData.alternatePhoneNumber,
+                        emergencyContact: editStudentData.emergencyContact,
+                    },
+                    session
+                );
+
+                // Update Address Details
+                await this.studentAddressDetailRepositoryService.updateById(
+                    student.addressDetailId,
+                    {
+                        currentAddress: editStudentData.currentAddress,
+                        sameAsCurrent: editStudentData.sameAsCurrent,
+                        permanentAddress: editStudentData.sameAsCurrent ? editStudentData.currentAddress : editStudentData.permanentAddress,
+                    },
+                    session
+                );
+
+                // Replace Education History
+                await this.studentEducationHistoryRepositoryService.deleteByStudentId(student._id as Types.ObjectId, session);
+                const educationHistoryPromises = editStudentData.educationHistory.map(edu =>
+                    this.studentEducationHistoryRepositoryService.create({
+                        studentId: student._id as Types.ObjectId,
+                        level: edu.level,
+                        qualification: edu.qualification,
+                        boardOrUniversity: edu.boardOrUniversity,
+                        institutionName: edu.institutionName,
+                        yearOfPassing: edu.yearOfPassing,
+                        percentageOrCGPA: edu.percentageOrCGPA,
+                    }, session)
+                );
+                await Promise.all(educationHistoryPromises);
+
+                // Update/Create Parent Details if provided
+                if (editStudentData.father || editStudentData.mother || editStudentData.guardian) {
+                    if (student.parentDetailId) {
+                        await this.studentParentDetailRepositoryService.updateById(
+                            student.parentDetailId,
+                            {
+                                father: editStudentData.father,
+                                mother: editStudentData.mother,
+                                guardian: editStudentData.guardian,
+                            },
+                            session
+                        );
+                    } else {
+                        const parentDetail = await this.studentParentDetailRepositoryService.create({
+                            studentId: student._id as Types.ObjectId,
+                            father: editStudentData.father,
+                            mother: editStudentData.mother,
+                            guardian: editStudentData.guardian,
+                        }, session);
+
+                        await this.studentRepositoryService.updateById(
+                            student._id as Types.ObjectId,
+                            { parentDetailId: parentDetail._id as Types.ObjectId },
+                            session
+                        );
+                    }
+                }
+
+                await session.commitTransaction();
+                return student;
+
+            } catch (error) {
+                await session.abortTransaction();
+                throw error;
+            } finally {
+                session.endSession();
+            }
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to update student');
+        }
+    }
+
+
+    // Delete Student API Endpoint (soft delete)
+    async deleteStudentAPI(id: string) {
+        try {
+            const session = await this.userRepositoryService.startSession();
+            session.startTransaction();
+
+            try {
+                const student = await this.studentRepositoryService.findById(new Types.ObjectId(id));
+                if (!student) {
+                    throw new NotFoundException('Student not found');
+                }
+
+                await this.studentRepositoryService.updateById(
+                    student._id as Types.ObjectId,
+                    { isActive: false },
+                    session
+                );
+
+                await this.userRepositoryService.updateUser(
+                    student.userId.toString(),
+                    { isActive: false },
+                    session
+                );
+
+                await session.commitTransaction();
+                return { message: 'Student deactivated successfully' };
+
+            } catch (error) {
+                await session.abortTransaction();
+                throw error;
+            } finally {
+                session.endSession();
+            }
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to delete student');
         }
     }
 

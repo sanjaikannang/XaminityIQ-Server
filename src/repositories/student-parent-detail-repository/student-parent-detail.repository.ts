@@ -39,4 +39,22 @@ export class StudentParentDetailRepositoryService {
         }
     }
 
+
+    // Update parent details by MongoDB ObjectId
+    async updateById(
+        id: Types.ObjectId,
+        data: Partial<StudentParentDetail>,
+        session?: ClientSession
+    ): Promise<StudentParentDetailDocument | null> {
+        try {
+            return await this.studentParentDetailModel
+                .findByIdAndUpdate(id, data, { new: true, session })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
+    }
+
 }
