@@ -77,4 +77,22 @@ export class StudentContactInformationRepositoryService {
     }
 }
 
+
+    // Update contact information by MongoDB ObjectId
+    async updateById(
+        id: Types.ObjectId,
+        data: Partial<StudentContactInformation>,
+        session?: ClientSession
+    ): Promise<StudentContactInformationDocument | null> {
+        try {
+            return await this.studentContactInformationModel
+                .findByIdAndUpdate(id, data, { new: true, session })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
+    }
+
 }

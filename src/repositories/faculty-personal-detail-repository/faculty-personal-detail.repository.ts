@@ -25,4 +25,18 @@ export class FacultyPersonalDetailRepositoryService {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }
     }
+
+    async updateById(
+        id: Types.ObjectId,
+        data: Partial<FacultyPersonalDetail>,
+        session?: ClientSession
+    ): Promise<FacultyPersonalDetailDocument | null> {
+        try {
+            return await this.facultyPersonalDetailModel
+                .findByIdAndUpdate(id, data, { new: true, session })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
 }

@@ -1,8 +1,11 @@
+// import * as dns from 'dns';
 import cookieParser from 'cookie-parser';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from './config/config.service';
+
+// dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 async function bootstrap() {
 

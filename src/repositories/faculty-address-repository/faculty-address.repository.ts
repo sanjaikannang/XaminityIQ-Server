@@ -25,4 +25,18 @@ export class FacultyAddressRepositoryService {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }
     }
+
+    async updateById(
+        id: Types.ObjectId,
+        data: Partial<FacultyAddress>,
+        session?: ClientSession
+    ): Promise<FacultyAddressDocument | null> {
+        try {
+            return await this.facultyAddressModel
+                .findByIdAndUpdate(id, data, { new: true, session })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
 }

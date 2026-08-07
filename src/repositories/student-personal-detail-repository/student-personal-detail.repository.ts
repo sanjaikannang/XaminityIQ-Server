@@ -37,4 +37,22 @@ export class StudentPersonalDetailRepositoryService {
         }
     }
 
+
+    // Update student personal details by MongoDB ObjectId
+    async updateById(
+        id: Types.ObjectId,
+        data: Partial<StudentPersonalDetail>,
+        session?: ClientSession
+    ): Promise<StudentPersonalDetailDocument | null> {
+        try {
+            return await this.studentPersonalDetailModel
+                .findByIdAndUpdate(id, data, { new: true, session })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
+    }
+
 }

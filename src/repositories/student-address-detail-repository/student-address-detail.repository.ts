@@ -40,4 +40,21 @@ export class StudentAddressDetailRepositoryService {
     }
 
 
+    // Update student address details by MongoDB ObjectId
+    async updateById(
+        id: Types.ObjectId,
+        data: Partial<StudentAddressDetail>,
+        session?: ClientSession
+    ): Promise<StudentAddressDetailDocument | null> {
+        try {
+            return await this.studentAddressDetailModel
+                .findByIdAndUpdate(id, data, { new: true, session })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
+    }
+
 }

@@ -1,4 +1,4 @@
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from 'src/schemas/User/user.schema';
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
@@ -23,9 +23,9 @@ export class UserRepositoryService {
 
 
     // Update user
-    async updateUser(id: string, updates: Partial<User>): Promise<UserDocument | null> {
+    async updateUser(id: string, updates: Partial<User>, session?: ClientSession): Promise<UserDocument | null> {
         try {
-            const updatedUser = this.userModel.findByIdAndUpdate(id, updates, { new: true }).exec();
+            const updatedUser = await this.userModel.findByIdAndUpdate(id, updates, { new: true, session }).exec();
             return updatedUser;
         } catch (error) {
             throw new InternalServerErrorException('Failed to update user', error);
