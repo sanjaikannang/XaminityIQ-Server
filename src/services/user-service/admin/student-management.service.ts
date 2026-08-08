@@ -6,8 +6,10 @@ import {
     NotFoundException
 } from "@nestjs/common";
 import { ulid } from "ulid";
-import { Types } from "mongoose";
+import { ClientSession, Types } from "mongoose";
+import { generateSectionName, SECTION_MAX_CAPACITY } from "src/utils/utils";
 import { Nationality, StudentStatus, UserRole } from "src/utils/enum";
+import { SectionDocument } from "src/schemas/Academic/section.schema";
 import { CloudinaryService } from "src/cloudinary/cloudinary.service";
 import { PasswordService } from "src/services/auth-service/password.service";
 import { StudentParentDetailDocument } from "src/schemas/User/Student/studentParentDetail.schema";
@@ -99,6 +101,57 @@ export class StudentManagementService {
     }
 
 
+    // Automatically assign a student to a section with room, creating the
+    // next section (A, B, C, ...) if every existing one is full. Retries a
+    // few times if two concurrent requests race to create the same section.
+    private async assignSectionForStudent(
+        batchId: string,
+        courseId: string,
+        departmentId: string,
+        session: ClientSession,
+    ): Promise<SectionDocument> {
+        const MAX_ATTEMPTS = 3;
+
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            const availableSection = await this.sectionRepositoryService.findAndIncrementAvailable(
+                batchId,
+                courseId,
+                departmentId,
+                session,
+            );
+            if (availableSection) {
+                return availableSection;
+            }
+
+            const existingSections = await this.sectionRepositoryService.findByBatchCourseAndDepartment(
+                batchId,
+                courseId,
+                departmentId,
+            );
+            const nextSectionName = generateSectionName(existingSections.length);
+
+            try {
+                return await this.sectionRepositoryService.createWithSession({
+                    batchId: new Types.ObjectId(batchId),
+                    courseId: new Types.ObjectId(courseId),
+                    departmentId: new Types.ObjectId(departmentId),
+                    sectionName: nextSectionName,
+                    capacity: SECTION_MAX_CAPACITY,
+                    currentStrength: 1,
+                }, session);
+            } catch (error) {
+                const isDuplicateKey = error?.code === 11000;
+                if (isDuplicateKey && attempt < MAX_ATTEMPTS) {
+                    continue;
+                }
+                throw error;
+            }
+        }
+
+        throw new InternalServerErrorException('Failed to assign a section for the student');
+    }
+
+
     // Create Student API Endpoint
     async createStudentAPI(createStudentData: CreateStudentRequest) {
         let profilePhotoUrl: string | null = null;
@@ -123,11 +176,6 @@ export class StudentManagementService {
                 const department = await this.departmentRepositoryService.findById(createStudentData.departmentId);
                 if (!department) {
                     throw new NotFoundException('Department not found');
-                }
-
-                const section = await this.sectionRepositoryService.findById(createStudentData.sectionId);
-                if (!section) {
-                    throw new NotFoundException('Section not found');
                 }
 
                 // Check if personal email already exists
@@ -209,13 +257,22 @@ export class StudentManagementService {
                 }, session);
                 console.log("addressDetail...", addressDetail)
 
+                // Automatically assign the student to a section with room
+                const assignedSection = await this.assignSectionForStudent(
+                    createStudentData.batchId,
+                    createStudentData.courseId,
+                    createStudentData.departmentId,
+                    session,
+                );
+                console.log("assignedSection...", assignedSection)
+
                 // Create Academic Details
                 const academicDetail = await this.studentAcademicDetailRepositoryService.create({
                     rollNumber: rollNumber,
                     batchId: new Types.ObjectId(createStudentData.batchId),
                     courseId: new Types.ObjectId(createStudentData.courseId),
                     departmentId: new Types.ObjectId(createStudentData.departmentId),
-                    sectionId: new Types.ObjectId(createStudentData.sectionId),
+                    sectionId: assignedSection._id as Types.ObjectId,
                     currentSemester: createStudentData.currentSemester,
                     admissionType: createStudentData.admissionType,
                     status: StudentStatus.ACTIVE
@@ -718,11 +775,6 @@ export class StudentManagementService {
                         throw new Error('Department not found');
                     }
 
-                    const section = await this.sectionRepositoryService.findById(studentData.sectionId);
-                    if (!section) {
-                        throw new Error('Section not found');
-                    }
-
                     // Check if personal email already exists
                     const existingContactByPersonalEmail = await this.studentContactInformationRepositoryService.findByPersonalEmail(studentData.personalEmail);
                     if (existingContactByPersonalEmail) {
@@ -809,13 +861,21 @@ export class StudentManagementService {
                             permanentAddress: studentData.sameAsCurrent ? studentData.currentAddress : studentData.permanentAddress
                         }, session);
 
+                        // Automatically assign the student to a section with room
+                        const assignedSection = await this.assignSectionForStudent(
+                            studentData.batchId,
+                            studentData.courseId,
+                            studentData.departmentId,
+                            session,
+                        );
+
                         // Create Academic Details
                         const academicDetail = await this.studentAcademicDetailRepositoryService.create({
                             rollNumber: rollNumber,
                             batchId: new Types.ObjectId(studentData.batchId),
                             courseId: new Types.ObjectId(studentData.courseId),
                             departmentId: new Types.ObjectId(studentData.departmentId),
-                            sectionId: new Types.ObjectId(studentData.sectionId),
+                            sectionId: assignedSection._id as Types.ObjectId,
                             currentSemester: studentData.currentSemester,
                             admissionType: studentData.admissionType,
                             status: StudentStatus.ACTIVE

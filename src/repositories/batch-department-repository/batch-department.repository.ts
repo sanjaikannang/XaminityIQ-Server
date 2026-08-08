@@ -20,6 +20,16 @@ export class BatchDepartmentRepositoryService {
     }
 
 
+    // Find batch-department mapping by its own id
+    async findById(id: string): Promise<BatchDepartmentDocument | null> {
+        try {
+            return this.batchDepartmentModel.findById(id).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
     // Create new batch-department mapping
     async create(data: {
         batchCourseId: string;

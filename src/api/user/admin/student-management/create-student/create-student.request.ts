@@ -168,10 +168,6 @@ export class CreateStudentRequest {
     @IsNotEmpty()
     departmentId: string;
 
-    @IsString()
-    @IsNotEmpty()
-    sectionId: string;
-
     @IsNumber()
     currentSemester: number;
 

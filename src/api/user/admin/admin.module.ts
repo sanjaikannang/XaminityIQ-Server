@@ -46,6 +46,7 @@ import { AddDepartmentToBatchCourseController } from './add-department-to-batch-
 import { GetAllBatchesController } from './get-all-batches/get-all-batches.controller';
 import { GetAllCoursesForBatchController } from './get-all-courses-for-batch/get-all-courses-for-batch.controller';
 import { GetAllDepartmentForBatchCourseController } from './get-all-departments-for-batch-course/get-all-departments-for-batch-course.controller';
+import { GetDepartmentSectionsController } from './get-department-sections/get-department-sections.controller';
 import { GetAllCoursesWithDepartmentsController } from './get-all-courses-with-departments/get-all-courses-with-departments.controller';
 import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
 import { GetDepartmentsByCourseController } from './get-departments-by-course/get-departments-by-course.controller';
@@ -114,6 +115,7 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllBatchesController,
         GetAllCoursesForBatchController,
         GetAllDepartmentForBatchCourseController,
+        GetDepartmentSectionsController,
         GetAllCoursesWithDepartmentsController,
         GetCoursesByBatchController,
         GetDepartmentsByCourseController,

@@ -480,6 +480,62 @@ export class AdminService {
     }
 
 
+    // Get single department's sections (for the Academics -> Sections page)
+    async getDepartmentSectionsAPI(batchDepartmentId: string) {
+        try {
+            const batchDepartment = await this.batchDepartmentRepositoryService.findById(batchDepartmentId);
+            if (!batchDepartment) {
+                throw new NotFoundException('Batch-Department mapping not found');
+            }
+
+            const batchCourse = await this.batchCourseRepositoryService.findById(batchDepartment.batchCourseId.toString());
+            if (!batchCourse) {
+                throw new NotFoundException('Batch-Course mapping not found');
+            }
+
+            const [batch, course, department] = await Promise.all([
+                this.batchRepositoryService.findById(batchCourse.batchId.toString()),
+                this.courseRepositoryService.findById(batchDepartment.courseId.toString()),
+                this.departmentRepositoryService.findById(batchDepartment.deptId.toString()),
+            ]);
+
+            if (!batch || !course || !department) {
+                throw new NotFoundException('Batch, course, or department not found');
+            }
+
+            const sections = await this.sectionRepositoryService.findByBatchCourseAndDepartment(
+                batchCourse.batchId.toString(),
+                batchDepartment.courseId.toString(),
+                batchDepartment.deptId.toString(),
+            );
+
+            return {
+                batchDepartmentId: (batchDepartment._id as any).toString(),
+                batchId: (batch._id as any).toString(),
+                batchName: batch.batchName,
+                courseId: (course._id as any).toString(),
+                courseName: course.courseName,
+                deptId: (department._id as any).toString(),
+                deptCode: department.deptCode,
+                deptName: department.deptName,
+                sections: sections.map(section => ({
+                    _id: (section._id as any).toString(),
+                    sectionName: section.sectionName,
+                    capacity: section.capacity,
+                    currentStrength: section.currentStrength,
+                    createdAt: (section as any).createdAt,
+                })),
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch sections for department');
+        }
+    }
+
+
     // Get All Courses with Departments API Endpoint
     async getAllCoursesWithDepartmentsAPI(queryParams: { page?: number; limit?: number; search?: string }) {
         try {
