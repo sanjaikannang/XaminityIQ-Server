@@ -28,6 +28,8 @@ import { BatchCourse, BatchCourseSchema } from "src/schemas/Academic/batchCourse
 import { Department, DepartmentSchema } from "src/schemas/Academic/department.schema";
 import { BatchDepartment, BatchDepartmentSchema } from "src/schemas/Academic/batchDepartment.schema";
 import { Section, SectionSchema } from "src/schemas/Academic/section.schema";
+import { Subject, SubjectSchema } from "src/schemas/Academic/subject.schema";
+import { SubjectRepositoryService } from "./subject-repository/subject.repository";
 import { Student, StudentSchema } from "src/schemas/User/Student/student.schema";
 import { StudentPersonalDetail, StudentPersonalDetailSchema } from "src/schemas/User/Student/studentPersonalDetails.schema";
 import { StudentParentDetail, StudentParentDetailSchema } from "src/schemas/User/Student/studentParentDetail.schema";
@@ -64,6 +66,7 @@ import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository
             { name: Department.name, schema: DepartmentSchema },
             { name: BatchDepartment.name, schema: BatchDepartmentSchema },
             { name: Section.name, schema: SectionSchema },
+            { name: Subject.name, schema: SubjectSchema },
             { name: Student.name, schema: StudentSchema },
             { name: StudentPersonalDetail.name, schema: StudentPersonalDetailSchema },
             { name: StudentParentDetail.name, schema: StudentParentDetailSchema },
@@ -91,6 +94,7 @@ import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository
         DepartmentRepositoryService,
         BatchDepartmentRepositoryService,
         SectionRepositoryService,
+        SubjectRepositoryService,
         StudentRepositoryService,
         StudentPersonalDetailRepositoryService,
         StudentParentDetailRepositoryService,
@@ -116,6 +120,7 @@ import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository
         DepartmentRepositoryService,
         BatchDepartmentRepositoryService,
         SectionRepositoryService,
+        SubjectRepositoryService,
         StudentRepositoryService,
         StudentPersonalDetailRepositoryService,
         StudentParentDetailRepositoryService,

@@ -20,6 +20,7 @@ import { BatchCourseRepositoryService } from "src/repositories/batch-course-repo
 import { DepartmentRepositoryService } from "src/repositories/department-repository/department.repository";
 import { BatchDepartmentRepositoryService } from "src/repositories/batch-department-repository/batch-department.repository";
 import { SectionRepositoryService } from "src/repositories/section-repository/section.repository";
+import { SubjectRepositoryService } from "src/repositories/subject-repository/subject.repository";
 
 @Injectable()
 export class AdminService {
@@ -29,7 +30,8 @@ export class AdminService {
         private readonly batchCourseRepositoryService: BatchCourseRepositoryService,
         private readonly departmentRepositoryService: DepartmentRepositoryService,
         private readonly batchDepartmentRepositoryService: BatchDepartmentRepositoryService,
-        private readonly sectionRepositoryService: SectionRepositoryService,        
+        private readonly sectionRepositoryService: SectionRepositoryService,
+        private readonly subjectRepositoryService: SubjectRepositoryService,
     ) { }
 
 
@@ -705,6 +707,65 @@ export class AdminService {
 
         } catch (error) {
             throw new InternalServerErrorException('Failed to fetch departments');
+        }
+    }
+
+
+    // Get All Subjects API Endpoint (read-only, cross-department)
+    async getAllSubjectsAPI(queryParams: {
+        departmentId?: string;
+        semester?: number;
+        page?: number;
+        limit?: number;
+        sortBy?: string;
+        sortOrder?: 'asc' | 'desc';
+    }) {
+        try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const skip = (page - 1) * limit;
+            const filters = { departmentId: queryParams.departmentId, semester: queryParams.semester };
+
+            const totalItems = await this.subjectRepositoryService.countAll(filters);
+            const subjects = await this.subjectRepositoryService.findAll(
+                filters,
+                skip,
+                limit,
+                queryParams.sortBy,
+                queryParams.sortOrder || 'desc',
+            );
+
+            const totalPages = Math.ceil(totalItems / limit);
+
+            return {
+                subjects: subjects.map((subject) => {
+                    const department = subject.departmentId as any;
+                    return {
+                        _id: (subject._id as any).toString(),
+                        subjectCode: subject.subjectCode,
+                        subjectName: subject.subjectName,
+                        semester: subject.semester,
+                        credits: subject.credits,
+                        subjectType: subject.subjectType,
+                        description: subject.description,
+                        deptId: department._id.toString(),
+                        deptCode: department.deptCode,
+                        deptName: department.deptName,
+                        createdAt: (subject as any).createdAt,
+                    };
+                }),
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage: page < totalPages,
+                    hasPreviousPage: page > 1,
+                },
+            };
+
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch subjects');
         }
     }
 }

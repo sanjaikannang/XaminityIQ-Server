@@ -14,6 +14,7 @@ import { BatchCourse, BatchCourseSchema } from 'src/schemas/Academic/batchCourse
 import { Department, DepartmentSchema } from 'src/schemas/Academic/department.schema';
 import { BatchDepartment, BatchDepartmentSchema } from 'src/schemas/Academic/batchDepartment.schema';
 import { Section, SectionSchema } from 'src/schemas/Academic/section.schema';
+import { Subject, SubjectSchema } from 'src/schemas/Academic/subject.schema';
 import { Student, StudentSchema } from 'src/schemas/User/Student/student.schema';
 import { StudentPersonalDetail, StudentPersonalDetailSchema } from 'src/schemas/User/Student/studentPersonalDetails.schema';
 import { StudentParentDetail, StudentParentDetailSchema } from 'src/schemas/User/Student/studentParentDetail.schema';
@@ -64,6 +65,7 @@ import { DeleteFacultyController } from './faculty-management/delete-faculty/del
 import { GetAllDepartmentsController } from './get-all-departments/get-all-departments.controller';
 import { GetStudentActivityController } from './student-management/get-student-activity/get-student-activity.controller';
 import { GetFacultyActivityController } from './faculty-management/get-faculty-activity/get-faculty-activity.controller';
+import { GetAllSubjectsController } from './get-all-subjects/get-all-subjects.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -81,6 +83,7 @@ import { JwtModule } from '@nestjs/jwt';
             { name: Department.name, schema: DepartmentSchema },
             { name: BatchDepartment.name, schema: BatchDepartmentSchema },
             { name: Section.name, schema: SectionSchema },
+            { name: Subject.name, schema: SubjectSchema },
             { name: Student.name, schema: StudentSchema },
             { name: StudentPersonalDetail.name, schema: StudentPersonalDetailSchema },
             { name: StudentParentDetail.name, schema: StudentParentDetailSchema },
@@ -132,7 +135,8 @@ import { JwtModule } from '@nestjs/jwt';
         DeleteFacultyController,
         GetAllDepartmentsController,
         GetStudentActivityController,
-        GetFacultyActivityController
+        GetFacultyActivityController,
+        GetAllSubjectsController
     ],
     providers: [
         ConfigService,
