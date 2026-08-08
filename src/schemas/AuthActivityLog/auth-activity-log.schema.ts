@@ -36,3 +36,4 @@ export const AuthActivityLogSchema = SchemaFactory.createForClass(AuthActivityLo
 
 // Define indexes
 AuthActivityLogSchema.index({ userId: 1, createdAt: -1 });
+AuthActivityLogSchema.index({ action: 1, createdAt: -1 });

@@ -13,7 +13,6 @@ export class LoginResponse {
         };
         tokens: {
             accessToken: string;
-            refreshToken: string;
         };
     };
     
