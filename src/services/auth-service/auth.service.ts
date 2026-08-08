@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 import { Types } from "mongoose";
+import { UserRole } from "src/utils/enum";
 import { AuthJwtService } from './jwt.service';
-import { UserRole } from 'src/utils/enum';
 import { PasswordService } from './password.service';
 import { ConfigService } from 'src/config/config.service';
 import { LoginRequest } from 'src/api/auth/login/login.request';
@@ -16,7 +16,6 @@ export interface RequestMetadata {
     ipAddress?: string;
     userAgent?: string;
 }
-
 function hashResetToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
 }

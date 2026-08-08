@@ -14,6 +14,7 @@ import { BatchCourse, BatchCourseSchema } from 'src/schemas/Academic/batchCourse
 import { Department, DepartmentSchema } from 'src/schemas/Academic/department.schema';
 import { BatchDepartment, BatchDepartmentSchema } from 'src/schemas/Academic/batchDepartment.schema';
 import { Section, SectionSchema } from 'src/schemas/Academic/section.schema';
+import { Subject, SubjectSchema } from 'src/schemas/Academic/subject.schema';
 import { Student, StudentSchema } from 'src/schemas/User/Student/student.schema';
 import { StudentPersonalDetail, StudentPersonalDetailSchema } from 'src/schemas/User/Student/studentPersonalDetails.schema';
 import { StudentParentDetail, StudentParentDetailSchema } from 'src/schemas/User/Student/studentParentDetail.schema';
@@ -46,6 +47,7 @@ import { AddDepartmentToBatchCourseController } from './add-department-to-batch-
 import { GetAllBatchesController } from './get-all-batches/get-all-batches.controller';
 import { GetAllCoursesForBatchController } from './get-all-courses-for-batch/get-all-courses-for-batch.controller';
 import { GetAllDepartmentForBatchCourseController } from './get-all-departments-for-batch-course/get-all-departments-for-batch-course.controller';
+import { GetDepartmentSectionsController } from './get-department-sections/get-department-sections.controller';
 import { GetAllCoursesWithDepartmentsController } from './get-all-courses-with-departments/get-all-courses-with-departments.controller';
 import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
 import { GetDepartmentsByCourseController } from './get-departments-by-course/get-departments-by-course.controller';
@@ -61,6 +63,9 @@ import { GetAllFacultyController } from './faculty-management/get-all-faculty/ge
 import { EditFacultyController } from './faculty-management/edit-faculty/edit-faculty.controller';
 import { DeleteFacultyController } from './faculty-management/delete-faculty/delete-faculty.controller';
 import { GetAllDepartmentsController } from './get-all-departments/get-all-departments.controller';
+import { GetStudentActivityController } from './student-management/get-student-activity/get-student-activity.controller';
+import { GetFacultyActivityController } from './faculty-management/get-faculty-activity/get-faculty-activity.controller';
+import { GetAllSubjectsController } from './get-all-subjects/get-all-subjects.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -78,6 +83,7 @@ import { JwtModule } from '@nestjs/jwt';
             { name: Department.name, schema: DepartmentSchema },
             { name: BatchDepartment.name, schema: BatchDepartmentSchema },
             { name: Section.name, schema: SectionSchema },
+            { name: Subject.name, schema: SubjectSchema },
             { name: Student.name, schema: StudentSchema },
             { name: StudentPersonalDetail.name, schema: StudentPersonalDetailSchema },
             { name: StudentParentDetail.name, schema: StudentParentDetailSchema },
@@ -112,6 +118,7 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllBatchesController,
         GetAllCoursesForBatchController,
         GetAllDepartmentForBatchCourseController,
+        GetDepartmentSectionsController,
         GetAllCoursesWithDepartmentsController,
         GetCoursesByBatchController,
         GetDepartmentsByCourseController,
@@ -126,7 +133,10 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllFacultyController,
         EditFacultyController,
         DeleteFacultyController,
-        GetAllDepartmentsController
+        GetAllDepartmentsController,
+        GetStudentActivityController,
+        GetFacultyActivityController,
+        GetAllSubjectsController
     ],
     providers: [
         ConfigService,

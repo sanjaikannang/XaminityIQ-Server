@@ -74,7 +74,9 @@ export class BatchCourseRepositoryService {
         batchId: string,
         courseFilter: any,
         skip: number,
-        limit: number
+        limit: number,
+        sortBy?: string,
+        sortOrder: 'asc' | 'desc' = 'desc'
     ) {
         const results = await this.batchCourseModel
             .find({ batchId })
@@ -82,11 +84,26 @@ export class BatchCourseRepositoryService {
                 path: 'courseId',
                 match: courseFilter
             })
-            .sort({ createdAt: -1 })
             .exec();
 
-        // Filter out null courseId and apply pagination manually
+        // Filter out null courseId, then sort in-memory (course fields live on the
+        // populated doc, not the junction, so this can't be pushed down to Mongo)
         const filtered = results.filter(item => item.courseId !== null);
+
+        const field = sortBy || 'createdAt';
+        const direction = sortOrder === 'asc' ? 1 : -1;
+        filtered.sort((a: any, b: any) => {
+            const aValue = field === 'createdAt' ? a.createdAt : a.courseId?.[field];
+            const bValue = field === 'createdAt' ? b.createdAt : b.courseId?.[field];
+            if (aValue == null && bValue == null) return 0;
+            if (aValue == null) return 1;
+            if (bValue == null) return -1;
+            if (aValue < bValue) return -direction;
+            if (aValue > bValue) return direction;
+            return 0;
+        });
+
+        // Apply pagination manually (post-filter, post-sort)
         return filtered.slice(skip, skip + limit);
     }
 

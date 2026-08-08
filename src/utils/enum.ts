@@ -146,3 +146,9 @@ export enum EmploymentStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
 }
+
+export enum SubjectType {
+  THEORY = 'THEORY',
+  PRACTICAL = 'PRACTICAL',
+  ELECTIVE = 'ELECTIVE',
+}

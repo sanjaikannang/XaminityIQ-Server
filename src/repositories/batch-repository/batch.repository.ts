@@ -48,10 +48,10 @@ export class BatchRepositoryService {
 
 
     // Find batches with pagination
-    async findWithPagination(filter: any, skip: number, limit: number) {
+    async findWithPagination(filter: any, skip: number, limit: number, sort: Record<string, 1 | -1> = { createdAt: -1 }) {
         return this.batchModel
             .find(filter)
-            .sort({ createdAt: -1 })
+            .sort(sort)
             .skip(skip)
             .limit(limit)
             .exec();

@@ -30,7 +30,6 @@ export class LogoutController {
                 ipAddress: req.ip,
                 userAgent: req.headers['user-agent'],
             });
-
             clearRefreshTokenCookie(res, this.configService);
 
             const response: LogoutResponse = {

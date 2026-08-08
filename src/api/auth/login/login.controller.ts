@@ -24,7 +24,6 @@ export class LoginController {
                 ipAddress: req.ip,
                 userAgent: req.headers['user-agent'],
             });
-
             setRefreshTokenCookie(res, result.tokens.refreshToken, this.configService);
 
             const response: LoginResponse = {

@@ -1,5 +1,5 @@
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { AuthActivityLog, AuthActivityLogDocument } from 'src/schemas/AuthActivityLog/auth-activity-log.schema';
 
@@ -19,5 +19,20 @@ export class AuthActivityLogRepositoryService {
             throw new InternalServerErrorException('Failed to record auth activity log', error);
         }
     }
+
+
+    // Find recent activity for a user (newest first)
+    async findByUserId(userId: Types.ObjectId, limit = 50): Promise<AuthActivityLogDocument[]> {
+        try {
+            return await this.authActivityLogModel
+                .find({ userId })
+                .sort({ createdAt: -1 })
+                .limit(limit)
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch auth activity log', error);
+        }
+    }
+
 
 }
