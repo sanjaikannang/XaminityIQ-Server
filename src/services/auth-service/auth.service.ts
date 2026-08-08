@@ -1,23 +1,32 @@
 import { Types } from "mongoose";
+import { UserRole } from "src/utils/enum";
 import { AuthJwtService } from './jwt.service';
 import { PasswordService } from './password.service';
 import { LoginRequest } from 'src/api/auth/login/login.request';
 import { RefreshTokenRequest } from 'src/api/auth/refresh-token/refresh-token.request';
+import { AuthAction } from 'src/schemas/AuthActivityLog/auth-activity-log.schema';
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { UserRepositoryService } from 'src/repositories/user-repository/user.repository';
 import { ChangePasswordRequest } from 'src/api/auth/change-password/change-password.request';
+import { AuthActivityLogRepositoryService } from 'src/repositories/auth-activity-log-repository/auth-activity-log.repository';
+
+export interface RequestMetadata {
+    ipAddress?: string;
+    userAgent?: string;
+}
 
 @Injectable()
 export class AuthService {
     constructor(
         private readonly userRepositoryService: UserRepositoryService,
+        private readonly authActivityLogRepositoryService: AuthActivityLogRepositoryService,
         private readonly passwordService: PasswordService,
         private readonly jwtService: AuthJwtService,
     ) { }
 
 
     // Login API Endpoint
-    async loginAPI(loginData: LoginRequest) {
+    async loginAPI(loginData: LoginRequest, meta: RequestMetadata = {}) {
         const { email, password } = loginData;
 
         // Find user by email
@@ -50,6 +59,16 @@ export class AuthService {
         // Update user with tokens and last login
         await this.userRepositoryService.updateUserTokens(userId, accessToken, refreshToken);
         await this.userRepositoryService.updateLastLogin(userId);
+
+        // Record login activity
+        await this.authActivityLogRepositoryService.create({
+            userId: user._id as Types.ObjectId,
+            email: user.email,
+            role: user.role,
+            action: AuthAction.LOGIN,
+            ipAddress: meta.ipAddress,
+            userAgent: meta.userAgent,
+        });
 
         return {
             user: {
@@ -154,10 +173,20 @@ export class AuthService {
 
 
     // Logout API Endpoint
-    async logoutAPI(userId: string) {
+    async logoutAPI(userId: string, meta: RequestMetadata & { email: string; role: UserRole }) {
         try {
             // Clear tokens from user
             await this.userRepositoryService.clearUserTokens(userId);
+
+            // Record logout activity
+            await this.authActivityLogRepositoryService.create({
+                userId: new Types.ObjectId(userId),
+                email: meta.email,
+                role: meta.role,
+                action: AuthAction.LOGOUT,
+                ipAddress: meta.ipAddress,
+                userAgent: meta.userAgent,
+            });
 
             return {
                 message: 'Logged out successfully'

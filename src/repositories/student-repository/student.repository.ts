@@ -2,11 +2,15 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Student, StudentDocument } from 'src/schemas/User/Student/student.schema';
+import { StudentAcademicDetail, StudentAcademicDetailDocument } from 'src/schemas/User/Student/studentAcademicDetail.schema';
+import { StudentPersonalDetail, StudentPersonalDetailDocument } from 'src/schemas/User/Student/studentPersonalDetails.schema';
 
 @Injectable()
 export class StudentRepositoryService {
     constructor(
-        @InjectModel(Student.name) private studentModel: Model<StudentDocument>
+        @InjectModel(Student.name) private studentModel: Model<StudentDocument>,
+        @InjectModel(StudentAcademicDetail.name) private studentAcademicDetailModel: Model<StudentAcademicDetailDocument>,
+        @InjectModel(StudentPersonalDetail.name) private studentPersonalDetailModel: Model<StudentPersonalDetailDocument>,
     ) { }
 
 
@@ -99,6 +103,112 @@ export class StudentRepositoryService {
                 .limit(limit)
                 .sort({ createdAt: -1 })
                 .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Count students matching a base filter (on Student) plus an academic-detail filter (batch/course/department/section/status)
+    async countWithAcademicFilter(baseFilter: any, academicFilter: any): Promise<number> {
+        try {
+            const pipeline: any[] = [
+                { $match: baseFilter },
+                {
+                    $lookup: {
+                        from: this.studentAcademicDetailModel.collection.name,
+                        localField: 'academicDetailId',
+                        foreignField: '_id',
+                        as: 'academicDetail',
+                    },
+                },
+                { $unwind: '$academicDetail' },
+            ];
+
+            if (Object.keys(academicFilter).length > 0) {
+                pipeline.push({ $match: academicFilter });
+            }
+
+            pipeline.push({ $count: 'total' });
+
+            const result = await this.studentModel.aggregate(pipeline).exec();
+            return result[0]?.total || 0;
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Find student ids matching filter + academic filter, sorted, for a page (order-preserving)
+    async findIdsWithAcademicFilterSorted(
+        baseFilter: any,
+        academicFilter: any,
+        sortField: string,
+        sortOrder: 'asc' | 'desc',
+        skip: number,
+        limit: number
+    ): Promise<Types.ObjectId[]> {
+        try {
+            const sortFieldMap: Record<string, string> = {
+                rollNumber: 'academicDetail.rollNumber',
+                name: 'personalDetail.firstName',
+                semester: 'academicDetail.currentSemester',
+                status: 'academicDetail.status',
+                createdAt: 'createdAt',
+            };
+            const mongoSortField = sortFieldMap[sortField] || 'createdAt';
+
+            const pipeline: any[] = [
+                { $match: baseFilter },
+                {
+                    $lookup: {
+                        from: this.studentAcademicDetailModel.collection.name,
+                        localField: 'academicDetailId',
+                        foreignField: '_id',
+                        as: 'academicDetail',
+                    },
+                },
+                { $unwind: '$academicDetail' },
+                {
+                    $lookup: {
+                        from: this.studentPersonalDetailModel.collection.name,
+                        localField: 'personalDetailId',
+                        foreignField: '_id',
+                        as: 'personalDetail',
+                    },
+                },
+                { $unwind: '$personalDetail' },
+            ];
+
+            if (Object.keys(academicFilter).length > 0) {
+                pipeline.push({ $match: academicFilter });
+            }
+
+            pipeline.push(
+                { $sort: { [mongoSortField]: sortOrder === 'asc' ? 1 : -1 } },
+                { $skip: skip },
+                { $limit: limit },
+                { $project: { _id: 1 } },
+            );
+
+            const results = await this.studentModel.aggregate(pipeline).exec();
+            return results.map((r) => r._id);
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Find students by id list, preserving the given order (Mongo's $in doesn't guarantee it)
+    async findByIdsPreserveOrder(ids: Types.ObjectId[]): Promise<StudentDocument[]> {
+        try {
+            const docs = await this.studentModel.find({ _id: { $in: ids } }).exec();
+            const docsById = new Map<string, StudentDocument>(
+                docs.map((doc) => [(doc._id as Types.ObjectId).toString(), doc])
+            );
+            return ids
+                .map((id) => docsById.get(id.toString()))
+                .filter(Boolean) as StudentDocument[];
         } catch (error) {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }

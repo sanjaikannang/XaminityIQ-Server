@@ -61,6 +61,8 @@ import { GetAllFacultyController } from './faculty-management/get-all-faculty/ge
 import { EditFacultyController } from './faculty-management/edit-faculty/edit-faculty.controller';
 import { DeleteFacultyController } from './faculty-management/delete-faculty/delete-faculty.controller';
 import { GetAllDepartmentsController } from './get-all-departments/get-all-departments.controller';
+import { GetStudentActivityController } from './student-management/get-student-activity/get-student-activity.controller';
+import { GetFacultyActivityController } from './faculty-management/get-faculty-activity/get-faculty-activity.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -126,7 +128,9 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllFacultyController,
         EditFacultyController,
         DeleteFacultyController,
-        GetAllDepartmentsController
+        GetAllDepartmentsController,
+        GetStudentActivityController,
+        GetFacultyActivityController
     ],
     providers: [
         ConfigService,

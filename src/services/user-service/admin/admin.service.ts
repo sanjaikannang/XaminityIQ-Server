@@ -230,7 +230,7 @@ export class AdminService {
 
 
     // Get All Batches API Endpoint
-    async getAllBatchesAPI(queryParams: { page?: number; limit?: number; search?: string }) {
+    async getAllBatchesAPI(queryParams: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) {
         try {
             const page = queryParams.page || 1;
             const limit = queryParams.limit || 10;
@@ -247,6 +247,11 @@ export class AdminService {
                 };
             }
 
+            // Build sort
+            const sort: Record<string, 1 | -1> = queryParams.sortBy
+                ? { [queryParams.sortBy]: queryParams.sortOrder === 'asc' ? 1 : -1 }
+                : { createdAt: -1 };
+
             // Get total count for pagination
             const totalItems = await this.batchRepositoryService.countDocuments(searchFilter);
 
@@ -254,7 +259,8 @@ export class AdminService {
             const batches = await this.batchRepositoryService.findWithPagination(
                 searchFilter,
                 skip,
-                limit
+                limit,
+                sort
             );
 
             // Calculate pagination metadata
@@ -287,7 +293,7 @@ export class AdminService {
 
 
     // Get All Courses for Batch API Endpoint
-    async getAllCoursesForBatchAPI(batchId: string, queryParams: { page?: number; limit?: number; search?: string }) {
+    async getAllCoursesForBatchAPI(batchId: string, queryParams: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) {
         try {
             const page = queryParams.page || 1;
             const limit = queryParams.limit || 10;
@@ -326,7 +332,9 @@ export class AdminService {
                 batchId,
                 courseSearchFilter,
                 skip,
-                limit
+                limit,
+                queryParams.sortBy,
+                queryParams.sortOrder
             );
 
             // Calculate pagination metadata
@@ -372,7 +380,7 @@ export class AdminService {
     // Get All Departments for Batch-Course API Endpoint
     async getAllDepartmentsForBatchCourseAPI(
         batchCourseId: string,
-        queryParams: { page?: number; limit?: number; search?: string }
+        queryParams: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }
     ) {
         try {
             const page = queryParams.page || 1;
@@ -410,7 +418,9 @@ export class AdminService {
                 batchCourseId,
                 departmentSearchFilter,
                 skip,
-                limit
+                limit,
+                queryParams.sortBy,
+                queryParams.sortOrder
             );
 
             // For each department, get its sections

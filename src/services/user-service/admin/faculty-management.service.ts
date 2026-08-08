@@ -13,6 +13,7 @@ import { PasswordService } from "src/services/auth-service/password.service";
 // Requests
 import { CreateFacultyRequest } from "src/api/user/admin/faculty-management/create-faculty/create-faculty.request";
 import { EditFacultyRequest } from "src/api/user/admin/faculty-management/edit-faculty/edit-faculty.request";
+import { AuthActivityLogRepositoryService } from "src/repositories/auth-activity-log-repository/auth-activity-log.repository";
 
 // Response
 
@@ -44,6 +45,7 @@ export class FacultyManagementService {
         private readonly facultyEducationHistoryRepositoryService: FacultyEducationHistoryRepositoryService,
         private readonly facultyEmploymentDetailRepositoryService: FacultyEmploymentDetailRepositoryService,
         private readonly facultyWorkExperienceRepositoryService: FacultyWorkExperienceRepositoryService,
+        private readonly authActivityLogRepositoryService: AuthActivityLogRepositoryService,
     ) { }
 
 
@@ -286,17 +288,35 @@ export class FacultyManagementService {
                 ...(search && { $or: [{ facultyId: { $regex: search, $options: 'i' } }] }),
             };
 
-            // Get total count
-            const totalItems =
-                await this.facultyRepositoryService.countFaculty(searchFilter);
+            // Build employment-detail filter (department/designation/employmentType/status)
+            const employmentFilter: any = {};
+            if (query.departmentId) employmentFilter['employmentDetail.departmentId'] = new Types.ObjectId(query.departmentId);
+            if (query.designation) employmentFilter['employmentDetail.designation'] = query.designation;
+            if (query.employmentType) employmentFilter['employmentDetail.employmentType'] = query.employmentType;
+            if (query.status) employmentFilter['employmentDetail.status'] = query.status;
 
-            // Get faculty with pagination
-            const facultyList =
-                await this.facultyRepositoryService.findAllWithDetails(
+            const hasAdvancedQuery = Object.keys(employmentFilter).length > 0 || !!query.sortBy;
+
+            let totalItems: number;
+            let facultyList;
+
+            if (!hasAdvancedQuery) {
+                // Common case: no filters/sort - unchanged, proven path
+                totalItems = await this.facultyRepositoryService.countFaculty(searchFilter);
+                facultyList = await this.facultyRepositoryService.findAllWithDetails(searchFilter, skip, limit);
+            } else {
+                // Filter and/or sort requested - resolve via aggregation, then reload in order
+                totalItems = await this.facultyRepositoryService.countWithEmploymentFilter(searchFilter, employmentFilter);
+                const ids = await this.facultyRepositoryService.findIdsWithEmploymentFilterSorted(
                     searchFilter,
+                    employmentFilter,
+                    query.sortBy || 'createdAt',
+                    query.sortOrder || 'desc',
                     skip,
                     limit
                 );
+                facultyList = await this.facultyRepositoryService.findByIdsPreserveOrder(ids);
+            }
 
             // Transform data
             const facultyData: FacultyData[] = await Promise.all(
@@ -763,6 +783,32 @@ export class FacultyManagementService {
                 throw error;
             }
             throw new InternalServerErrorException('Failed to delete faculty');
+        }
+    }
+
+
+    // Get Faculty Activity API Endpoint (login/logout history)
+    async getFacultyActivityAPI(id: string) {
+        try {
+            const faculty = await this.facultyRepositoryService.findById(new Types.ObjectId(id));
+            if (!faculty) {
+                throw new NotFoundException('Faculty not found');
+            }
+
+            const activity = await this.authActivityLogRepositoryService.findByUserId(faculty.userId as Types.ObjectId, 50);
+
+            return activity.map(record => ({
+                action: record.action,
+                ipAddress: record.ipAddress,
+                userAgent: record.userAgent,
+                createdAt: (record as any).createdAt,
+            }));
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch faculty activity');
         }
     }
 

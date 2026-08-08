@@ -15,8 +15,15 @@ export class LogoutController {
     ) {
         try {
             const userId = (req as any).user?.sub;
+            const email = (req as any).user?.email;
+            const role = (req as any).user?.role;
 
-            await this.authService.logoutAPI(userId);
+            await this.authService.logoutAPI(userId, {
+                email,
+                role,
+                ipAddress: req.ip,
+                userAgent: req.headers['user-agent'],
+            });
 
             const response: LogoutResponse = {
                 success: true,

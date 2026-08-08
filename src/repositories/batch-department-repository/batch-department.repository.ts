@@ -57,7 +57,9 @@ export class BatchDepartmentRepositoryService {
         batchCourseId: string,
         departmentFilter: any,
         skip: number,
-        limit: number
+        limit: number,
+        sortBy?: string,
+        sortOrder: 'asc' | 'desc' = 'desc'
     ) {
         const results = await this.batchDepartmentModel
             .find({ batchCourseId })
@@ -65,11 +67,27 @@ export class BatchDepartmentRepositoryService {
                 path: 'deptId',
                 match: departmentFilter
             })
-            .sort({ createdAt: -1 })
             .exec();
 
-        // Filter out null deptId and apply pagination manually
+        // Filter out null deptId, then sort in-memory (dept name/code live on the
+        // populated doc, totalSeats/sectionCapacity/createdAt on the junction itself)
         const filtered = results.filter(item => item.deptId !== null);
+
+        const deptFields = new Set(['deptName', 'deptCode']);
+        const field = sortBy || 'createdAt';
+        const direction = sortOrder === 'asc' ? 1 : -1;
+        filtered.sort((a: any, b: any) => {
+            const aValue = deptFields.has(field) ? a.deptId?.[field] : a[field];
+            const bValue = deptFields.has(field) ? b.deptId?.[field] : b[field];
+            if (aValue == null && bValue == null) return 0;
+            if (aValue == null) return 1;
+            if (bValue == null) return -1;
+            if (aValue < bValue) return -direction;
+            if (aValue > bValue) return direction;
+            return 0;
+        });
+
+        // Apply pagination manually (post-filter, post-sort)
         return filtered.slice(skip, skip + limit);
     }
 

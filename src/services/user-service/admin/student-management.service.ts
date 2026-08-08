@@ -17,6 +17,7 @@ import { CreateStudentRequest } from "src/api/user/admin/student-management/crea
 import { EditStudentRequest } from "src/api/user/admin/student-management/edit-student/edit-student.request";
 import { GetAllStudentsRequest } from "src/api/user/admin/student-management/get-all-students/get-all-students.request";
 import { BulkUploadStudentsRequest } from "src/api/user/admin/student-management/bulk-upload-student/bulk-upload-students.request";
+import { AuthActivityLogRepositoryService } from "src/repositories/auth-activity-log-repository/auth-activity-log.repository";
 
 // Response
 import { PaginationMeta } from "src/api/user/admin/get-all-batches/get-all-batches.response";
@@ -54,6 +55,7 @@ export class StudentManagementService {
         private readonly studentEducationHistoryRepositoryService: StudentEducationHistoryRepositoryService,
         private readonly studentRepositoryService: StudentRepositoryService,
         private readonly studentParentDetailRepositoryService: StudentParentDetailRepositoryService,
+        private readonly authActivityLogRepositoryService: AuthActivityLogRepositoryService,
         private readonly passwordService: PasswordService,
     ) { }
 
@@ -321,17 +323,36 @@ export class StudentManagementService {
                 ...(search && { $or: [{ studentId: { $regex: search, $options: 'i' } }] }),
             };
 
-            // Get total count
-            const totalItems =
-                await this.studentRepositoryService.countStudents(searchFilter);
+            // Build academic-detail filter (batch/course/department/section/status)
+            const academicFilter: any = {};
+            if (query.batchId) academicFilter['academicDetail.batchId'] = new Types.ObjectId(query.batchId);
+            if (query.courseId) academicFilter['academicDetail.courseId'] = new Types.ObjectId(query.courseId);
+            if (query.departmentId) academicFilter['academicDetail.departmentId'] = new Types.ObjectId(query.departmentId);
+            if (query.sectionId) academicFilter['academicDetail.sectionId'] = new Types.ObjectId(query.sectionId);
+            if (query.status) academicFilter['academicDetail.status'] = query.status;
 
-            // Get students
-            const students =
-                await this.studentRepositoryService.findAllWithDetails(
+            const hasAdvancedQuery = Object.keys(academicFilter).length > 0 || !!query.sortBy;
+
+            let totalItems: number;
+            let students;
+
+            if (!hasAdvancedQuery) {
+                // Common case: no filters/sort - unchanged, proven path
+                totalItems = await this.studentRepositoryService.countStudents(searchFilter);
+                students = await this.studentRepositoryService.findAllWithDetails(searchFilter, skip, limit);
+            } else {
+                // Filter and/or sort requested - resolve via aggregation, then reload in order
+                totalItems = await this.studentRepositoryService.countWithAcademicFilter(searchFilter, academicFilter);
+                const ids = await this.studentRepositoryService.findIdsWithAcademicFilterSorted(
                     searchFilter,
+                    academicFilter,
+                    query.sortBy || 'createdAt',
+                    query.sortOrder || 'desc',
                     skip,
                     limit
                 );
+                students = await this.studentRepositoryService.findByIdsPreserveOrder(ids);
+            }
 
             const studentsData: StudentsData[] = [];
 
@@ -1053,6 +1074,32 @@ export class StudentManagementService {
                 throw error;
             }
             throw new InternalServerErrorException('Failed to delete student');
+        }
+    }
+
+
+    // Get Student Activity API Endpoint (login/logout history)
+    async getStudentActivityAPI(id: string) {
+        try {
+            const student = await this.studentRepositoryService.findById(new Types.ObjectId(id));
+            if (!student) {
+                throw new NotFoundException('Student not found');
+            }
+
+            const activity = await this.authActivityLogRepositoryService.findByUserId(student.userId as Types.ObjectId, 50);
+
+            return activity.map(record => ({
+                action: record.action,
+                ipAddress: record.ipAddress,
+                userAgent: record.userAgent,
+                createdAt: (record as any).createdAt,
+            }));
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch student activity');
         }
     }
 

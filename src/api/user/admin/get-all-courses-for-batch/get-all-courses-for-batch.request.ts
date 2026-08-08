@@ -1,5 +1,7 @@
-import { IsOptional, IsString, IsInt, Min } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+
+const COURSE_SORT_FIELDS = ['courseName', 'courseCode', 'streamName', 'streamCode', 'level', 'duration', 'semesters', 'createdAt'] as const;
 
 export class GetAllCoursesForBatchRequest {
 
@@ -18,5 +20,13 @@ export class GetAllCoursesForBatchRequest {
     @IsOptional()
     @IsString()
     search?: string;
-    
+
+    @IsOptional()
+    @IsIn(COURSE_SORT_FIELDS)
+    sortBy?: string;
+
+    @IsOptional()
+    @IsIn(['asc', 'desc'])
+    sortOrder?: 'asc' | 'desc';
+
 }
