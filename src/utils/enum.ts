@@ -46,9 +46,16 @@ export enum CourseType {
 
 export enum QuestionType {
   MCQ = 'MCQ',
-  SHORT_ANSWER = 'SHORT_ANSWER',
-  LONG_ANSWER = 'LONG_ANSWER',
-  TRUE_FALSE = 'TRUE_FALSE'
+  MSQ = 'MSQ',
+  WRITTEN = 'WRITTEN'
+}
+
+export enum ExamStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  ONGOING = 'ONGOING',
+  COMPLETED = 'COMPLETED',
+  RESULTS_PUBLISHED = 'RESULTS_PUBLISHED'
 }
 
 export enum DifficultyLevel {

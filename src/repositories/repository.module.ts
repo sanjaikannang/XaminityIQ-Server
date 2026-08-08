@@ -53,6 +53,10 @@ import { FacultyEmploymentDetailRepositoryService } from "./faculty-employment-d
 import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experience-repository/faculty-work-experience.repository";
 import { AuthActivityLog, AuthActivityLogSchema } from "src/schemas/AuthActivityLog/auth-activity-log.schema";
 import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository/auth-activity-log.repository";
+import { Exam, ExamSchema } from "src/schemas/Exam/exam.schema";
+import { ExamRepositoryService } from "./exam-repository/exam.repository";
+import { ExamQuestion, ExamQuestionSchema } from "src/schemas/Exam/examQuestion.schema";
+import { ExamQuestionRepositoryService } from "./exam-question-repository/exam-question.repository";
 
 @Module({
     imports: [
@@ -81,6 +85,8 @@ import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository
             { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
             { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
             { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
+            { name: Exam.name, schema: ExamSchema },
+            { name: ExamQuestion.name, schema: ExamQuestionSchema },
         ]),
     ],
     controllers: [],
@@ -109,6 +115,8 @@ import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository
         FacultyEducationHistoryRepositoryService,
         FacultyEmploymentDetailRepositoryService,
         FacultyWorkExperienceRepositoryService,
+        ExamRepositoryService,
+        ExamQuestionRepositoryService,
     ],
     exports: [
         AdminRepositoryService,
@@ -135,6 +143,8 @@ import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository
         FacultyEducationHistoryRepositoryService,
         FacultyEmploymentDetailRepositoryService,
         FacultyWorkExperienceRepositoryService,
+        ExamRepositoryService,
+        ExamQuestionRepositoryService,
     ],
 })
 export class RepositoryModule { }
