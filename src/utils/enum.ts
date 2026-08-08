@@ -67,9 +67,29 @@ export enum DifficultyLevel {
 export enum AttemptStatus {
   NOT_STARTED = 'NOT_STARTED',
   IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  TIME_UP = 'TIME_UP',
-  SUBMITTED = 'SUBMITTED'
+  SUBMITTED = 'SUBMITTED',
+  COMPLETED = 'COMPLETED'
+}
+
+export enum SubmissionTrigger {
+  MANUAL = 'MANUAL',
+  TIMER_EXPIRY = 'TIMER_EXPIRY',
+  INTEGRITY_AUTO_SUBMIT = 'INTEGRITY_AUTO_SUBMIT',
+  FACULTY_REMOVED = 'FACULTY_REMOVED',
+  CONNECTION_LOSS = 'CONNECTION_LOSS'
+}
+
+export enum MediaStatus {
+  PENDING_UPLOAD = 'PENDING_UPLOAD',
+  UPLOADING = 'UPLOADING',
+  UPLOAD_COMPLETE = 'UPLOAD_COMPLETE',
+  UPLOAD_FAILED = 'UPLOAD_FAILED'
+}
+
+export enum RecordingMediaType {
+  VIDEO = 'video',
+  AUDIO = 'audio',
+  SCREEN = 'screen'
 }
 
 export enum AdmissionType {

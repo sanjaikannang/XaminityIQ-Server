@@ -57,6 +57,12 @@ import { Exam, ExamSchema } from "src/schemas/Exam/exam.schema";
 import { ExamRepositoryService } from "./exam-repository/exam.repository";
 import { ExamQuestion, ExamQuestionSchema } from "src/schemas/Exam/examQuestion.schema";
 import { ExamQuestionRepositoryService } from "./exam-question-repository/exam-question.repository";
+import { ExamAttempt, ExamAttemptSchema } from "src/schemas/Exam/examAttempt.schema";
+import { ExamAttemptRepositoryService } from "./exam-attempt-repository/exam-attempt.repository";
+import { ExamAnswer, ExamAnswerSchema } from "src/schemas/Exam/examAnswer.schema";
+import { ExamAnswerRepositoryService } from "./exam-answer-repository/exam-answer.repository";
+import { ExamRecording, ExamRecordingSchema } from "src/schemas/Exam/examRecording.schema";
+import { ExamRecordingRepositoryService } from "./exam-recording-repository/exam-recording.repository";
 
 @Module({
     imports: [
@@ -87,6 +93,9 @@ import { ExamQuestionRepositoryService } from "./exam-question-repository/exam-q
             { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
             { name: Exam.name, schema: ExamSchema },
             { name: ExamQuestion.name, schema: ExamQuestionSchema },
+            { name: ExamAttempt.name, schema: ExamAttemptSchema },
+            { name: ExamAnswer.name, schema: ExamAnswerSchema },
+            { name: ExamRecording.name, schema: ExamRecordingSchema },
         ]),
     ],
     controllers: [],
@@ -117,6 +126,9 @@ import { ExamQuestionRepositoryService } from "./exam-question-repository/exam-q
         FacultyWorkExperienceRepositoryService,
         ExamRepositoryService,
         ExamQuestionRepositoryService,
+        ExamAttemptRepositoryService,
+        ExamAnswerRepositoryService,
+        ExamRecordingRepositoryService,
     ],
     exports: [
         AdminRepositoryService,
@@ -145,6 +157,9 @@ import { ExamQuestionRepositoryService } from "./exam-question-repository/exam-q
         FacultyWorkExperienceRepositoryService,
         ExamRepositoryService,
         ExamQuestionRepositoryService,
+        ExamAttemptRepositoryService,
+        ExamAnswerRepositoryService,
+        ExamRecordingRepositoryService,
     ],
 })
 export class RepositoryModule { }

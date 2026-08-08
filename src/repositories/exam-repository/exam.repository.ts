@@ -37,20 +37,34 @@ export class ExamRepositoryService {
     }
 
 
+    // Find an exam by id with raw (unpopulated) hierarchy ObjectId fields
+    async findByIdRaw(id: string): Promise<ExamDocument | null> {
+        try {
+            return await this.examModel.findOne({ _id: id, isDeleted: false }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
     private buildFilter(filters: {
         mode?: string;
-        status?: string;
+        status?: string | string[];
         batchId?: string;
         courseId?: string;
         departmentId?: string;
+        sectionId?: string;
+        semester?: number;
         search?: string;
     }): any {
         const filter: any = { isDeleted: false };
         if (filters.mode) filter.mode = filters.mode;
-        if (filters.status) filter.status = filters.status;
+        if (filters.status) filter.status = Array.isArray(filters.status) ? { $in: filters.status } : filters.status;
         if (filters.batchId) filter.batchId = new Types.ObjectId(filters.batchId);
         if (filters.courseId) filter.courseId = new Types.ObjectId(filters.courseId);
         if (filters.departmentId) filter.departmentId = new Types.ObjectId(filters.departmentId);
+        if (filters.sectionId) filter.sectionId = new Types.ObjectId(filters.sectionId);
+        if (filters.semester) filter.semester = filters.semester;
         if (filters.search && filters.search.trim() !== '') {
             filter.name = { $regex: filters.search, $options: 'i' };
         }
@@ -61,10 +75,12 @@ export class ExamRepositoryService {
     // Count exams matching filters
     async countWithFilters(filters: {
         mode?: string;
-        status?: string;
+        status?: string | string[];
         batchId?: string;
         courseId?: string;
         departmentId?: string;
+        sectionId?: string;
+        semester?: number;
         search?: string;
     }): Promise<number> {
         try {
@@ -79,10 +95,12 @@ export class ExamRepositoryService {
     async findAllWithFilters(
         filters: {
             mode?: string;
-            status?: string;
+            status?: string | string[];
             batchId?: string;
             courseId?: string;
             departmentId?: string;
+            sectionId?: string;
+            semester?: number;
             search?: string;
         },
         skip: number,

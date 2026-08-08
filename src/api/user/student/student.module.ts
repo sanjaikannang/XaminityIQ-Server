@@ -13,12 +13,28 @@ import { RoleGuard } from 'src/guards/role.guard';
 import { Student, StudentSchema } from 'src/schemas/User/Student/student.schema';
 import { StudentAcademicDetail, StudentAcademicDetailSchema } from 'src/schemas/User/Student/studentAcademicDetail.schema';
 import { Subject, SubjectSchema } from 'src/schemas/Academic/subject.schema';
+import { Exam, ExamSchema } from 'src/schemas/Exam/exam.schema';
+import { ExamQuestion, ExamQuestionSchema } from 'src/schemas/Exam/examQuestion.schema';
+import { ExamAttempt, ExamAttemptSchema } from 'src/schemas/Exam/examAttempt.schema';
+import { ExamAnswer, ExamAnswerSchema } from 'src/schemas/Exam/examAnswer.schema';
+import { ExamRecording, ExamRecordingSchema } from 'src/schemas/Exam/examRecording.schema';
 
 // Services
 import { StudentService } from 'src/services/user-service/student/student.service';
+import { ExamAttemptService } from 'src/services/user-service/student/exam-attempt.service';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 
 // Controllers
 import { GetAllSubjectsController } from './subject-management/get-all-subjects/get-all-subjects.controller';
+import { GetAllExamsController } from './exam-management/get-all-exams/get-all-exams.controller';
+import { StartAttemptController } from './exam-management/start-attempt/start-attempt.controller';
+import { GetAttemptController } from './exam-management/get-attempt/get-attempt.controller';
+import { SaveAnswerController } from './exam-management/save-answer/save-answer.controller';
+import { SubmitAttemptController } from './exam-management/submit-attempt/submit-attempt.controller';
+import { RecordingSignatureController } from './exam-management/recording-signature/recording-signature.controller';
+import { RecordChunkController } from './exam-management/record-chunk/record-chunk.controller';
+import { FinalizeRecordingController } from './exam-management/finalize-recording/finalize-recording.controller';
+import { NetworkProbeController } from './exam-management/network-probe/network-probe.controller';
 
 @Module({
     imports: [
@@ -26,6 +42,11 @@ import { GetAllSubjectsController } from './subject-management/get-all-subjects/
             { name: Student.name, schema: StudentSchema },
             { name: StudentAcademicDetail.name, schema: StudentAcademicDetailSchema },
             { name: Subject.name, schema: SubjectSchema },
+            { name: Exam.name, schema: ExamSchema },
+            { name: ExamQuestion.name, schema: ExamQuestionSchema },
+            { name: ExamAttempt.name, schema: ExamAttemptSchema },
+            { name: ExamAnswer.name, schema: ExamAnswerSchema },
+            { name: ExamRecording.name, schema: ExamRecordingSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -41,10 +62,21 @@ import { GetAllSubjectsController } from './subject-management/get-all-subjects/
     ],
     controllers: [
         GetAllSubjectsController,
+        GetAllExamsController,
+        StartAttemptController,
+        GetAttemptController,
+        SaveAnswerController,
+        SubmitAttemptController,
+        RecordingSignatureController,
+        RecordChunkController,
+        FinalizeRecordingController,
+        NetworkProbeController,
     ],
     providers: [
         ConfigService,
         StudentService,
+        ExamAttemptService,
+        CloudinaryService,
         JwtAuthGuard,
         RoleGuard,
     ],

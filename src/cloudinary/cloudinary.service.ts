@@ -47,6 +47,31 @@ export class CloudinaryService {
     }
 
 
+    // Generate a signed upload signature so the browser can upload directly to
+    // Cloudinary without ever seeing the API secret
+    generateUploadSignature(publicId: string, folder: string): {
+        signature: string;
+        timestamp: number;
+        apiKey: string;
+        cloudName: string;
+        publicId: string;
+        folder: string;
+    } {
+        const timestamp = Math.floor(Date.now() / 1000);
+        const paramsToSign = { timestamp, public_id: publicId, folder };
+        const signature = cloudinary.utils.api_sign_request(paramsToSign, this.configService.getCloudinaryApiSecret());
+
+        return {
+            signature,
+            timestamp,
+            apiKey: this.configService.getCloudinaryApiKey(),
+            cloudName: this.configService.getCloudinaryCloudName(),
+            publicId,
+            folder,
+        };
+    }
+
+
     // Delete Image
     async deleteImage(imageUrl: string): Promise<void> {
         try {
