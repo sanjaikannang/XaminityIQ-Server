@@ -99,7 +99,7 @@ export class ExamAttemptService {
 
         const exams = await this.examRepositoryService.findAllWithFilters(
             {
-                status: [ExamStatus.PUBLISHED, ExamStatus.ONGOING, ExamStatus.COMPLETED],
+                status: [ExamStatus.PUBLISHED, ExamStatus.ONGOING, ExamStatus.COMPLETED, ExamStatus.RESULTS_PUBLISHED],
                 batchId: academicDetail.batchId.toString(),
                 courseId: academicDetail.courseId.toString(),
                 departmentId: academicDetail.departmentId.toString(),
@@ -120,6 +120,7 @@ export class ExamAttemptService {
 
         return exams.map((exam: any) => {
             const attempt = attemptByExamId.get(exam._id.toString());
+            const resultsPublished = exam.status === ExamStatus.RESULTS_PUBLISHED;
             return {
                 _id: exam._id.toString(),
                 name: exam.name,
@@ -134,6 +135,8 @@ export class ExamAttemptService {
                 endDate: exam.endDate,
                 myAttemptId: attempt ? (attempt._id as Types.ObjectId).toString() : null,
                 myAttemptStatus: attempt ? attempt.status : null,
+                totalScore: resultsPublished ? attempt?.totalScore : undefined,
+                passed: resultsPublished ? attempt?.passed : undefined,
             };
         });
     }
@@ -732,6 +735,72 @@ export class ExamAttemptService {
         });
 
         return { message: 'Written answer saved', pageCount: answer.pages.length };
+    }
+
+
+    // Get My Result API Endpoint — full per-question breakdown, only once results are published
+    async getMyResultAPI(userId: string, attemptId: string) {
+        const { attempt } = await this.ownAttemptOrThrow(userId, attemptId);
+
+        const exam = await this.examRepositoryService.findByIdRaw(attempt.examId.toString());
+        if (!exam) throw new NotFoundException('Exam not found');
+
+        if (exam.status !== ExamStatus.RESULTS_PUBLISHED) {
+            throw new ForbiddenException('Results for this exam have not been published yet');
+        }
+
+        const questions = await this.examQuestionRepositoryService.findByExamId(attempt.examId.toString());
+        const answers = await this.examAnswerRepositoryService.findByAttemptId(attemptId);
+        const answerByQuestionId = new Map(answers.map((a) => [a.questionId.toString(), a]));
+
+        const questionBreakdown = questions.map((question) => {
+            const answer = answerByQuestionId.get((question._id as Types.ObjectId).toString());
+
+            if (question.type === QuestionType.WRITTEN) {
+                return {
+                    questionId: (question._id as Types.ObjectId).toString(),
+                    type: question.type,
+                    text: question.text,
+                    maxMarks: question.marks,
+                    marksObtained: answer?.marksAwarded ?? 0,
+                    remarks: answer?.remarks,
+                    pages: answer?.pages || [],
+                };
+            }
+
+            const correctIds = new Set(question.correctOptionIds || []);
+            let marksObtained = 0;
+            if (question.type === QuestionType.MCQ) {
+                if (answer?.selectedOptionId && correctIds.has(answer.selectedOptionId) && correctIds.size === 1) {
+                    marksObtained = question.marks;
+                }
+            } else if (question.type === QuestionType.MSQ) {
+                const selected = new Set(answer?.selectedOptionIds || []);
+                const isExactMatch = selected.size === correctIds.size && [...selected].every((id) => correctIds.has(id));
+                if (isExactMatch && selected.size > 0) {
+                    marksObtained = question.marks;
+                }
+            }
+
+            return {
+                questionId: (question._id as Types.ObjectId).toString(),
+                type: question.type,
+                text: question.text,
+                maxMarks: question.marks,
+                marksObtained,
+            };
+        });
+
+        return {
+            examName: exam.name,
+            totalMarks: exam.totalMarks,
+            passingMarks: exam.passingMarks,
+            objectiveScore: attempt.objectiveScore,
+            writtenScore: attempt.writtenScore,
+            totalScore: attempt.totalScore,
+            passed: attempt.passed,
+            questions: questionBreakdown,
+        };
     }
 
 }

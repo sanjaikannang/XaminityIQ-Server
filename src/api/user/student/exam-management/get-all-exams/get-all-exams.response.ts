@@ -12,6 +12,8 @@ export class MyExamData {
     endDate: Date;
     myAttemptId: string | null;
     myAttemptStatus: string | null;
+    totalScore?: number;
+    passed?: boolean;
 }
 
 export class GetAllExamsResponse {

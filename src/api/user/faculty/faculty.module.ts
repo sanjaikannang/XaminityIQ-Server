@@ -47,6 +47,9 @@ import { RemoveStudentController } from './exam-proctoring/remove-student/remove
 import { SendChatController } from './exam-proctoring/send-chat/send-chat.controller';
 import { GetChatHistoryController } from './exam-proctoring/get-chat-history/get-chat-history.controller';
 import { GetLiveKitTokenController } from './exam-proctoring/get-livekit-token/get-livekit-token.controller';
+import { GetMyEvaluationExamsController } from './exam-evaluation/get-my-evaluation-exams/get-my-evaluation-exams.controller';
+import { GetExamAnswersForEvaluationController } from './exam-evaluation/get-exam-answers-for-evaluation/get-exam-answers-for-evaluation.controller';
+import { EvaluateAnswerController } from './exam-evaluation/evaluate-answer/evaluate-answer.controller';
 
 @Module({
     imports: [
@@ -94,6 +97,9 @@ import { GetLiveKitTokenController } from './exam-proctoring/get-livekit-token/g
         SendChatController,
         GetChatHistoryController,
         GetLiveKitTokenController,
+        GetMyEvaluationExamsController,
+        GetExamAnswersForEvaluationController,
+        EvaluateAnswerController,
     ],
     providers: [
         ConfigService,

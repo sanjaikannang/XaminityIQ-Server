@@ -7,7 +7,7 @@ import {
     ConflictException,
     ForbiddenException,
 } from '@nestjs/common';
-import { ExamMode, ExamRoomStatus, ExamStatus, QuestionType, RoomAssignmentStatus, StudentStatus } from 'src/utils/enum';
+import { AttemptStatus, ExamMode, ExamRoomStatus, ExamStatus, QuestionType, RoomAssignmentStatus, StudentStatus } from 'src/utils/enum';
 
 // Requests
 import { CreateExamRequest } from 'src/api/user/admin/exam-management/create-exam/create-exam.request';
@@ -37,6 +37,9 @@ import { ExamRoomRepositoryService } from 'src/repositories/exam-room-repository
 import { ExamRoomAssignmentRepositoryService } from 'src/repositories/exam-room-assignment-repository/exam-room-assignment.repository';
 import { FormedRoomData } from 'src/api/user/admin/exam-management/form-exam-rooms/form-exam-rooms.response';
 import { ExamRoomSummaryData } from 'src/api/user/admin/exam-management/get-exam-rooms/get-exam-rooms.response';
+import { ExamAttemptRepositoryService } from 'src/repositories/exam-attempt-repository/exam-attempt.repository';
+import { ExamAnswerRepositoryService } from 'src/repositories/exam-answer-repository/exam-answer.repository';
+import { EvaluationProgressData } from 'src/api/user/admin/exam-management/get-evaluation-progress/get-evaluation-progress.response';
 
 const MIN_WRITTEN_MARKS = 2;
 const MAX_WRITTEN_MARKS = 20;
@@ -57,6 +60,8 @@ export class ExamManagementService {
         private readonly facultyRepositoryService: FacultyRepositoryService,
         private readonly examRoomRepositoryService: ExamRoomRepositoryService,
         private readonly examRoomAssignmentRepositoryService: ExamRoomAssignmentRepositoryService,
+        private readonly examAttemptRepositoryService: ExamAttemptRepositoryService,
+        private readonly examAnswerRepositoryService: ExamAnswerRepositoryService,
     ) { }
 
     private readonly MAX_STUDENTS_PER_ROOM = 10;
@@ -647,6 +652,122 @@ export class ExamManagementService {
         }
 
         await this.examQuestionRepositoryService.softDeleteById(questionId);
+    }
+
+
+    // Gather everything needed to score/gate evaluation for an exam in one pass:
+    // its WRITTEN question ids, every terminal (SUBMITTED/COMPLETED) attempt, and
+    // every answer across those attempts, batched to avoid N+1 queries.
+    private async computeEvaluationState(examId: string) {
+        const questions = await this.examQuestionRepositoryService.findByExamId(examId);
+        const writtenQuestionIds = questions
+            .filter((q) => q.type === QuestionType.WRITTEN)
+            .map((q) => (q._id as Types.ObjectId).toString());
+
+        const allAttempts = await this.examAttemptRepositoryService.findAllByExamId(examId);
+        const terminalAttempts = allAttempts.filter(
+            (a) => a.status === AttemptStatus.SUBMITTED || a.status === AttemptStatus.COMPLETED,
+        );
+
+        const attemptIds = terminalAttempts.map((a) => (a._id as Types.ObjectId).toString());
+        const allAnswers = attemptIds.length > 0
+            ? await this.examAnswerRepositoryService.findByAttemptIds(attemptIds)
+            : [];
+
+        const answersByAttemptId = new Map<string, any[]>();
+        for (const answer of allAnswers) {
+            const key = answer.attemptId.toString();
+            if (!answersByAttemptId.has(key)) answersByAttemptId.set(key, []);
+            answersByAttemptId.get(key)!.push(answer);
+        }
+
+        const writtenAnswers = allAnswers.filter((a) => writtenQuestionIds.includes(a.questionId.toString()));
+        const evaluatedCount = writtenAnswers.filter((a) => a.marksAwarded !== undefined && a.marksAwarded !== null).length;
+
+        return {
+            writtenQuestionIds,
+            attempts: terminalAttempts,
+            answersByAttemptId,
+            totalWrittenAnswers: writtenAnswers.length,
+            evaluatedCount,
+            pendingCount: writtenAnswers.length - evaluatedCount,
+        };
+    }
+
+
+    // Assign Evaluators API Endpoint
+    async assignEvaluatorsAPI(examId: string, evaluatorFacultyIds: string[]): Promise<void> {
+        const exam = await this.examRepositoryService.findByIdRaw(examId);
+        if (!exam) throw new NotFoundException('Exam not found');
+
+        if (exam.status === ExamStatus.RESULTS_PUBLISHED) {
+            throw new ForbiddenException('Cannot change evaluators after results have been published');
+        }
+
+        if (evaluatorFacultyIds.length > 0) {
+            const faculties = await this.facultyRepositoryService.findByIdsPreserveOrder(
+                evaluatorFacultyIds.map((id) => new Types.ObjectId(id)),
+            );
+            if (faculties.length !== evaluatorFacultyIds.length) {
+                throw new NotFoundException('One or more selected faculty could not be found');
+            }
+        }
+
+        await this.examRepositoryService.updateById(examId, {
+            evaluatorFacultyIds: evaluatorFacultyIds.map((id) => new Types.ObjectId(id)),
+        } as any);
+    }
+
+
+    // Get Evaluation Progress API Endpoint
+    async getEvaluationProgressAPI(examId: string): Promise<EvaluationProgressData> {
+        const exam = await this.examRepositoryService.findByIdRaw(examId);
+        if (!exam) throw new NotFoundException('Exam not found');
+
+        const state = await this.computeEvaluationState(examId);
+        return {
+            totalWrittenAnswers: state.totalWrittenAnswers,
+            evaluatedCount: state.evaluatedCount,
+            pendingCount: state.pendingCount,
+        };
+    }
+
+
+    // Publish Results API Endpoint — gated on every WRITTEN answer being graded;
+    // computes each attempt's final writtenScore/totalScore/passed and opens results to students
+    async publishResultsAPI(examId: string): Promise<void> {
+        const exam = await this.examRepositoryService.findByIdRaw(examId);
+        if (!exam) throw new NotFoundException('Exam not found');
+
+        if (exam.status !== ExamStatus.COMPLETED) {
+            throw new ConflictException('Exam must be COMPLETED before results can be published');
+        }
+
+        const state = await this.computeEvaluationState(examId);
+        if (state.pendingCount > 0) {
+            throw new BadRequestException(
+                `${state.evaluatedCount} of ${state.totalWrittenAnswers} written answers graded — please finish grading before publishing`,
+            );
+        }
+
+        for (const attempt of state.attempts) {
+            const attemptId = (attempt._id as Types.ObjectId).toString();
+            const answers = state.answersByAttemptId.get(attemptId) || [];
+            const writtenScore = answers
+                .filter((a) => state.writtenQuestionIds.includes(a.questionId.toString()))
+                .reduce((sum, a) => sum + (a.marksAwarded || 0), 0);
+            const objectiveScore = attempt.objectiveScore || 0;
+            const totalScore = objectiveScore + writtenScore;
+            const passed = totalScore >= exam.passingMarks;
+
+            await this.examAttemptRepositoryService.updateById(attemptId, {
+                writtenScore,
+                totalScore,
+                passed,
+            } as any);
+        }
+
+        await this.examRepositoryService.updateById(examId, { status: ExamStatus.RESULTS_PUBLISHED } as any);
     }
 
 }

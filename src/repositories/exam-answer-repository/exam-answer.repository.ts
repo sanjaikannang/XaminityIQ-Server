@@ -84,6 +84,19 @@ export class ExamAnswerRepositoryService {
     }
 
 
+    // Batch-fetch every answer row across many attempts at once — avoids N+1 when
+    // scanning a whole exam's worth of answers (evaluation/results)
+    async findByAttemptIds(attemptIds: string[]): Promise<ExamAnswerDocument[]> {
+        try {
+            return await this.examAnswerModel
+                .find({ attemptId: { $in: attemptIds.map((id) => new Types.ObjectId(id)) } })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
     // Add (or replace, if the same pageNumber was already uploaded) one WRITTEN answer page
     async upsertPage(
         examAnswerId: string,

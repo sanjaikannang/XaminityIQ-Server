@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { ChatRecipientType, ChatSenderRole, FacultyDesignation, RoomAssignmentStatus, SubmissionTrigger } from 'src/utils/enum';
+import { AttemptStatus, ChatRecipientType, ChatSenderRole, ExamStatus, FacultyDesignation, QuestionType, RoomAssignmentStatus, SubmissionTrigger } from 'src/utils/enum';
 import {
     Injectable,
     NotFoundException,
@@ -27,6 +27,9 @@ import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.rep
 import { ExamRoomRepositoryService } from 'src/repositories/exam-room-repository/exam-room.repository';
 import { ExamRoomAssignmentRepositoryService } from 'src/repositories/exam-room-assignment-repository/exam-room-assignment.repository';
 import { ExamRoomChatMessageRepositoryService } from 'src/repositories/exam-room-chat-message-repository/exam-room-chat-message.repository';
+import { ExamQuestionRepositoryService } from 'src/repositories/exam-question-repository/exam-question.repository';
+import { ExamAttemptRepositoryService } from 'src/repositories/exam-attempt-repository/exam-attempt.repository';
+import { ExamAnswerRepositoryService } from 'src/repositories/exam-answer-repository/exam-answer.repository';
 
 // Services
 import { ExamAttemptService } from 'src/services/user-service/student/exam-attempt.service';
@@ -48,6 +51,9 @@ export class FacultyService {
         private readonly examRoomRepositoryService: ExamRoomRepositoryService,
         private readonly examRoomAssignmentRepositoryService: ExamRoomAssignmentRepositoryService,
         private readonly examRoomChatMessageRepositoryService: ExamRoomChatMessageRepositoryService,
+        private readonly examQuestionRepositoryService: ExamQuestionRepositoryService,
+        private readonly examAttemptRepositoryService: ExamAttemptRepositoryService,
+        private readonly examAnswerRepositoryService: ExamAnswerRepositoryService,
         private readonly examAttemptService: ExamAttemptService,
         private readonly liveKitService: LiveKitService,
         private readonly configService: ConfigService,
@@ -482,6 +488,126 @@ export class FacultyService {
         }
 
         await this.subjectRepositoryService.softDeleteById(subjectId);
+    }
+
+
+    // Ownership + timing check for evaluation — must be an assigned evaluator, and the
+    // exam must be COMPLETED (viewing also allows RESULTS_PUBLISHED, read-only history)
+    private assertCanEvaluate(facultyId: Types.ObjectId, exam: any, requireGradeable: boolean) {
+        const isEvaluator = (exam.evaluatorFacultyIds || []).some((id: any) => id.toString() === facultyId.toString());
+        if (!isEvaluator) {
+            throw new ForbiddenException('You are not an assigned evaluator for this exam');
+        }
+
+        if (requireGradeable) {
+            if (exam.status !== ExamStatus.COMPLETED) {
+                throw new ForbiddenException('This exam is not open for grading — it is either not yet completed or its results have already been published');
+            }
+        } else if (exam.status !== ExamStatus.COMPLETED && exam.status !== ExamStatus.RESULTS_PUBLISHED) {
+            throw new ForbiddenException('This exam is not available for evaluation');
+        }
+    }
+
+
+    // Get My Evaluation Exams API Endpoint — exams this faculty is an assigned evaluator for
+    async getMyEvaluationExamsAPI(userId: string) {
+        const facultyId = await this.resolveFaculty(userId);
+        const exams = await this.examRepositoryService.findByEvaluatorFacultyId(
+            facultyId.toString(),
+            [ExamStatus.COMPLETED, ExamStatus.RESULTS_PUBLISHED],
+        );
+
+        return exams.map((exam) => ({
+            examId: (exam._id as Types.ObjectId).toString(),
+            name: exam.name,
+            status: exam.status,
+            totalMarks: exam.totalMarks,
+        }));
+    }
+
+
+    // Get Exam Answers For Evaluation API Endpoint — every WRITTEN answer across
+    // every terminal attempt for this exam, forming the faculty's grading queue
+    async getExamAnswersForEvaluationAPI(userId: string, examId: string) {
+        const facultyId = await this.resolveFaculty(userId);
+        const exam = await this.examRepositoryService.findByIdRaw(examId);
+        if (!exam) throw new NotFoundException('Exam not found');
+        this.assertCanEvaluate(facultyId, exam, false);
+
+        const questions = await this.examQuestionRepositoryService.findByExamId(examId);
+        const writtenQuestionById = new Map(
+            questions.filter((q) => q.type === QuestionType.WRITTEN).map((q) => [(q._id as Types.ObjectId).toString(), q]),
+        );
+
+        const allAttempts = await this.examAttemptRepositoryService.findAllByExamId(examId);
+        const terminalAttempts = allAttempts.filter(
+            (a) => a.status === AttemptStatus.SUBMITTED || a.status === AttemptStatus.COMPLETED,
+        );
+        const attemptIds = terminalAttempts.map((a) => (a._id as Types.ObjectId).toString());
+        const allAnswers = attemptIds.length > 0
+            ? await this.examAnswerRepositoryService.findByAttemptIds(attemptIds)
+            : [];
+
+        const students = await this.studentRepositoryService.findByIdsPreserveOrder(
+            terminalAttempts.map((a) => a.studentId),
+        );
+        const studentCodeById = new Map(students.map((s) => [(s._id as Types.ObjectId).toString(), s.studentId]));
+        const studentIdByAttemptId = new Map(
+            terminalAttempts.map((a) => [(a._id as Types.ObjectId).toString(), a.studentId.toString()]),
+        );
+
+        return allAnswers
+            .filter((answer) => writtenQuestionById.has(answer.questionId.toString()))
+            .map((answer) => {
+                const question = writtenQuestionById.get(answer.questionId.toString())!;
+                const studentId = studentIdByAttemptId.get(answer.attemptId.toString()) || '';
+                return {
+                    answerId: (answer._id as Types.ObjectId).toString(),
+                    attemptId: answer.attemptId.toString(),
+                    studentCode: studentCodeById.get(studentId) || '',
+                    questionText: question.text,
+                    maxMarks: question.marks,
+                    pages: answer.pages,
+                    marksAwarded: answer.marksAwarded,
+                    remarks: answer.remarks,
+                    evaluatedAt: answer.evaluatedAt,
+                };
+            });
+    }
+
+
+    // Evaluate Answer API Endpoint — assigns marks + remarks to one WRITTEN answer
+    async evaluateAnswerAPI(userId: string, answerId: string, marksAwarded: number, remarks?: string) {
+        const facultyId = await this.resolveFaculty(userId);
+
+        const answer = await this.examAnswerRepositoryService.findById(answerId);
+        if (!answer) throw new NotFoundException('Answer not found');
+
+        const attempt = await this.examAttemptRepositoryService.findById(answer.attemptId.toString());
+        if (!attempt) throw new NotFoundException('Attempt not found');
+
+        const exam = await this.examRepositoryService.findByIdRaw(attempt.examId.toString());
+        if (!exam) throw new NotFoundException('Exam not found');
+
+        this.assertCanEvaluate(facultyId, exam, true);
+
+        const question = await this.examQuestionRepositoryService.findById(answer.questionId.toString());
+        if (!question || question.type !== QuestionType.WRITTEN) {
+            throw new BadRequestException('This answer is not for a WRITTEN question');
+        }
+
+        if (marksAwarded < 0 || marksAwarded > question.marks) {
+            throw new BadRequestException(`Marks must be between 0 and ${question.marks}`);
+        }
+
+        await this.examAnswerRepositoryService.updateById(answerId, {
+            marksAwarded,
+            evaluatedBy: new Types.ObjectId(userId),
+            evaluatedAt: new Date(),
+            remarks,
+        } as any);
+
+        return { message: 'Answer evaluated successfully' };
     }
 
 }

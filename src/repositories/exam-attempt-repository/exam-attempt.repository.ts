@@ -67,4 +67,24 @@ export class ExamAttemptRepositoryService {
         }
     }
 
+
+    // Find every attempt in a given status, across all students — used by the lifecycle sweep
+    async findAllByStatus(status: string): Promise<ExamAttemptDocument[]> {
+        try {
+            return await this.examAttemptModel.find({ status }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Find every attempt for an exam, across all students and any status — used by evaluation/results
+    async findAllByExamId(examId: string): Promise<ExamAttemptDocument[]> {
+        try {
+            return await this.examAttemptModel.find({ examId: new Types.ObjectId(examId) }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
 }

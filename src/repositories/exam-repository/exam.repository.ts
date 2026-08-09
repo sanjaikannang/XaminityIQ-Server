@@ -145,4 +145,30 @@ export class ExamRepositoryService {
         }
     }
 
+
+    // Find every non-deleted exam in any of the given statuses — used by the lifecycle sweep
+    async findAllByStatuses(statuses: string[]): Promise<ExamDocument[]> {
+        try {
+            return await this.examModel.find({ status: { $in: statuses }, isDeleted: false }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Find every exam a given faculty is an assigned evaluator for, in any of the given statuses
+    async findByEvaluatorFacultyId(facultyId: string, statuses: string[]): Promise<ExamDocument[]> {
+        try {
+            return await this.examModel
+                .find({
+                    evaluatorFacultyIds: new Types.ObjectId(facultyId),
+                    status: { $in: statuses },
+                    isDeleted: false,
+                })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
 }

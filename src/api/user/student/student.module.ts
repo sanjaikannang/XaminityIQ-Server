@@ -48,6 +48,7 @@ import { GetChatHistoryController } from './exam-proctoring/get-chat-history/get
 import { GenerateWrittenQrController } from './exam-management/generate-written-qr/generate-written-qr.controller';
 import { GetWrittenQrStatusController } from './exam-management/get-written-qr-status/get-written-qr-status.controller';
 import { FinalizeWrittenAnswerController } from './exam-management/finalize-written-answer/finalize-written-answer.controller';
+import { GetMyResultController } from './exam-management/get-my-result/get-my-result.controller';
 
 @Module({
     imports: [
@@ -95,6 +96,7 @@ import { FinalizeWrittenAnswerController } from './exam-management/finalize-writ
         GenerateWrittenQrController,
         GetWrittenQrStatusController,
         FinalizeWrittenAnswerController,
+        GetMyResultController,
     ],
     providers: [
         ConfigService,
