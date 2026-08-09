@@ -18,11 +18,16 @@ import { ExamQuestion, ExamQuestionSchema } from 'src/schemas/Exam/examQuestion.
 import { ExamAttempt, ExamAttemptSchema } from 'src/schemas/Exam/examAttempt.schema';
 import { ExamAnswer, ExamAnswerSchema } from 'src/schemas/Exam/examAnswer.schema';
 import { ExamRecording, ExamRecordingSchema } from 'src/schemas/Exam/examRecording.schema';
+import { ExamRoom, ExamRoomSchema } from 'src/schemas/Exam/examRoom.schema';
+import { ExamRoomAssignment, ExamRoomAssignmentSchema } from 'src/schemas/Exam/examRoomAssignment.schema';
+import { ExamRoomChatMessage, ExamRoomChatMessageSchema } from 'src/schemas/Exam/examRoomChatMessage.schema';
 
 // Services
 import { StudentService } from 'src/services/user-service/student/student.service';
 import { ExamAttemptService } from 'src/services/user-service/student/exam-attempt.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { LiveKitService } from 'src/livekit/livekit.service';
+import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 
 // Controllers
 import { GetAllSubjectsController } from './subject-management/get-all-subjects/get-all-subjects.controller';
@@ -35,6 +40,14 @@ import { RecordingSignatureController } from './exam-management/recording-signat
 import { RecordChunkController } from './exam-management/record-chunk/record-chunk.controller';
 import { FinalizeRecordingController } from './exam-management/finalize-recording/finalize-recording.controller';
 import { NetworkProbeController } from './exam-management/network-probe/network-probe.controller';
+import { JoinLobbyController } from './exam-proctoring/join-lobby/join-lobby.controller';
+import { GetLobbyStatusController } from './exam-proctoring/get-lobby-status/get-lobby-status.controller';
+import { GetLiveKitTokenController } from './exam-proctoring/get-livekit-token/get-livekit-token.controller';
+import { SendChatController } from './exam-proctoring/send-chat/send-chat.controller';
+import { GetChatHistoryController } from './exam-proctoring/get-chat-history/get-chat-history.controller';
+import { GenerateWrittenQrController } from './exam-management/generate-written-qr/generate-written-qr.controller';
+import { GetWrittenQrStatusController } from './exam-management/get-written-qr-status/get-written-qr-status.controller';
+import { FinalizeWrittenAnswerController } from './exam-management/finalize-written-answer/finalize-written-answer.controller';
 
 @Module({
     imports: [
@@ -47,6 +60,9 @@ import { NetworkProbeController } from './exam-management/network-probe/network-
             { name: ExamAttempt.name, schema: ExamAttemptSchema },
             { name: ExamAnswer.name, schema: ExamAnswerSchema },
             { name: ExamRecording.name, schema: ExamRecordingSchema },
+            { name: ExamRoom.name, schema: ExamRoomSchema },
+            { name: ExamRoomAssignment.name, schema: ExamRoomAssignmentSchema },
+            { name: ExamRoomChatMessage.name, schema: ExamRoomChatMessageSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -71,12 +87,22 @@ import { NetworkProbeController } from './exam-management/network-probe/network-
         RecordChunkController,
         FinalizeRecordingController,
         NetworkProbeController,
+        JoinLobbyController,
+        GetLobbyStatusController,
+        GetLiveKitTokenController,
+        SendChatController,
+        GetChatHistoryController,
+        GenerateWrittenQrController,
+        GetWrittenQrStatusController,
+        FinalizeWrittenAnswerController,
     ],
     providers: [
         ConfigService,
         StudentService,
         ExamAttemptService,
         CloudinaryService,
+        LiveKitService,
+        AuthJwtService,
         JwtAuthGuard,
         RoleGuard,
     ],

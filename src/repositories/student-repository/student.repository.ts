@@ -199,6 +199,36 @@ export class StudentRepositoryService {
     }
 
 
+    // Find ALL student ids matching filter + academic filter (no pagination) — used for room formation
+    async findAllIdsWithAcademicFilter(baseFilter: any, academicFilter: any): Promise<Types.ObjectId[]> {
+        try {
+            const pipeline: any[] = [
+                { $match: baseFilter },
+                {
+                    $lookup: {
+                        from: this.studentAcademicDetailModel.collection.name,
+                        localField: 'academicDetailId',
+                        foreignField: '_id',
+                        as: 'academicDetail',
+                    },
+                },
+                { $unwind: '$academicDetail' },
+            ];
+
+            if (Object.keys(academicFilter).length > 0) {
+                pipeline.push({ $match: academicFilter });
+            }
+
+            pipeline.push({ $project: { _id: 1 } });
+
+            const results = await this.studentModel.aggregate(pipeline).exec();
+            return results.map((r) => r._id);
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
     // Find students by id list, preserving the given order (Mongo's $in doesn't guarantee it)
     async findByIdsPreserveOrder(ids: Types.ObjectId[]): Promise<StudentDocument[]> {
         try {

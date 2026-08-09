@@ -8,7 +8,10 @@ import { PasswordService } from "./auth-service/password.service";
 import { AdminService } from "./user-service/admin/admin.service";
 import { FacultyService } from "./user-service/faculty/faculty.service";
 import { StudentService } from "./user-service/student/student.service";
+import { ExamAttemptService } from "./user-service/student/exam-attempt.service";
 import { ConfigService } from "src/config/config.service";
+import { CloudinaryService } from "src/cloudinary/cloudinary.service";
+import { LiveKitService } from "src/livekit/livekit.service";
 
 // Modules
 import { ConfigModule } from "src/config/config.module";
@@ -34,7 +37,10 @@ import { RepositoryModule } from "src/repositories/repository.module";
         PasswordService,
         AdminService,
         FacultyService,
-        StudentService
+        StudentService,
+        CloudinaryService,
+        LiveKitService,
+        ExamAttemptService
     ],
     exports: [
         AuthService,
@@ -42,7 +48,8 @@ import { RepositoryModule } from "src/repositories/repository.module";
         AuthJwtService,
         AdminService,
         FacultyService,
-        StudentService
+        StudentService,
+        ExamAttemptService
     ],
 })
 export class ServiceModule { }

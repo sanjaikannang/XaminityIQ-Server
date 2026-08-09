@@ -7,7 +7,7 @@ import {
     ConflictException,
     ForbiddenException,
 } from '@nestjs/common';
-import { ExamMode, ExamStatus, QuestionType, StudentStatus } from 'src/utils/enum';
+import { ExamMode, ExamRoomStatus, ExamStatus, QuestionType, RoomAssignmentStatus, StudentStatus } from 'src/utils/enum';
 
 // Requests
 import { CreateExamRequest } from 'src/api/user/admin/exam-management/create-exam/create-exam.request';
@@ -32,6 +32,11 @@ import { SubjectRepositoryService } from 'src/repositories/subject-repository/su
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
 import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
 import { ExamQuestionRepositoryService } from 'src/repositories/exam-question-repository/exam-question.repository';
+import { FacultyRepositoryService } from 'src/repositories/faculty-repository/faculty.repository';
+import { ExamRoomRepositoryService } from 'src/repositories/exam-room-repository/exam-room.repository';
+import { ExamRoomAssignmentRepositoryService } from 'src/repositories/exam-room-assignment-repository/exam-room-assignment.repository';
+import { FormedRoomData } from 'src/api/user/admin/exam-management/form-exam-rooms/form-exam-rooms.response';
+import { ExamRoomSummaryData } from 'src/api/user/admin/exam-management/get-exam-rooms/get-exam-rooms.response';
 
 const MIN_WRITTEN_MARKS = 2;
 const MAX_WRITTEN_MARKS = 20;
@@ -49,7 +54,12 @@ export class ExamManagementService {
         private readonly studentRepositoryService: StudentRepositoryService,
         private readonly examRepositoryService: ExamRepositoryService,
         private readonly examQuestionRepositoryService: ExamQuestionRepositoryService,
+        private readonly facultyRepositoryService: FacultyRepositoryService,
+        private readonly examRoomRepositoryService: ExamRoomRepositoryService,
+        private readonly examRoomAssignmentRepositoryService: ExamRoomAssignmentRepositoryService,
     ) { }
+
+    private readonly MAX_STUDENTS_PER_ROOM = 10;
 
 
     // Validate the academic hierarchy chain and mode-specific schedule; returns the
@@ -229,6 +239,138 @@ export class ExamManagementService {
             'academicDetail.status': StudentStatus.ACTIVE,
         };
         return this.studentRepositoryService.countWithAcademicFilter(baseFilter, academicFilter);
+    }
+
+
+    // Get matched (ACTIVE, non-deleted) student ids for an exam's hierarchy selection
+    private async getMatchedStudentIds(exam: any): Promise<Types.ObjectId[]> {
+        const baseFilter = { isActive: true };
+        const academicFilter = {
+            'academicDetail.batchId': new Types.ObjectId(this.extractId(exam.batchId)),
+            'academicDetail.courseId': new Types.ObjectId(this.extractId(exam.courseId)),
+            'academicDetail.departmentId': new Types.ObjectId(this.extractId(exam.departmentId)),
+            'academicDetail.sectionId': new Types.ObjectId(this.extractId(exam.sectionId)),
+            'academicDetail.currentSemester': exam.semester,
+            'academicDetail.status': StudentStatus.ACTIVE,
+        };
+        return this.studentRepositoryService.findAllIdsWithAcademicFilter(baseFilter, academicFilter);
+    }
+
+
+    // Form Exam Rooms API Endpoint — partitions matched students into groups of
+    // <=10 and round-robin assigns an active faculty as invigilator for each group
+    async formExamRoomsAPI(examId: string): Promise<FormedRoomData[]> {
+        const exam = await this.examRepositoryService.findById(examId);
+        if (!exam) throw new NotFoundException('Exam not found');
+
+        if (exam.mode !== ExamMode.PROCTORING) {
+            throw new BadRequestException('Rooms can only be formed for PROCTORING exams');
+        }
+        if (exam.status !== ExamStatus.PUBLISHED) {
+            throw new BadRequestException('Exam must be PUBLISHED before forming rooms');
+        }
+
+        const existingRooms = await this.examRoomRepositoryService.findByExamId(examId);
+        if (existingRooms.length > 0) {
+            throw new ConflictException('Rooms have already been formed for this exam');
+        }
+
+        const studentIds = await this.getMatchedStudentIds(exam);
+        if (studentIds.length === 0) {
+            throw new BadRequestException('No students matched this exam\'s hierarchy selection');
+        }
+
+        const facultyIds = await this.facultyRepositoryService.findActiveFacultyIds();
+        if (facultyIds.length === 0) {
+            throw new BadRequestException('No active faculty available to assign as invigilators');
+        }
+
+        const startDateTime = this.combineDateTime(exam.startDate.toISOString(), exam.startTime as string);
+        const endDateTime = this.combineDateTime(exam.endDate.toISOString(), exam.endTime as string);
+
+        const groups: Types.ObjectId[][] = [];
+        for (let i = 0; i < studentIds.length; i += this.MAX_STUDENTS_PER_ROOM) {
+            groups.push(studentIds.slice(i, i + this.MAX_STUDENTS_PER_ROOM));
+        }
+
+        const examObjectId = new Types.ObjectId(examId);
+        const roomsToCreate = groups.map((group, index) => ({
+            examId: examObjectId,
+            facultyId: facultyIds[index % facultyIds.length],
+            startDateTime,
+            endDateTime,
+            durationMinutes: exam.durationMinutes,
+            liveKitSessionId: `exam-room-${examId}-${index}`,
+            status: ExamRoomStatus.SCHEDULED,
+        }));
+
+        const createdRooms = await this.examRoomRepositoryService.createMany(roomsToCreate as any);
+
+        const assignmentsToCreate = createdRooms.flatMap((room, index) =>
+            groups[index].map((studentId) => ({
+                roomId: room._id as Types.ObjectId,
+                examId: examObjectId,
+                studentId,
+                status: RoomAssignmentStatus.WAITING,
+            })),
+        );
+        await this.examRoomAssignmentRepositoryService.createMany(assignmentsToCreate as any);
+
+        const faculties = await this.facultyRepositoryService.findByIdsPreserveOrder(
+            createdRooms.map((room) => room.facultyId),
+        );
+        const facultyCodeById = new Map(faculties.map((f) => [(f._id as Types.ObjectId).toString(), f.facultyId]));
+
+        return createdRooms.map((room, index) => ({
+            roomId: (room._id as Types.ObjectId).toString(),
+            facultyId: room.facultyId.toString(),
+            facultyCode: facultyCodeById.get(room.facultyId.toString()) || '',
+            liveKitSessionId: room.liveKitSessionId,
+            studentCount: groups[index].length,
+        }));
+    }
+
+
+    // Get Exam Rooms API Endpoint — lists formed rooms with assignment status counts
+    async getExamRoomsAPI(examId: string): Promise<ExamRoomSummaryData[]> {
+        const exam = await this.examRepositoryService.findById(examId);
+        if (!exam) throw new NotFoundException('Exam not found');
+
+        const rooms = await this.examRoomRepositoryService.findByExamId(examId);
+        const faculties = await this.facultyRepositoryService.findByIdsPreserveOrder(
+            rooms.map((room) => room.facultyId),
+        );
+        const facultyCodeById = new Map(faculties.map((f) => [(f._id as Types.ObjectId).toString(), f.facultyId]));
+
+        const summaries: ExamRoomSummaryData[] = [];
+        for (const room of rooms) {
+            const assignments = await this.examRoomAssignmentRepositoryService.findByRoomId(room._id as Types.ObjectId);
+            const waitingCount = assignments.filter((a) => a.status === RoomAssignmentStatus.WAITING).length;
+            const admittedCount = assignments.filter((a) => a.status === RoomAssignmentStatus.ADMITTED).length;
+            const inProgressCount = assignments.filter((a) => a.status === RoomAssignmentStatus.IN_PROGRESS).length;
+            const completedCount = assignments.filter((a) => a.status === RoomAssignmentStatus.COMPLETED).length;
+            const removedOrRejectedCount = assignments.filter(
+                (a) => a.status === RoomAssignmentStatus.REJECTED || a.status === RoomAssignmentStatus.REMOVED,
+            ).length;
+
+            summaries.push({
+                roomId: (room._id as Types.ObjectId).toString(),
+                facultyId: room.facultyId.toString(),
+                facultyCode: facultyCodeById.get(room.facultyId.toString()) || '',
+                liveKitSessionId: room.liveKitSessionId,
+                startDateTime: room.startDateTime,
+                endDateTime: room.endDateTime,
+                status: room.status,
+                waitingCount,
+                admittedCount,
+                inProgressCount,
+                completedCount,
+                removedOrRejectedCount,
+                totalCount: assignments.length,
+            });
+        }
+
+        return summaries;
     }
 
 

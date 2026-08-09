@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import { Types } from 'mongoose';
 import {
     Injectable,
@@ -6,7 +7,7 @@ import {
     ConflictException,
     BadRequestException,
 } from '@nestjs/common';
-import { AttemptStatus, ExamMode, ExamStatus, MediaStatus, QuestionType, RecordingMediaType, SubmissionTrigger } from 'src/utils/enum';
+import { AttemptStatus, ChatRecipientType, ChatSenderRole, ExamMode, ExamStatus, MediaStatus, QuestionType, RecordingMediaType, SubmissionTrigger } from 'src/utils/enum';
 
 // Repositories
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
@@ -16,9 +17,20 @@ import { ExamQuestionRepositoryService } from 'src/repositories/exam-question-re
 import { ExamAttemptRepositoryService } from 'src/repositories/exam-attempt-repository/exam-attempt.repository';
 import { ExamAnswerRepositoryService } from 'src/repositories/exam-answer-repository/exam-answer.repository';
 import { ExamRecordingRepositoryService } from 'src/repositories/exam-recording-repository/exam-recording.repository';
+import { ExamRoomRepositoryService } from 'src/repositories/exam-room-repository/exam-room.repository';
+import { ExamRoomAssignmentRepositoryService } from 'src/repositories/exam-room-assignment-repository/exam-room-assignment.repository';
+import { ExamRoomChatMessageRepositoryService } from 'src/repositories/exam-room-chat-message-repository/exam-room-chat-message.repository';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { ConfigService } from 'src/config/config.service';
+import { LiveKitService } from 'src/livekit/livekit.service';
+import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 
 const SUBMIT_GRACE_MS = 5000;
+const QR_TOKEN_TTL_MS = 15 * 60 * 1000;
+
+function hashQrToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 @Injectable()
 export class ExamAttemptService {
@@ -30,7 +42,13 @@ export class ExamAttemptService {
         private readonly examAttemptRepositoryService: ExamAttemptRepositoryService,
         private readonly examAnswerRepositoryService: ExamAnswerRepositoryService,
         private readonly examRecordingRepositoryService: ExamRecordingRepositoryService,
+        private readonly examRoomRepositoryService: ExamRoomRepositoryService,
+        private readonly examRoomAssignmentRepositoryService: ExamRoomAssignmentRepositoryService,
+        private readonly examRoomChatMessageRepositoryService: ExamRoomChatMessageRepositoryService,
         private readonly cloudinaryService: CloudinaryService,
+        private readonly configService: ConfigService,
+        private readonly liveKitService: LiveKitService,
+        private readonly authJwtService: AuthJwtService,
     ) { }
 
 
@@ -81,7 +99,6 @@ export class ExamAttemptService {
 
         const exams = await this.examRepositoryService.findAllWithFilters(
             {
-                mode: ExamMode.AUTO,
                 status: [ExamStatus.PUBLISHED, ExamStatus.ONGOING, ExamStatus.COMPLETED],
                 batchId: academicDetail.batchId.toString(),
                 courseId: academicDetail.courseId.toString(),
@@ -167,21 +184,49 @@ export class ExamAttemptService {
             throw new BadRequestException('This exam has no questions yet');
         }
 
+        const attempt = await this.createAttemptRecord(examId, studentId, questions.map((q) => q._id as Types.ObjectId));
+
+        return this.buildStartResponse(exam, attempt, questions);
+    }
+
+
+    // Create the attempt record + seed its answers/recording — shared by the AUTO
+    // start path above and the PROCTORING faculty-admission path below. startedAt
+    // is always "now" at the moment this runs (lobby-entry time for AUTO's
+    // immediate case, ADMISSION time for PROCTORING — never lobby-entry time).
+    private async createAttemptRecord(
+        examId: string,
+        studentId: string,
+        questionOrder: Types.ObjectId[],
+        roomId?: Types.ObjectId,
+    ) {
         const attempt = await this.examAttemptRepositoryService.create({
             examId: new Types.ObjectId(examId),
             studentId: new Types.ObjectId(studentId),
             status: AttemptStatus.IN_PROGRESS,
-            startedAt: now,
-            questionOrder: questions.map((q) => q._id as Types.ObjectId),
+            startedAt: new Date(),
+            questionOrder,
+            ...(roomId ? { roomId } : {}),
         } as any);
 
         const attemptId = attempt._id as Types.ObjectId;
         await this.examAnswerRepositoryService.createMany(
-            questions.map((q) => ({ attemptId, questionId: q._id as Types.ObjectId })),
+            questionOrder.map((questionId) => ({ attemptId, questionId })),
         );
         await this.examRecordingRepositoryService.create(attemptId);
 
-        return this.buildStartResponse(exam, attempt, questions);
+        return attempt;
+    }
+
+
+    // Called by the faculty admission flow (FacultyService.admitStudentAPI) to
+    // create the student's attempt at the moment they're admitted into the room
+    async createAttemptOnAdmission(examId: string, studentId: string, roomId: Types.ObjectId) {
+        const questions = await this.examQuestionRepositoryService.findByExamId(examId);
+        if (questions.length < 1) {
+            throw new BadRequestException('This exam has no questions yet');
+        }
+        return this.createAttemptRecord(examId, studentId, questions.map((q) => q._id as Types.ObjectId), roomId);
     }
 
     private async buildStartResponse(exam: any, attempt: any, questions?: any[]) {
@@ -282,20 +327,51 @@ export class ExamAttemptService {
     }
 
 
-    // Submit (finalize) an attempt — the single "ending an attempt" code path
+    // Submit (finalize) an attempt — the student-initiated entry point into the
+    // shared finalizeAttempt logic below
     async submitAttemptAPI(userId: string, attemptId: string, clientTrigger: SubmissionTrigger) {
         const { attempt } = await this.ownAttemptOrThrow(userId, attemptId);
-
-        if (attempt.status === AttemptStatus.SUBMITTED || attempt.status === AttemptStatus.COMPLETED) {
-            return { message: 'Attempt already submitted', status: attempt.status };
-        }
-        if (attempt.status !== AttemptStatus.IN_PROGRESS) {
-            throw new ForbiddenException('Attempt cannot be submitted from its current state');
-        }
 
         const exam = await this.examRepositoryService.findByIdRaw(attempt.examId.toString());
         if (!exam) {
             throw new NotFoundException('Exam not found');
+        }
+
+        return this.finalizeAttempt(attempt, exam, clientTrigger);
+    }
+
+
+    // Faculty-initiated finalization (forced removal from a proctoring room) —
+    // callable without a student userId, since the faculty doesn't act as the student
+    async finalizeAttemptByFaculty(attemptId: string, trigger: SubmissionTrigger) {
+        const attempt = await this.examAttemptRepositoryService.findById(attemptId);
+        if (!attempt) {
+            throw new NotFoundException('Attempt not found');
+        }
+        const exam = await this.examRepositoryService.findByIdRaw(attempt.examId.toString());
+        if (!exam) {
+            throw new NotFoundException('Exam not found');
+        }
+        return this.finalizeAttempt(attempt, exam, trigger);
+    }
+
+
+    // The single "ending an attempt" code path — computes objective score and
+    // finalizes status, shared by both the student's own submit and a faculty removal
+    private async finalizeAttempt(attempt: any, exam: any, clientTrigger: SubmissionTrigger) {
+        const attemptId = (attempt._id as Types.ObjectId).toString();
+
+        if (attempt.status === AttemptStatus.SUBMITTED || attempt.status === AttemptStatus.COMPLETED) {
+            return {
+                message: 'Attempt already submitted',
+                status: attempt.status,
+                objectiveScore: attempt.objectiveScore,
+                totalScore: attempt.totalScore,
+                passed: attempt.passed,
+            };
+        }
+        if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+            throw new ForbiddenException('Attempt cannot be submitted from its current state');
         }
 
         const deadline = new Date(attempt.startedAt as Date).getTime() + exam.durationMinutes * 60000;
@@ -417,6 +493,245 @@ export class ExamAttemptService {
         }
 
         return { message: 'Recording stream finalized', allComplete };
+    }
+
+
+    // Join the waiting room for a PROCTORING exam — requires the admin to have
+    // already run room formation; does not itself create an attempt or connect to LiveKit
+    async joinLobbyAPI(userId: string, examId: string) {
+        const { student, academicDetail } = await this.resolveStudent(userId);
+
+        const exam = await this.examRepositoryService.findByIdRaw(examId);
+        if (!exam) {
+            throw new NotFoundException('Exam not found');
+        }
+        if (exam.mode !== ExamMode.PROCTORING) {
+            throw new BadRequestException('This exam is not a PROCTORING-mode exam');
+        }
+        if (exam.status !== ExamStatus.PUBLISHED && exam.status !== ExamStatus.ONGOING) {
+            throw new ForbiddenException('This exam is not currently open');
+        }
+
+        const matchesHierarchy =
+            exam.batchId.toString() === academicDetail.batchId.toString() &&
+            exam.courseId.toString() === academicDetail.courseId.toString() &&
+            exam.departmentId.toString() === academicDetail.departmentId.toString() &&
+            exam.sectionId.toString() === academicDetail.sectionId.toString() &&
+            exam.semester === academicDetail.currentSemester;
+        if (!matchesHierarchy) {
+            throw new ForbiddenException('You are not assigned to this exam');
+        }
+
+        const studentId = (student._id as Types.ObjectId).toString();
+        const assignment = await this.examRoomAssignmentRepositoryService.findByExamAndStudent(examId, studentId);
+        if (!assignment) {
+            throw new NotFoundException('Room not yet assigned for this exam — please try again closer to the exam start time');
+        }
+
+        if (!assignment.enteredWaitingRoomAt) {
+            await this.examRoomAssignmentRepositoryService.updateById((assignment._id as Types.ObjectId).toString(), {
+                enteredWaitingRoomAt: new Date(),
+            });
+        }
+
+        return {
+            roomId: assignment.roomId.toString(),
+            assignmentId: (assignment._id as Types.ObjectId).toString(),
+            status: assignment.status,
+        };
+    }
+
+
+    // Poll target for the waiting room — reports admission/rejection once a faculty acts
+    async getLobbyStatusAPI(userId: string, assignmentId: string) {
+        const { student } = await this.resolveStudent(userId);
+
+        const assignment = await this.examRoomAssignmentRepositoryService.findById(assignmentId);
+        if (!assignment || assignment.studentId.toString() !== (student._id as Types.ObjectId).toString()) {
+            throw new NotFoundException('Assignment not found');
+        }
+
+        return {
+            status: assignment.status,
+            attemptId: assignment.attemptId ? assignment.attemptId.toString() : null,
+            removalReason: assignment.removalReason,
+        };
+    }
+
+
+    // Issue a LiveKit room-join token for an admitted, in-progress attempt
+    async getLiveKitTokenAPI(userId: string, attemptId: string) {
+        const { student, attempt } = await this.ownAttemptOrThrow(userId, attemptId);
+
+        if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+            throw new ForbiddenException('Attempt is not currently in progress');
+        }
+        if (!attempt.roomId) {
+            throw new ForbiddenException('This attempt is not part of a proctoring room');
+        }
+
+        const room = await this.examRoomRepositoryService.findById(attempt.roomId);
+        if (!room) {
+            throw new NotFoundException('Room not found');
+        }
+
+        const identity = `student-${(student._id as Types.ObjectId).toString()}`;
+        const token = await this.liveKitService.generateToken(
+            room.liveKitSessionId,
+            identity,
+            student.studentId,
+            { canPublish: true, canSubscribe: true, canPublishData: true },
+        );
+
+        return {
+            token,
+            liveKitUrl: this.configService.getLiveKitUrl(),
+            roomName: room.liveKitSessionId,
+            roomId: (room._id as Types.ObjectId).toString(),
+            identity,
+            facultyIdentity: `faculty-${room.facultyId.toString()}`,
+        };
+    }
+
+
+    // Send a chat message to the room's faculty — always INDIVIDUAL, since a
+    // student can only address the one invigilator assigned to their room
+    async sendChatAPI(userId: string, roomId: string, message: string) {
+        const { student } = await this.resolveStudent(userId);
+        const studentId = (student._id as Types.ObjectId).toString();
+
+        const assignment = await this.examRoomAssignmentRepositoryService.findByRoomAndStudent(roomId, studentId);
+        if (!assignment) {
+            throw new NotFoundException('You are not assigned to this room');
+        }
+
+        const chatMessage = await this.examRoomChatMessageRepositoryService.create({
+            roomId: new Types.ObjectId(roomId),
+            senderRole: ChatSenderRole.STUDENT,
+            senderId: new Types.ObjectId(userId),
+            recipientType: ChatRecipientType.INDIVIDUAL,
+            message,
+            sentAt: new Date(),
+        } as any);
+
+        return this.mapChatMessage(chatMessage);
+    }
+
+
+    // Chat history for the room, filtered so a student never sees another
+    // student's individual messages to the faculty (broadcasts are visible to all)
+    async getChatHistoryAPI(userId: string, roomId: string) {
+        const { student } = await this.resolveStudent(userId);
+        const studentId = (student._id as Types.ObjectId).toString();
+
+        const assignment = await this.examRoomAssignmentRepositoryService.findByRoomAndStudent(roomId, studentId);
+        if (!assignment) {
+            throw new NotFoundException('You are not assigned to this room');
+        }
+
+        const messages = await this.examRoomChatMessageRepositoryService.findByRoomId(roomId);
+        const visible = messages.filter((m) =>
+            m.senderId.toString() === userId ||
+            m.recipientType === ChatRecipientType.BROADCAST_ROOM ||
+            (m.recipientType === ChatRecipientType.INDIVIDUAL && m.recipientStudentId?.toString() === studentId),
+        );
+
+        return visible.map((m) => this.mapChatMessage(m));
+    }
+
+    private mapChatMessage(message: any) {
+        return {
+            _id: message._id.toString(),
+            senderRole: message.senderRole,
+            senderId: message.senderId.toString(),
+            recipientType: message.recipientType,
+            recipientStudentId: message.recipientStudentId ? message.recipientStudentId.toString() : undefined,
+            message: message.message,
+            sentAt: message.sentAt,
+        };
+    }
+
+
+    // Resolve + ownership-check a WRITTEN question's pre-seeded answer row for this attempt
+    private async resolveWrittenAnswer(userId: string, attemptId: string, questionId: string) {
+        const { attempt } = await this.ownAttemptOrThrow(userId, attemptId);
+
+        if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+            throw new ForbiddenException('This attempt is no longer in progress');
+        }
+
+        const question = await this.examQuestionRepositoryService.findById(questionId);
+        if (!question || question.examId.toString() !== attempt.examId.toString()) {
+            throw new NotFoundException('Question not found');
+        }
+        if (question.type !== QuestionType.WRITTEN) {
+            throw new BadRequestException('This question is not a WRITTEN question');
+        }
+
+        const answer = await this.examAnswerRepositoryService.findByAttemptAndQuestion(attemptId, questionId);
+        if (!answer) {
+            throw new NotFoundException('Answer row not found');
+        }
+
+        return { answer };
+    }
+
+
+    // Generate a fresh QR token for a WRITTEN question — displayed on desktop, scanned on the student's phone
+    async generateWrittenQrAPI(userId: string, attemptId: string, questionId: string) {
+        const { answer } = await this.resolveWrittenAnswer(userId, attemptId, questionId);
+
+        if (answer.isFinalized) {
+            throw new ForbiddenException('This written answer has already been finalized');
+        }
+
+        const answerId = (answer._id as Types.ObjectId).toString();
+        const token = this.authJwtService.generateWrittenAnswerQrToken({
+            sub: answerId,
+            attemptId,
+            questionId,
+        });
+
+        const expiresAt = new Date(Date.now() + QR_TOKEN_TTL_MS);
+        await this.examAnswerRepositoryService.updateById(answerId, {
+            qrTokenHash: hashQrToken(token),
+            qrGeneratedAt: new Date(),
+            qrTokenExpiresAt: expiresAt,
+            // null (not undefined) — Mongoose strips undefined values from update
+            // payloads entirely, which would silently leave a stale scan timestamp in place.
+            qrScannedAt: null,
+        } as any);
+
+        return { token, expiresAt };
+    }
+
+
+    // Poll target for the desktop screen while the QR is displayed
+    async getWrittenQrStatusAPI(userId: string, attemptId: string, questionId: string) {
+        const { answer } = await this.resolveWrittenAnswer(userId, attemptId, questionId);
+
+        return {
+            pageCount: answer.pages.length,
+            qrScannedAt: answer.qrScannedAt,
+            isFinalized: answer.isFinalized,
+            qrTokenExpiresAt: answer.qrTokenExpiresAt,
+        };
+    }
+
+
+    // Desktop-side "I'm done" action — locks in the uploaded pages as the final answer
+    async finalizeWrittenAnswerAPI(userId: string, attemptId: string, questionId: string) {
+        const { answer } = await this.resolveWrittenAnswer(userId, attemptId, questionId);
+
+        if (answer.pages.length === 0) {
+            throw new BadRequestException('Please upload at least one page before finishing');
+        }
+
+        await this.examAnswerRepositoryService.updateById((answer._id as Types.ObjectId).toString(), {
+            isFinalized: true,
+        });
+
+        return { message: 'Written answer saved', pageCount: answer.pages.length };
     }
 
 }

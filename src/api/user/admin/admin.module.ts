@@ -78,6 +78,8 @@ import { PublishExamController } from './exam-management/publish-exam/publish-ex
 import { AddQuestionController } from './exam-management/add-question/add-question.controller';
 import { EditQuestionController } from './exam-management/edit-question/edit-question.controller';
 import { DeleteQuestionController } from './exam-management/delete-question/delete-question.controller';
+import { FormExamRoomsController } from './exam-management/form-exam-rooms/form-exam-rooms.controller';
+import { GetExamRoomsController } from './exam-management/get-exam-rooms/get-exam-rooms.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -159,7 +161,9 @@ import { JwtModule } from '@nestjs/jwt';
         PublishExamController,
         AddQuestionController,
         EditQuestionController,
-        DeleteQuestionController
+        DeleteQuestionController,
+        FormExamRoomsController,
+        GetExamRoomsController
     ],
     providers: [
         ConfigService,

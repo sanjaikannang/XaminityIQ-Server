@@ -63,4 +63,42 @@ export class ExamAnswerRepositoryService {
         }
     }
 
+
+    // Find an answer row by its own id
+    async findById(id: string): Promise<ExamAnswerDocument | null> {
+        try {
+            return await this.examAnswerModel.findById(id).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Update an answer row by its own id
+    async updateById(id: string, data: Partial<ExamAnswer>): Promise<ExamAnswerDocument | null> {
+        try {
+            return await this.examAnswerModel.findByIdAndUpdate(id, data, { new: true }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Add (or replace, if the same pageNumber was already uploaded) one WRITTEN answer page
+    async upsertPage(
+        examAnswerId: string,
+        page: { pageNumber: number; cloudinaryUrl: string; uploadedAt: Date },
+    ): Promise<ExamAnswerDocument | null> {
+        try {
+            await this.examAnswerModel
+                .findByIdAndUpdate(examAnswerId, { $pull: { pages: { pageNumber: page.pageNumber } } })
+                .exec();
+            return await this.examAnswerModel
+                .findByIdAndUpdate(examAnswerId, { $push: { pages: page } }, { new: true })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
 }

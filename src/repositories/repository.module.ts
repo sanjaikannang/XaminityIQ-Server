@@ -63,6 +63,12 @@ import { ExamAnswer, ExamAnswerSchema } from "src/schemas/Exam/examAnswer.schema
 import { ExamAnswerRepositoryService } from "./exam-answer-repository/exam-answer.repository";
 import { ExamRecording, ExamRecordingSchema } from "src/schemas/Exam/examRecording.schema";
 import { ExamRecordingRepositoryService } from "./exam-recording-repository/exam-recording.repository";
+import { ExamRoom, ExamRoomSchema } from "src/schemas/Exam/examRoom.schema";
+import { ExamRoomRepositoryService } from "./exam-room-repository/exam-room.repository";
+import { ExamRoomAssignment, ExamRoomAssignmentSchema } from "src/schemas/Exam/examRoomAssignment.schema";
+import { ExamRoomAssignmentRepositoryService } from "./exam-room-assignment-repository/exam-room-assignment.repository";
+import { ExamRoomChatMessage, ExamRoomChatMessageSchema } from "src/schemas/Exam/examRoomChatMessage.schema";
+import { ExamRoomChatMessageRepositoryService } from "./exam-room-chat-message-repository/exam-room-chat-message.repository";
 
 @Module({
     imports: [
@@ -96,6 +102,9 @@ import { ExamRecordingRepositoryService } from "./exam-recording-repository/exam
             { name: ExamAttempt.name, schema: ExamAttemptSchema },
             { name: ExamAnswer.name, schema: ExamAnswerSchema },
             { name: ExamRecording.name, schema: ExamRecordingSchema },
+            { name: ExamRoom.name, schema: ExamRoomSchema },
+            { name: ExamRoomAssignment.name, schema: ExamRoomAssignmentSchema },
+            { name: ExamRoomChatMessage.name, schema: ExamRoomChatMessageSchema },
         ]),
     ],
     controllers: [],
@@ -129,6 +138,9 @@ import { ExamRecordingRepositoryService } from "./exam-recording-repository/exam
         ExamAttemptRepositoryService,
         ExamAnswerRepositoryService,
         ExamRecordingRepositoryService,
+        ExamRoomRepositoryService,
+        ExamRoomAssignmentRepositoryService,
+        ExamRoomChatMessageRepositoryService,
     ],
     exports: [
         AdminRepositoryService,
@@ -160,6 +172,9 @@ import { ExamRecordingRepositoryService } from "./exam-recording-repository/exam
         ExamAttemptRepositoryService,
         ExamAnswerRepositoryService,
         ExamRecordingRepositoryService,
+        ExamRoomRepositoryService,
+        ExamRoomAssignmentRepositoryService,
+        ExamRoomChatMessageRepositoryService,
     ],
 })
 export class RepositoryModule { }
