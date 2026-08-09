@@ -1,3 +1,7 @@
+// Maximum number of students a single section can hold, enforced regardless
+// of any per-section `capacity` value already stored in the database.
+export const SECTION_MAX_CAPACITY = 30;
+
 // Helper method to generate section names (A, B, C, ..., Z, AA, AB, ...)
 export function generateSectionName(index: number): string {
     let name = '';

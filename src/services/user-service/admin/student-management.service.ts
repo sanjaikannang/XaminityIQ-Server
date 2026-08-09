@@ -6,16 +6,20 @@ import {
     NotFoundException
 } from "@nestjs/common";
 import { ulid } from "ulid";
-import { Types } from "mongoose";
+import { ClientSession, Types } from "mongoose";
+import { generateSectionName, SECTION_MAX_CAPACITY } from "src/utils/utils";
 import { Nationality, StudentStatus, UserRole } from "src/utils/enum";
+import { SectionDocument } from "src/schemas/Academic/section.schema";
 import { CloudinaryService } from "src/cloudinary/cloudinary.service";
 import { PasswordService } from "src/services/auth-service/password.service";
 import { StudentParentDetailDocument } from "src/schemas/User/Student/studentParentDetail.schema";
 
 // Requests
 import { CreateStudentRequest } from "src/api/user/admin/student-management/create-student/create-student.request";
+import { EditStudentRequest } from "src/api/user/admin/student-management/edit-student/edit-student.request";
 import { GetAllStudentsRequest } from "src/api/user/admin/student-management/get-all-students/get-all-students.request";
 import { BulkUploadStudentsRequest } from "src/api/user/admin/student-management/bulk-upload-student/bulk-upload-students.request";
+import { AuthActivityLogRepositoryService } from "src/repositories/auth-activity-log-repository/auth-activity-log.repository";
 
 // Response
 import { PaginationMeta } from "src/api/user/admin/get-all-batches/get-all-batches.response";
@@ -53,6 +57,7 @@ export class StudentManagementService {
         private readonly studentEducationHistoryRepositoryService: StudentEducationHistoryRepositoryService,
         private readonly studentRepositoryService: StudentRepositoryService,
         private readonly studentParentDetailRepositoryService: StudentParentDetailRepositoryService,
+        private readonly authActivityLogRepositoryService: AuthActivityLogRepositoryService,
         private readonly passwordService: PasswordService,
     ) { }
 
@@ -96,6 +101,57 @@ export class StudentManagementService {
     }
 
 
+    // Automatically assign a student to a section with room, creating the
+    // next section (A, B, C, ...) if every existing one is full. Retries a
+    // few times if two concurrent requests race to create the same section.
+    private async assignSectionForStudent(
+        batchId: string,
+        courseId: string,
+        departmentId: string,
+        session: ClientSession,
+    ): Promise<SectionDocument> {
+        const MAX_ATTEMPTS = 3;
+
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            const availableSection = await this.sectionRepositoryService.findAndIncrementAvailable(
+                batchId,
+                courseId,
+                departmentId,
+                session,
+            );
+            if (availableSection) {
+                return availableSection;
+            }
+
+            const existingSections = await this.sectionRepositoryService.findByBatchCourseAndDepartment(
+                batchId,
+                courseId,
+                departmentId,
+            );
+            const nextSectionName = generateSectionName(existingSections.length);
+
+            try {
+                return await this.sectionRepositoryService.createWithSession({
+                    batchId: new Types.ObjectId(batchId),
+                    courseId: new Types.ObjectId(courseId),
+                    departmentId: new Types.ObjectId(departmentId),
+                    sectionName: nextSectionName,
+                    capacity: SECTION_MAX_CAPACITY,
+                    currentStrength: 1,
+                }, session);
+            } catch (error) {
+                const isDuplicateKey = error?.code === 11000;
+                if (isDuplicateKey && attempt < MAX_ATTEMPTS) {
+                    continue;
+                }
+                throw error;
+            }
+        }
+
+        throw new InternalServerErrorException('Failed to assign a section for the student');
+    }
+
+
     // Create Student API Endpoint
     async createStudentAPI(createStudentData: CreateStudentRequest) {
         let profilePhotoUrl: string | null = null;
@@ -120,11 +176,6 @@ export class StudentManagementService {
                 const department = await this.departmentRepositoryService.findById(createStudentData.departmentId);
                 if (!department) {
                     throw new NotFoundException('Department not found');
-                }
-
-                const section = await this.sectionRepositoryService.findById(createStudentData.sectionId);
-                if (!section) {
-                    throw new NotFoundException('Section not found');
                 }
 
                 // Check if personal email already exists
@@ -163,6 +214,8 @@ export class StudentManagementService {
 
                 // Create User                
                 const hashedPassword = await this.passwordService.hashPassword(createStudentData.dateOfBirth.toString());
+                console.log("password...", createStudentData.dateOfBirth.toString());
+                console.log("hashPassword...", hashedPassword);
                 const user = await this.userRepositoryService.create({
                     email: studentEmail,
                     password: hashedPassword,
@@ -204,13 +257,22 @@ export class StudentManagementService {
                 }, session);
                 console.log("addressDetail...", addressDetail)
 
+                // Automatically assign the student to a section with room
+                const assignedSection = await this.assignSectionForStudent(
+                    createStudentData.batchId,
+                    createStudentData.courseId,
+                    createStudentData.departmentId,
+                    session,
+                );
+                console.log("assignedSection...", assignedSection)
+
                 // Create Academic Details
                 const academicDetail = await this.studentAcademicDetailRepositoryService.create({
                     rollNumber: rollNumber,
                     batchId: new Types.ObjectId(createStudentData.batchId),
                     courseId: new Types.ObjectId(createStudentData.courseId),
                     departmentId: new Types.ObjectId(createStudentData.departmentId),
-                    sectionId: new Types.ObjectId(createStudentData.sectionId),
+                    sectionId: assignedSection._id as Types.ObjectId,
                     currentSemester: createStudentData.currentSemester,
                     admissionType: createStudentData.admissionType,
                     status: StudentStatus.ACTIVE
@@ -312,24 +374,42 @@ export class StudentManagementService {
             const search = query.search ?? '';
             const skip = (page - 1) * limit;
 
-            // Build search filter
-            const searchFilter: any = search
-                ? {
-                    $or: [{ studentId: { $regex: search, $options: 'i' } }],
-                }
-                : {};
+            // Build search filter (only active/non-deleted students by default)
+            const searchFilter: any = {
+                isActive: true,
+                ...(search && { $or: [{ studentId: { $regex: search, $options: 'i' } }] }),
+            };
 
-            // Get total count
-            const totalItems =
-                await this.studentRepositoryService.countStudents(searchFilter);
+            // Build academic-detail filter (batch/course/department/section/status)
+            const academicFilter: any = {};
+            if (query.batchId) academicFilter['academicDetail.batchId'] = new Types.ObjectId(query.batchId);
+            if (query.courseId) academicFilter['academicDetail.courseId'] = new Types.ObjectId(query.courseId);
+            if (query.departmentId) academicFilter['academicDetail.departmentId'] = new Types.ObjectId(query.departmentId);
+            if (query.sectionId) academicFilter['academicDetail.sectionId'] = new Types.ObjectId(query.sectionId);
+            if (query.status) academicFilter['academicDetail.status'] = query.status;
 
-            // Get students
-            const students =
-                await this.studentRepositoryService.findAllWithDetails(
+            const hasAdvancedQuery = Object.keys(academicFilter).length > 0 || !!query.sortBy;
+
+            let totalItems: number;
+            let students;
+
+            if (!hasAdvancedQuery) {
+                // Common case: no filters/sort - unchanged, proven path
+                totalItems = await this.studentRepositoryService.countStudents(searchFilter);
+                students = await this.studentRepositoryService.findAllWithDetails(searchFilter, skip, limit);
+            } else {
+                // Filter and/or sort requested - resolve via aggregation, then reload in order
+                totalItems = await this.studentRepositoryService.countWithAcademicFilter(searchFilter, academicFilter);
+                const ids = await this.studentRepositoryService.findIdsWithAcademicFilterSorted(
                     searchFilter,
+                    academicFilter,
+                    query.sortBy || 'createdAt',
+                    query.sortOrder || 'desc',
                     skip,
                     limit
                 );
+                students = await this.studentRepositoryService.findByIdsPreserveOrder(ids);
+            }
 
             const studentsData: StudentsData[] = [];
 
@@ -695,11 +775,6 @@ export class StudentManagementService {
                         throw new Error('Department not found');
                     }
 
-                    const section = await this.sectionRepositoryService.findById(studentData.sectionId);
-                    if (!section) {
-                        throw new Error('Section not found');
-                    }
-
                     // Check if personal email already exists
                     const existingContactByPersonalEmail = await this.studentContactInformationRepositoryService.findByPersonalEmail(studentData.personalEmail);
                     if (existingContactByPersonalEmail) {
@@ -786,13 +861,21 @@ export class StudentManagementService {
                             permanentAddress: studentData.sameAsCurrent ? studentData.currentAddress : studentData.permanentAddress
                         }, session);
 
+                        // Automatically assign the student to a section with room
+                        const assignedSection = await this.assignSectionForStudent(
+                            studentData.batchId,
+                            studentData.courseId,
+                            studentData.departmentId,
+                            session,
+                        );
+
                         // Create Academic Details
                         const academicDetail = await this.studentAcademicDetailRepositoryService.create({
                             rollNumber: rollNumber,
                             batchId: new Types.ObjectId(studentData.batchId),
                             courseId: new Types.ObjectId(studentData.courseId),
                             departmentId: new Types.ObjectId(studentData.departmentId),
-                            sectionId: new Types.ObjectId(studentData.sectionId),
+                            sectionId: assignedSection._id as Types.ObjectId,
                             currentSemester: studentData.currentSemester,
                             admissionType: studentData.admissionType,
                             status: StudentStatus.ACTIVE
@@ -885,6 +968,198 @@ export class StudentManagementService {
 
         } catch (error) {
             throw new InternalServerErrorException('Failed to process bulk upload');
+        }
+    }
+
+
+    // Edit Student API Endpoint
+    async editStudentAPI(id: string, editStudentData: EditStudentRequest) {
+        try {
+            const session = await this.userRepositoryService.startSession();
+            session.startTransaction();
+
+            try {
+                const student = await this.studentRepositoryService.findById(new Types.ObjectId(id));
+                if (!student) {
+                    throw new NotFoundException('Student not found');
+                }
+
+                // Check personal email uniqueness (excluding this student's own record)
+                const existingContactByPersonalEmail = await this.studentContactInformationRepositoryService.findByPersonalEmail(editStudentData.personalEmail);
+                if (existingContactByPersonalEmail && (existingContactByPersonalEmail._id as Types.ObjectId).toString() !== student.contactInformationId.toString()) {
+                    throw new ConflictException('Personal email already exists');
+                }
+
+                // Check phone number uniqueness (excluding this student's own record)
+                const existingContactByPhone = await this.studentContactInformationRepositoryService.findByPhoneNumber(editStudentData.phoneNumber);
+                if (existingContactByPhone && (existingContactByPhone._id as Types.ObjectId).toString() !== student.contactInformationId.toString()) {
+                    throw new ConflictException('Phone number already exists');
+                }
+
+                // Update Personal Details
+                await this.studentPersonalDetailRepositoryService.updateById(
+                    student.personalDetailId,
+                    {
+                        firstName: editStudentData.firstName,
+                        lastName: editStudentData.lastName,
+                        gender: editStudentData.gender,
+                        dateOfBirth: editStudentData.dateOfBirth,
+                        profilePhotoUrl: editStudentData.profilePhotoUrl,
+                        religion: editStudentData.religion,
+                    },
+                    session
+                );
+
+                // Update Contact Information (studentEmail is never editable)
+                await this.studentContactInformationRepositoryService.updateById(
+                    student.contactInformationId,
+                    {
+                        personalEmail: editStudentData.personalEmail,
+                        phoneNumber: editStudentData.phoneNumber,
+                        alternatePhoneNumber: editStudentData.alternatePhoneNumber,
+                        emergencyContact: editStudentData.emergencyContact,
+                    },
+                    session
+                );
+
+                // Update Address Details
+                await this.studentAddressDetailRepositoryService.updateById(
+                    student.addressDetailId,
+                    {
+                        currentAddress: editStudentData.currentAddress,
+                        sameAsCurrent: editStudentData.sameAsCurrent,
+                        permanentAddress: editStudentData.sameAsCurrent ? editStudentData.currentAddress : editStudentData.permanentAddress,
+                    },
+                    session
+                );
+
+                // Replace Education History
+                await this.studentEducationHistoryRepositoryService.deleteByStudentId(student._id as Types.ObjectId, session);
+                const educationHistoryPromises = editStudentData.educationHistory.map(edu =>
+                    this.studentEducationHistoryRepositoryService.create({
+                        studentId: student._id as Types.ObjectId,
+                        level: edu.level,
+                        qualification: edu.qualification,
+                        boardOrUniversity: edu.boardOrUniversity,
+                        institutionName: edu.institutionName,
+                        yearOfPassing: edu.yearOfPassing,
+                        percentageOrCGPA: edu.percentageOrCGPA,
+                    }, session)
+                );
+                await Promise.all(educationHistoryPromises);
+
+                // Update/Create Parent Details if provided
+                if (editStudentData.father || editStudentData.mother || editStudentData.guardian) {
+                    if (student.parentDetailId) {
+                        await this.studentParentDetailRepositoryService.updateById(
+                            student.parentDetailId,
+                            {
+                                father: editStudentData.father,
+                                mother: editStudentData.mother,
+                                guardian: editStudentData.guardian,
+                            },
+                            session
+                        );
+                    } else {
+                        const parentDetail = await this.studentParentDetailRepositoryService.create({
+                            studentId: student._id as Types.ObjectId,
+                            father: editStudentData.father,
+                            mother: editStudentData.mother,
+                            guardian: editStudentData.guardian,
+                        }, session);
+
+                        await this.studentRepositoryService.updateById(
+                            student._id as Types.ObjectId,
+                            { parentDetailId: parentDetail._id as Types.ObjectId },
+                            session
+                        );
+                    }
+                }
+
+                await session.commitTransaction();
+                return student;
+
+            } catch (error) {
+                await session.abortTransaction();
+                throw error;
+            } finally {
+                session.endSession();
+            }
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to update student');
+        }
+    }
+
+
+    // Delete Student API Endpoint (soft delete)
+    async deleteStudentAPI(id: string) {
+        try {
+            const session = await this.userRepositoryService.startSession();
+            session.startTransaction();
+
+            try {
+                const student = await this.studentRepositoryService.findById(new Types.ObjectId(id));
+                if (!student) {
+                    throw new NotFoundException('Student not found');
+                }
+
+                await this.studentRepositoryService.updateById(
+                    student._id as Types.ObjectId,
+                    { isActive: false },
+                    session
+                );
+
+                await this.userRepositoryService.updateUser(
+                    student.userId.toString(),
+                    { isActive: false },
+                    session
+                );
+
+                await session.commitTransaction();
+                return { message: 'Student deactivated successfully' };
+
+            } catch (error) {
+                await session.abortTransaction();
+                throw error;
+            } finally {
+                session.endSession();
+            }
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to delete student');
+        }
+    }
+
+
+    // Get Student Activity API Endpoint (login/logout history)
+    async getStudentActivityAPI(id: string) {
+        try {
+            const student = await this.studentRepositoryService.findById(new Types.ObjectId(id));
+            if (!student) {
+                throw new NotFoundException('Student not found');
+            }
+
+            const activity = await this.authActivityLogRepositoryService.findByUserId(student.userId as Types.ObjectId, 50);
+
+            return activity.map(record => ({
+                action: record.action,
+                ipAddress: record.ipAddress,
+                userAgent: record.userAgent,
+                createdAt: (record as any).createdAt,
+            }));
+
+        } catch (error) {
+            if (error instanceof NotFoundException || error instanceof ConflictException || error instanceof BadRequestException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch student activity');
         }
     }
 

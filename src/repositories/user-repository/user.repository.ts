@@ -1,4 +1,4 @@
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from 'src/schemas/User/user.schema';
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
@@ -23,9 +23,9 @@ export class UserRepositoryService {
 
 
     // Update user
-    async updateUser(id: string, updates: Partial<User>): Promise<UserDocument | null> {
+    async updateUser(id: string, updates: Partial<User>, session?: ClientSession): Promise<UserDocument | null> {
         try {
-            const updatedUser = this.userModel.findByIdAndUpdate(id, updates, { new: true }).exec();
+            const updatedUser = await this.userModel.findByIdAndUpdate(id, updates, { new: true, session }).exec();
             return updatedUser;
         } catch (error) {
             throw new InternalServerErrorException('Failed to update user', error);
@@ -126,6 +126,69 @@ export class UserRepositoryService {
                 throw error;
             }
             throw new InternalServerErrorException('Failed to update last login', error);
+        }
+    }
+
+
+    // Find user by id
+    async findById(id: string): Promise<UserDocument | null> {
+        try {
+            const user = await this.userModel.findById(id).exec();
+            return user;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to find user by id', error);
+        }
+    }
+
+
+    // Set password reset token
+    async setPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+        try {
+            const updatedUser = await this.userModel.findByIdAndUpdate(
+                userId,
+                {
+                    resetPasswordTokenHash: tokenHash,
+                    resetPasswordTokenExpiresAt: expiresAt,
+                },
+                { new: true }
+            ).exec();
+
+            if (!updatedUser) {
+                throw new NotFoundException(`User with id ${userId} not found`);
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to set password reset token', error);
+        }
+    }
+
+
+    // Reset password (via forgot-password flow)
+    async resetPassword(userId: string, hashedPassword: string): Promise<void> {
+        try {
+            const updatedUser = await this.userModel.findByIdAndUpdate(
+                userId,
+                {
+                    password: hashedPassword,
+                    resetPasswordTokenHash: null,
+                    resetPasswordTokenExpiresAt: null,
+                    accessToken: null,
+                    refreshToken: null,
+                    lastPasswordChange: new Date(),
+                },
+                { new: true }
+            ).exec();
+
+            if (!updatedUser) {
+                throw new NotFoundException(`User with id ${userId} not found`);
+            }
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to reset password', error);
         }
     }
 

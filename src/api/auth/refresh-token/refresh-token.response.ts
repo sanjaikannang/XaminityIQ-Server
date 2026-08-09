@@ -4,7 +4,6 @@ export class RefreshTokenResponse {
   message: string;
   data?: {
     accessToken: string;
-    refreshToken: string;
   };
   
 }

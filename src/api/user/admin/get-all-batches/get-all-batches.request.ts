@@ -1,5 +1,7 @@
 import { Type } from "class-transformer";
-import { IsInt, IsOptional, IsString, Min } from "class-validator";
+import { IsIn, IsInt, IsOptional, IsString, Min } from "class-validator";
+
+const BATCH_SORT_FIELDS = ['batchName', 'startYear', 'endYear', 'createdAt'] as const;
 
 export class GetAllBatchesRequest {
 
@@ -18,5 +20,13 @@ export class GetAllBatchesRequest {
     @IsOptional()
     @IsString()
     search?: string;
+
+    @IsOptional()
+    @IsIn(BATCH_SORT_FIELDS)
+    sortBy?: string;
+
+    @IsOptional()
+    @IsIn(['asc', 'desc'])
+    sortOrder?: 'asc' | 'desc';
 
 }

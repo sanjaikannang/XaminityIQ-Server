@@ -1,5 +1,8 @@
 import { Type } from "class-transformer";
-import { IsInt, IsOptional, IsString, Min } from "class-validator";
+import { FacultyDesignation, EmploymentType, FacultyStatus } from "src/utils/enum";
+import { IsIn, IsInt, IsMongoId, IsEnum, IsOptional, IsString, Min } from "class-validator";
+
+const FACULTY_SORT_FIELDS = ['employeeId', 'name', 'designation', 'employmentType', 'status', 'createdAt'] as const;
 
 export class GetAllFacultyRequest {
     @IsOptional()
@@ -17,4 +20,28 @@ export class GetAllFacultyRequest {
     @IsOptional()
     @IsString()
     search?: string;
+
+    @IsOptional()
+    @IsMongoId()
+    departmentId?: string;
+
+    @IsOptional()
+    @IsEnum(FacultyDesignation)
+    designation?: FacultyDesignation;
+
+    @IsOptional()
+    @IsEnum(EmploymentType)
+    employmentType?: EmploymentType;
+
+    @IsOptional()
+    @IsEnum(FacultyStatus)
+    status?: FacultyStatus;
+
+    @IsOptional()
+    @IsIn(FACULTY_SORT_FIELDS)
+    sortBy?: string;
+
+    @IsOptional()
+    @IsIn(['asc', 'desc'])
+    sortOrder?: 'asc' | 'desc';
 }

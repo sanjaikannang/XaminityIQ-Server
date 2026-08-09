@@ -14,6 +14,7 @@ import { BatchCourse, BatchCourseSchema } from 'src/schemas/Academic/batchCourse
 import { Department, DepartmentSchema } from 'src/schemas/Academic/department.schema';
 import { BatchDepartment, BatchDepartmentSchema } from 'src/schemas/Academic/batchDepartment.schema';
 import { Section, SectionSchema } from 'src/schemas/Academic/section.schema';
+import { Subject, SubjectSchema } from 'src/schemas/Academic/subject.schema';
 import { Student, StudentSchema } from 'src/schemas/User/Student/student.schema';
 import { StudentPersonalDetail, StudentPersonalDetailSchema } from 'src/schemas/User/Student/studentPersonalDetails.schema';
 import { StudentParentDetail, StudentParentDetailSchema } from 'src/schemas/User/Student/studentParentDetail.schema';
@@ -21,6 +22,8 @@ import { StudentContactInformation, StudentContactInformationSchema } from 'src/
 import { StudentEducationHistory, StudentEducationHistorySchema } from 'src/schemas/User/Student/studentEducationHistory.schema';
 import { StudentAddressDetail, StudentAddressDetailSchema } from 'src/schemas/User/Student/studentAddressDetail.schema';
 import { StudentAcademicDetail, StudentAcademicDetailSchema } from 'src/schemas/User/Student/studentAcademicDetail.schema';
+import { Exam, ExamSchema } from 'src/schemas/Exam/exam.schema';
+import { ExamQuestion, ExamQuestionSchema } from 'src/schemas/Exam/examQuestion.schema';
 
 // Services
 import { ConfigService } from 'src/config/config.service';
@@ -31,6 +34,7 @@ import { AdminService } from 'src/services/user-service/admin/admin.service';
 import { StudentManagementService } from 'src/services/user-service/admin/student-management.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { FacultyManagementService } from 'src/services/user-service/admin/faculty-management.service';
+import { ExamManagementService } from 'src/services/user-service/admin/exam-management.service';
 import { Faculty, FacultySchema } from 'src/schemas/User/Faculty/faculty.schema';
 import { FacultyPersonalDetail, FacultyPersonalDetailSchema } from 'src/schemas/User/Faculty/facultyPersonalDetail.schema';
 import { FacultyContactInformation, FacultyContactInformationSchema } from 'src/schemas/User/Faculty/facultyContactInformation.schema';
@@ -46,6 +50,7 @@ import { AddDepartmentToBatchCourseController } from './add-department-to-batch-
 import { GetAllBatchesController } from './get-all-batches/get-all-batches.controller';
 import { GetAllCoursesForBatchController } from './get-all-courses-for-batch/get-all-courses-for-batch.controller';
 import { GetAllDepartmentForBatchCourseController } from './get-all-departments-for-batch-course/get-all-departments-for-batch-course.controller';
+import { GetDepartmentSectionsController } from './get-department-sections/get-department-sections.controller';
 import { GetAllCoursesWithDepartmentsController } from './get-all-courses-with-departments/get-all-courses-with-departments.controller';
 import { GetCoursesByBatchController } from './get-courses-by-batch/get-courses-by-batch.controller';
 import { GetDepartmentsByCourseController } from './get-departments-by-course/get-departments-by-course.controller';
@@ -53,9 +58,32 @@ import { CreateStudentController } from './student-management/create-student/cre
 import { GetAllStudentsController } from './student-management/get-all-students/get-all-students.controller';
 import { GetStudentController } from './student-management/get-student/get-student.controller';
 import { BulkUploadStudentsController } from './student-management/bulk-upload-student/bulk-upload-students.controller';
+import { EditStudentController } from './student-management/edit-student/edit-student.controller';
+import { DeleteStudentController } from './student-management/delete-student/delete-student.controller';
 import { CreateFacultyController } from './faculty-management/create-faculty/create-faculty.controller';
 import { GetFacultyController } from './faculty-management/get-faculty/get-faculty.controller';
 import { GetAllFacultyController } from './faculty-management/get-all-faculty/get-all-faculty.controller';
+import { EditFacultyController } from './faculty-management/edit-faculty/edit-faculty.controller';
+import { DeleteFacultyController } from './faculty-management/delete-faculty/delete-faculty.controller';
+import { GetAllDepartmentsController } from './get-all-departments/get-all-departments.controller';
+import { GetStudentActivityController } from './student-management/get-student-activity/get-student-activity.controller';
+import { GetFacultyActivityController } from './faculty-management/get-faculty-activity/get-faculty-activity.controller';
+import { GetAllSubjectsController } from './get-all-subjects/get-all-subjects.controller';
+import { CreateExamController } from './exam-management/create-exam/create-exam.controller';
+import { GetAllExamsController } from './exam-management/get-all-exams/get-all-exams.controller';
+import { GetExamController } from './exam-management/get-exam/get-exam.controller';
+import { EditExamController } from './exam-management/edit-exam/edit-exam.controller';
+import { DeleteExamController } from './exam-management/delete-exam/delete-exam.controller';
+import { PublishExamController } from './exam-management/publish-exam/publish-exam.controller';
+import { AddQuestionController } from './exam-management/add-question/add-question.controller';
+import { EditQuestionController } from './exam-management/edit-question/edit-question.controller';
+import { DeleteQuestionController } from './exam-management/delete-question/delete-question.controller';
+import { FormExamRoomsController } from './exam-management/form-exam-rooms/form-exam-rooms.controller';
+import { GetExamRoomsController } from './exam-management/get-exam-rooms/get-exam-rooms.controller';
+import { AssignEvaluatorsController } from './exam-management/assign-evaluators/assign-evaluators.controller';
+import { GetEvaluationProgressController } from './exam-management/get-evaluation-progress/get-evaluation-progress.controller';
+import { PublishResultsController } from './exam-management/publish-results/publish-results.controller';
+import { GetExamAttemptsController } from './exam-management/get-exam-attempts/get-exam-attempts.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -73,6 +101,7 @@ import { JwtModule } from '@nestjs/jwt';
             { name: Department.name, schema: DepartmentSchema },
             { name: BatchDepartment.name, schema: BatchDepartmentSchema },
             { name: Section.name, schema: SectionSchema },
+            { name: Subject.name, schema: SubjectSchema },
             { name: Student.name, schema: StudentSchema },
             { name: StudentPersonalDetail.name, schema: StudentPersonalDetailSchema },
             { name: StudentParentDetail.name, schema: StudentParentDetailSchema },
@@ -87,6 +116,8 @@ import { JwtModule } from '@nestjs/jwt';
             { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
             { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
             { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
+            { name: Exam.name, schema: ExamSchema },
+            { name: ExamQuestion.name, schema: ExamQuestionSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -107,6 +138,7 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllBatchesController,
         GetAllCoursesForBatchController,
         GetAllDepartmentForBatchCourseController,
+        GetDepartmentSectionsController,
         GetAllCoursesWithDepartmentsController,
         GetCoursesByBatchController,
         GetDepartmentsByCourseController,
@@ -114,9 +146,32 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllStudentsController,
         GetStudentController,
         BulkUploadStudentsController,
+        EditStudentController,
+        DeleteStudentController,
         CreateFacultyController,
         GetFacultyController,
-        GetAllFacultyController
+        GetAllFacultyController,
+        EditFacultyController,
+        DeleteFacultyController,
+        GetAllDepartmentsController,
+        GetStudentActivityController,
+        GetFacultyActivityController,
+        GetAllSubjectsController,
+        CreateExamController,
+        GetAllExamsController,
+        GetExamController,
+        EditExamController,
+        DeleteExamController,
+        PublishExamController,
+        AddQuestionController,
+        EditQuestionController,
+        DeleteQuestionController,
+        FormExamRoomsController,
+        GetExamRoomsController,
+        AssignEvaluatorsController,
+        GetEvaluationProgressController,
+        PublishResultsController,
+        GetExamAttemptsController
     ],
     providers: [
         ConfigService,
@@ -126,6 +181,7 @@ import { JwtModule } from '@nestjs/jwt';
         AdminService,
         StudentManagementService,
         FacultyManagementService,
+        ExamManagementService,
         JwtAuthGuard,
         RoleGuard,
         CloudinaryService
@@ -137,6 +193,7 @@ import { JwtModule } from '@nestjs/jwt';
         AdminService,
         StudentManagementService,
         FacultyManagementService,
+        ExamManagementService,
         JwtAuthGuard,
         RoleGuard,
         CloudinaryService

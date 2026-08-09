@@ -20,6 +20,7 @@ import { BatchCourseRepositoryService } from "src/repositories/batch-course-repo
 import { DepartmentRepositoryService } from "src/repositories/department-repository/department.repository";
 import { BatchDepartmentRepositoryService } from "src/repositories/batch-department-repository/batch-department.repository";
 import { SectionRepositoryService } from "src/repositories/section-repository/section.repository";
+import { SubjectRepositoryService } from "src/repositories/subject-repository/subject.repository";
 
 @Injectable()
 export class AdminService {
@@ -29,7 +30,8 @@ export class AdminService {
         private readonly batchCourseRepositoryService: BatchCourseRepositoryService,
         private readonly departmentRepositoryService: DepartmentRepositoryService,
         private readonly batchDepartmentRepositoryService: BatchDepartmentRepositoryService,
-        private readonly sectionRepositoryService: SectionRepositoryService,        
+        private readonly sectionRepositoryService: SectionRepositoryService,
+        private readonly subjectRepositoryService: SubjectRepositoryService,
     ) { }
 
 
@@ -230,7 +232,7 @@ export class AdminService {
 
 
     // Get All Batches API Endpoint
-    async getAllBatchesAPI(queryParams: { page?: number; limit?: number; search?: string }) {
+    async getAllBatchesAPI(queryParams: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) {
         try {
             const page = queryParams.page || 1;
             const limit = queryParams.limit || 10;
@@ -247,6 +249,11 @@ export class AdminService {
                 };
             }
 
+            // Build sort
+            const sort: Record<string, 1 | -1> = queryParams.sortBy
+                ? { [queryParams.sortBy]: queryParams.sortOrder === 'asc' ? 1 : -1 }
+                : { createdAt: -1 };
+
             // Get total count for pagination
             const totalItems = await this.batchRepositoryService.countDocuments(searchFilter);
 
@@ -254,7 +261,8 @@ export class AdminService {
             const batches = await this.batchRepositoryService.findWithPagination(
                 searchFilter,
                 skip,
-                limit
+                limit,
+                sort
             );
 
             // Calculate pagination metadata
@@ -287,7 +295,7 @@ export class AdminService {
 
 
     // Get All Courses for Batch API Endpoint
-    async getAllCoursesForBatchAPI(batchId: string, queryParams: { page?: number; limit?: number; search?: string }) {
+    async getAllCoursesForBatchAPI(batchId: string, queryParams: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) {
         try {
             const page = queryParams.page || 1;
             const limit = queryParams.limit || 10;
@@ -326,7 +334,9 @@ export class AdminService {
                 batchId,
                 courseSearchFilter,
                 skip,
-                limit
+                limit,
+                queryParams.sortBy,
+                queryParams.sortOrder
             );
 
             // Calculate pagination metadata
@@ -372,7 +382,7 @@ export class AdminService {
     // Get All Departments for Batch-Course API Endpoint
     async getAllDepartmentsForBatchCourseAPI(
         batchCourseId: string,
-        queryParams: { page?: number; limit?: number; search?: string }
+        queryParams: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }
     ) {
         try {
             const page = queryParams.page || 1;
@@ -410,7 +420,9 @@ export class AdminService {
                 batchCourseId,
                 departmentSearchFilter,
                 skip,
-                limit
+                limit,
+                queryParams.sortBy,
+                queryParams.sortOrder
             );
 
             // For each department, get its sections
@@ -466,6 +478,62 @@ export class AdminService {
                 throw error;
             }
             throw new InternalServerErrorException('Failed to fetch departments for batch-course');
+        }
+    }
+
+
+    // Get single department's sections (for the Academics -> Sections page)
+    async getDepartmentSectionsAPI(batchDepartmentId: string) {
+        try {
+            const batchDepartment = await this.batchDepartmentRepositoryService.findById(batchDepartmentId);
+            if (!batchDepartment) {
+                throw new NotFoundException('Batch-Department mapping not found');
+            }
+
+            const batchCourse = await this.batchCourseRepositoryService.findById(batchDepartment.batchCourseId.toString());
+            if (!batchCourse) {
+                throw new NotFoundException('Batch-Course mapping not found');
+            }
+
+            const [batch, course, department] = await Promise.all([
+                this.batchRepositoryService.findById(batchCourse.batchId.toString()),
+                this.courseRepositoryService.findById(batchDepartment.courseId.toString()),
+                this.departmentRepositoryService.findById(batchDepartment.deptId.toString()),
+            ]);
+
+            if (!batch || !course || !department) {
+                throw new NotFoundException('Batch, course, or department not found');
+            }
+
+            const sections = await this.sectionRepositoryService.findByBatchCourseAndDepartment(
+                batchCourse.batchId.toString(),
+                batchDepartment.courseId.toString(),
+                batchDepartment.deptId.toString(),
+            );
+
+            return {
+                batchDepartmentId: (batchDepartment._id as any).toString(),
+                batchId: (batch._id as any).toString(),
+                batchName: batch.batchName,
+                courseId: (course._id as any).toString(),
+                courseName: course.courseName,
+                deptId: (department._id as any).toString(),
+                deptCode: department.deptCode,
+                deptName: department.deptName,
+                sections: sections.map(section => ({
+                    _id: (section._id as any).toString(),
+                    sectionName: section.sectionName,
+                    capacity: section.capacity,
+                    currentStrength: section.currentStrength,
+                    createdAt: (section as any).createdAt,
+                })),
+            };
+
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to fetch sections for department');
         }
     }
 
@@ -623,5 +691,81 @@ export class AdminService {
             }
             throw new InternalServerErrorException('Failed to fetch departments for course');
         }
-    }   
+    }
+
+
+    // Get All Departments API Endpoint (unscoped - used for Faculty department dropdown)
+    async getAllDepartmentsAPI() {
+        try {
+            const departments = await this.departmentRepositoryService.findAll();
+
+            return departments.map(dept => ({
+                _id: (dept._id as any).toString(),
+                deptCode: dept.deptCode,
+                deptName: dept.deptName
+            }));
+
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch departments');
+        }
+    }
+
+
+    // Get All Subjects API Endpoint (read-only, cross-department)
+    async getAllSubjectsAPI(queryParams: {
+        departmentId?: string;
+        semester?: number;
+        page?: number;
+        limit?: number;
+        sortBy?: string;
+        sortOrder?: 'asc' | 'desc';
+    }) {
+        try {
+            const page = queryParams.page || 1;
+            const limit = queryParams.limit || 10;
+            const skip = (page - 1) * limit;
+            const filters = { departmentId: queryParams.departmentId, semester: queryParams.semester };
+
+            const totalItems = await this.subjectRepositoryService.countAll(filters);
+            const subjects = await this.subjectRepositoryService.findAll(
+                filters,
+                skip,
+                limit,
+                queryParams.sortBy,
+                queryParams.sortOrder || 'desc',
+            );
+
+            const totalPages = Math.ceil(totalItems / limit);
+
+            return {
+                subjects: subjects.map((subject) => {
+                    const department = subject.departmentId as any;
+                    return {
+                        _id: (subject._id as any).toString(),
+                        subjectCode: subject.subjectCode,
+                        subjectName: subject.subjectName,
+                        semester: subject.semester,
+                        credits: subject.credits,
+                        subjectType: subject.subjectType,
+                        description: subject.description,
+                        deptId: department._id.toString(),
+                        deptCode: department.deptCode,
+                        deptName: department.deptName,
+                        createdAt: (subject as any).createdAt,
+                    };
+                }),
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    itemsPerPage: limit,
+                    hasNextPage: page < totalPages,
+                    hasPreviousPage: page > 1,
+                },
+            };
+
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch subjects');
+        }
+    }
 }

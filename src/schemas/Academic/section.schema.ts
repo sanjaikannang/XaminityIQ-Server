@@ -27,3 +27,7 @@ export class Section {
 }
 
 export const SectionSchema = SchemaFactory.createForClass(Section);
+
+// Prevents two concurrent auto-assignment requests from creating a duplicate
+// next-named section for the same batch/course/department.
+SectionSchema.index({ batchId: 1, courseId: 1, departmentId: 1, sectionName: 1 }, { unique: true });

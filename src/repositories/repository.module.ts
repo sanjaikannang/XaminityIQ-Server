@@ -28,6 +28,8 @@ import { BatchCourse, BatchCourseSchema } from "src/schemas/Academic/batchCourse
 import { Department, DepartmentSchema } from "src/schemas/Academic/department.schema";
 import { BatchDepartment, BatchDepartmentSchema } from "src/schemas/Academic/batchDepartment.schema";
 import { Section, SectionSchema } from "src/schemas/Academic/section.schema";
+import { Subject, SubjectSchema } from "src/schemas/Academic/subject.schema";
+import { SubjectRepositoryService } from "./subject-repository/subject.repository";
 import { Student, StudentSchema } from "src/schemas/User/Student/student.schema";
 import { StudentPersonalDetail, StudentPersonalDetailSchema } from "src/schemas/User/Student/studentPersonalDetails.schema";
 import { StudentParentDetail, StudentParentDetailSchema } from "src/schemas/User/Student/studentParentDetail.schema";
@@ -49,11 +51,30 @@ import { FacultyAddressRepositoryService } from "./faculty-address-repository/fa
 import { FacultyEducationHistoryRepositoryService } from "./faculty-education-history-repository/faculty-education-history.repository";
 import { FacultyEmploymentDetailRepositoryService } from "./faculty-employment-detail-repository/faculty-employment-detail.repository";
 import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experience-repository/faculty-work-experience.repository";
+import { AuthActivityLog, AuthActivityLogSchema } from "src/schemas/AuthActivityLog/auth-activity-log.schema";
+import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository/auth-activity-log.repository";
+import { Exam, ExamSchema } from "src/schemas/Exam/exam.schema";
+import { ExamRepositoryService } from "./exam-repository/exam.repository";
+import { ExamQuestion, ExamQuestionSchema } from "src/schemas/Exam/examQuestion.schema";
+import { ExamQuestionRepositoryService } from "./exam-question-repository/exam-question.repository";
+import { ExamAttempt, ExamAttemptSchema } from "src/schemas/Exam/examAttempt.schema";
+import { ExamAttemptRepositoryService } from "./exam-attempt-repository/exam-attempt.repository";
+import { ExamAnswer, ExamAnswerSchema } from "src/schemas/Exam/examAnswer.schema";
+import { ExamAnswerRepositoryService } from "./exam-answer-repository/exam-answer.repository";
+import { ExamRecording, ExamRecordingSchema } from "src/schemas/Exam/examRecording.schema";
+import { ExamRecordingRepositoryService } from "./exam-recording-repository/exam-recording.repository";
+import { ExamRoom, ExamRoomSchema } from "src/schemas/Exam/examRoom.schema";
+import { ExamRoomRepositoryService } from "./exam-room-repository/exam-room.repository";
+import { ExamRoomAssignment, ExamRoomAssignmentSchema } from "src/schemas/Exam/examRoomAssignment.schema";
+import { ExamRoomAssignmentRepositoryService } from "./exam-room-assignment-repository/exam-room-assignment.repository";
+import { ExamRoomChatMessage, ExamRoomChatMessageSchema } from "src/schemas/Exam/examRoomChatMessage.schema";
+import { ExamRoomChatMessageRepositoryService } from "./exam-room-chat-message-repository/exam-room-chat-message.repository";
 
 @Module({
     imports: [
         MongooseModule.forFeature([
             { name: Admin.name, schema: AdminSchema },
+            { name: AuthActivityLog.name, schema: AuthActivityLogSchema },
             { name: User.name, schema: UserSchema },
             { name: Batch.name, schema: BatchSchema },
             { name: Course.name, schema: CourseSchema },
@@ -61,6 +82,7 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
             { name: Department.name, schema: DepartmentSchema },
             { name: BatchDepartment.name, schema: BatchDepartmentSchema },
             { name: Section.name, schema: SectionSchema },
+            { name: Subject.name, schema: SubjectSchema },
             { name: Student.name, schema: StudentSchema },
             { name: StudentPersonalDetail.name, schema: StudentPersonalDetailSchema },
             { name: StudentParentDetail.name, schema: StudentParentDetailSchema },
@@ -75,18 +97,28 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
             { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
             { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
             { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
+            { name: Exam.name, schema: ExamSchema },
+            { name: ExamQuestion.name, schema: ExamQuestionSchema },
+            { name: ExamAttempt.name, schema: ExamAttemptSchema },
+            { name: ExamAnswer.name, schema: ExamAnswerSchema },
+            { name: ExamRecording.name, schema: ExamRecordingSchema },
+            { name: ExamRoom.name, schema: ExamRoomSchema },
+            { name: ExamRoomAssignment.name, schema: ExamRoomAssignmentSchema },
+            { name: ExamRoomChatMessage.name, schema: ExamRoomChatMessageSchema },
         ]),
     ],
     controllers: [],
     providers: [
         AdminRepositoryService,
         UserRepositoryService,
+        AuthActivityLogRepositoryService,
         BatchRepositoryService,
         CourseRepositoryService,
         BatchCourseRepositoryService,
         DepartmentRepositoryService,
         BatchDepartmentRepositoryService,
         SectionRepositoryService,
+        SubjectRepositoryService,
         StudentRepositoryService,
         StudentPersonalDetailRepositoryService,
         StudentParentDetailRepositoryService,
@@ -101,16 +133,26 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
         FacultyEducationHistoryRepositoryService,
         FacultyEmploymentDetailRepositoryService,
         FacultyWorkExperienceRepositoryService,
+        ExamRepositoryService,
+        ExamQuestionRepositoryService,
+        ExamAttemptRepositoryService,
+        ExamAnswerRepositoryService,
+        ExamRecordingRepositoryService,
+        ExamRoomRepositoryService,
+        ExamRoomAssignmentRepositoryService,
+        ExamRoomChatMessageRepositoryService,
     ],
     exports: [
         AdminRepositoryService,
         UserRepositoryService,
+        AuthActivityLogRepositoryService,
         BatchRepositoryService,
         CourseRepositoryService,
         BatchCourseRepositoryService,
         DepartmentRepositoryService,
         BatchDepartmentRepositoryService,
         SectionRepositoryService,
+        SubjectRepositoryService,
         StudentRepositoryService,
         StudentPersonalDetailRepositoryService,
         StudentParentDetailRepositoryService,
@@ -125,6 +167,14 @@ import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experienc
         FacultyEducationHistoryRepositoryService,
         FacultyEmploymentDetailRepositoryService,
         FacultyWorkExperienceRepositoryService,
+        ExamRepositoryService,
+        ExamQuestionRepositoryService,
+        ExamAttemptRepositoryService,
+        ExamAnswerRepositoryService,
+        ExamRecordingRepositoryService,
+        ExamRoomRepositoryService,
+        ExamRoomAssignmentRepositoryService,
+        ExamRoomChatMessageRepositoryService,
     ],
 })
 export class RepositoryModule { }
