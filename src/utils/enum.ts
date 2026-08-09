@@ -79,6 +79,13 @@ export enum SubmissionTrigger {
   CONNECTION_LOSS = 'CONNECTION_LOSS'
 }
 
+export enum ViolationType {
+  TAB_SWITCH = 'TAB_SWITCH',
+  FULLSCREEN_EXIT = 'FULLSCREEN_EXIT',
+  COPY_ATTEMPT = 'COPY_ATTEMPT',
+  RIGHT_CLICK_ATTEMPT = 'RIGHT_CLICK_ATTEMPT',
+}
+
 export enum MediaStatus {
   PENDING_UPLOAD = 'PENDING_UPLOAD',
   UPLOADING = 'UPLOADING',

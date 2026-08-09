@@ -2,6 +2,7 @@ import { Model, Types } from 'mongoose';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Exam, ExamDocument } from 'src/schemas/Exam/exam.schema';
+import { ExamMode, ExamStatus } from 'src/utils/enum';
 
 const POPULATE_FIELDS = ['batchId', 'courseId', 'departmentId', 'sectionId', 'subjectId'];
 
@@ -163,6 +164,32 @@ export class ExamRepositoryService {
                 .find({
                     evaluatorFacultyIds: new Types.ObjectId(facultyId),
                     status: { $in: statuses },
+                    isDeleted: false,
+                })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Find every PUBLISHED PROCTORING exam sharing the exact same schedule window —
+    // the sibling lookup for Dynamic Room Allocation pooling
+    async findMatchingProctoringWindow(
+        startDate: Date,
+        endDate: Date,
+        startTime?: string,
+        endTime?: string,
+    ): Promise<ExamDocument[]> {
+        try {
+            return await this.examModel
+                .find({
+                    mode: ExamMode.PROCTORING,
+                    status: ExamStatus.PUBLISHED,
+                    startDate,
+                    endDate,
+                    startTime,
+                    endTime,
                     isDeleted: false,
                 })
                 .exec();

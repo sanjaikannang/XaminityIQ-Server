@@ -7,7 +7,7 @@ import {
     ConflictException,
     BadRequestException,
 } from '@nestjs/common';
-import { AttemptStatus, ChatRecipientType, ChatSenderRole, ExamMode, ExamStatus, MediaStatus, QuestionType, RecordingMediaType, SubmissionTrigger } from 'src/utils/enum';
+import { AttemptStatus, ChatRecipientType, ChatSenderRole, ExamMode, ExamStatus, MediaStatus, QuestionType, RecordingMediaType, SubmissionTrigger, ViolationType } from 'src/utils/enum';
 
 // Repositories
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
@@ -71,15 +71,38 @@ export class ExamAttemptService {
         return { student, academicDetail };
     }
 
-    private sanitizeQuestion(question: any) {
+    private sanitizeQuestion(question: any, optionOrder?: string[]) {
+        let options = question.options;
+        if (optionOrder && options) {
+            const optionById = new Map(options.map((opt: any) => [opt.optionId, opt]));
+            options = optionOrder.map((id) => optionById.get(id)).filter(Boolean);
+        }
         return {
             _id: question._id.toString(),
             type: question.type,
             text: question.text,
             marks: question.marks,
             order: question.order,
-            options: question.options?.map((opt: any) => ({ optionId: opt.optionId, text: opt.text })),
+            options: options?.map((opt: any) => ({ optionId: opt.optionId, text: opt.text })),
         };
+    }
+
+    // Fisher-Yates shuffle — used for per-student question/option order (securitySettings)
+    private shuffleArray<T>(items: T[]): T[] {
+        const result = [...items];
+        for (let i = result.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [result[i], result[j]] = [result[j], result[i]];
+        }
+        return result;
+    }
+
+    // Reorders a freshly-fetched question list to match an attempt's stored
+    // questionOrder — falls back to fetch order if the attempt predates it
+    private applyQuestionOrder(questions: any[], questionOrder?: Types.ObjectId[]): any[] {
+        if (!questionOrder || questionOrder.length === 0) return questions;
+        const questionById = new Map(questions.map((q) => [(q._id as Types.ObjectId).toString(), q]));
+        return questionOrder.map((id) => questionById.get(id.toString())).filter(Boolean);
     }
 
     private async ownAttemptOrThrow(userId: string, attemptId: string) {
@@ -187,7 +210,7 @@ export class ExamAttemptService {
             throw new BadRequestException('This exam has no questions yet');
         }
 
-        const attempt = await this.createAttemptRecord(examId, studentId, questions.map((q) => q._id as Types.ObjectId));
+        const attempt = await this.createAttemptRecord(examId, studentId, questions, exam.securitySettings);
 
         return this.buildStartResponse(exam, attempt, questions);
     }
@@ -197,18 +220,36 @@ export class ExamAttemptService {
     // start path above and the PROCTORING faculty-admission path below. startedAt
     // is always "now" at the moment this runs (lobby-entry time for AUTO's
     // immediate case, ADMISSION time for PROCTORING — never lobby-entry time).
+    // Applies the exam's shuffleQuestions/shuffleOptions securitySettings, if set,
+    // to compute this student's own questionOrder/optionOrder up front.
     private async createAttemptRecord(
         examId: string,
         studentId: string,
-        questionOrder: Types.ObjectId[],
+        questions: any[],
+        securitySettings: any,
         roomId?: Types.ObjectId,
     ) {
+        const orderedQuestions = securitySettings?.shuffleQuestions ? this.shuffleArray(questions) : questions;
+        const questionOrder = orderedQuestions.map((q) => q._id as Types.ObjectId);
+
+        let optionOrder: Record<string, string[]> | undefined;
+        if (securitySettings?.shuffleOptions) {
+            optionOrder = {};
+            for (const question of orderedQuestions) {
+                if (question.options && question.options.length > 0) {
+                    optionOrder[(question._id as Types.ObjectId).toString()] =
+                        this.shuffleArray(question.options.map((opt: any) => opt.optionId));
+                }
+            }
+        }
+
         const attempt = await this.examAttemptRepositoryService.create({
             examId: new Types.ObjectId(examId),
             studentId: new Types.ObjectId(studentId),
             status: AttemptStatus.IN_PROGRESS,
             startedAt: new Date(),
             questionOrder,
+            ...(optionOrder ? { optionOrder } : {}),
             ...(roomId ? { roomId } : {}),
         } as any);
 
@@ -225,22 +266,30 @@ export class ExamAttemptService {
     // Called by the faculty admission flow (FacultyService.admitStudentAPI) to
     // create the student's attempt at the moment they're admitted into the room
     async createAttemptOnAdmission(examId: string, studentId: string, roomId: Types.ObjectId) {
+        const exam = await this.examRepositoryService.findByIdRaw(examId);
+        if (!exam) {
+            throw new NotFoundException('Exam not found');
+        }
         const questions = await this.examQuestionRepositoryService.findByExamId(examId);
         if (questions.length < 1) {
             throw new BadRequestException('This exam has no questions yet');
         }
-        return this.createAttemptRecord(examId, studentId, questions.map((q) => q._id as Types.ObjectId), roomId);
+        return this.createAttemptRecord(examId, studentId, questions, exam.securitySettings, roomId);
     }
 
     private async buildStartResponse(exam: any, attempt: any, questions?: any[]) {
         const qs = questions || (await this.examQuestionRepositoryService.findByExamId(exam._id.toString()));
+        const orderedQuestions = this.applyQuestionOrder(qs, attempt.questionOrder);
         return {
             attemptId: (attempt._id as Types.ObjectId).toString(),
             examId: exam._id.toString(),
             examName: exam.name,
             durationMinutes: exam.durationMinutes,
             startedAt: attempt.startedAt,
-            questions: qs.map((q) => this.sanitizeQuestion(q)),
+            securitySettings: exam.securitySettings,
+            questions: orderedQuestions.map((q) =>
+                this.sanitizeQuestion(q, attempt.optionOrder?.[(q._id as Types.ObjectId).toString()]),
+            ),
         };
     }
 
@@ -255,6 +304,7 @@ export class ExamAttemptService {
         }
 
         const questions = await this.examQuestionRepositoryService.findByExamId(attempt.examId.toString());
+        const orderedQuestions = this.applyQuestionOrder(questions, attempt.questionOrder);
         const answers = await this.examAnswerRepositoryService.findByAttemptId(attemptId);
 
         const elapsedMs = attempt.startedAt ? Date.now() - new Date(attempt.startedAt).getTime() : 0;
@@ -269,7 +319,10 @@ export class ExamAttemptService {
             startedAt: attempt.startedAt,
             status: attempt.status,
             remainingMs,
-            questions: questions.map((q) => this.sanitizeQuestion(q)),
+            securitySettings: exam.securitySettings,
+            questions: orderedQuestions.map((q) =>
+                this.sanitizeQuestion(q, (attempt as any).optionOrder?.[(q._id as Types.ObjectId).toString()]),
+            ),
             answers: answers.map((a) => ({
                 questionId: a.questionId.toString(),
                 selectedOptionId: a.selectedOptionId,
@@ -341,6 +394,38 @@ export class ExamAttemptService {
         }
 
         return this.finalizeAttempt(attempt, exam, clientTrigger);
+    }
+
+
+    // Log a client-detected integrity violation (tab-switch, fullscreen exit,
+    // copy/paste or right-click attempt). Flags the attempt, and force-submits it
+    // via the shared finalizeAttempt path once the type's configured threshold is reached.
+    async reportViolationAPI(userId: string, attemptId: string, type: ViolationType) {
+        const { attempt } = await this.ownAttemptOrThrow(userId, attemptId);
+
+        if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+            throw new ForbiddenException('This attempt is no longer in progress');
+        }
+
+        const exam = await this.examRepositoryService.findByIdRaw(attempt.examId.toString());
+        if (!exam) {
+            throw new NotFoundException('Exam not found');
+        }
+
+        const updatedAttempt = await this.examAttemptRepositoryService.appendViolation(attemptId, type);
+        const violationCount = (updatedAttempt?.violations || []).filter((v) => v.type === type).length;
+
+        const threshold =
+            type === ViolationType.TAB_SWITCH ? exam.securitySettings?.tabSwitchViolationThreshold :
+                type === ViolationType.FULLSCREEN_EXIT ? exam.securitySettings?.fullScreenExitViolationThreshold :
+                    undefined;
+
+        if (threshold && violationCount >= threshold) {
+            const result = await this.finalizeAttempt(updatedAttempt, exam, SubmissionTrigger.INTEGRITY_AUTO_SUBMIT);
+            return { ...result, violationCount, terminated: true };
+        }
+
+        return { message: 'Violation recorded', violationCount, terminated: false };
     }
 
 

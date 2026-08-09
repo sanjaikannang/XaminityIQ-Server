@@ -83,6 +83,7 @@ import { GetExamRoomsController } from './exam-management/get-exam-rooms/get-exa
 import { AssignEvaluatorsController } from './exam-management/assign-evaluators/assign-evaluators.controller';
 import { GetEvaluationProgressController } from './exam-management/get-evaluation-progress/get-evaluation-progress.controller';
 import { PublishResultsController } from './exam-management/publish-results/publish-results.controller';
+import { GetExamAttemptsController } from './exam-management/get-exam-attempts/get-exam-attempts.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -169,7 +170,8 @@ import { JwtModule } from '@nestjs/jwt';
         GetExamRoomsController,
         AssignEvaluatorsController,
         GetEvaluationProgressController,
-        PublishResultsController
+        PublishResultsController,
+        GetExamAttemptsController
     ],
     providers: [
         ConfigService,

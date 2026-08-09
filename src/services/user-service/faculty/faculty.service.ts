@@ -101,12 +101,11 @@ export class FacultyService {
 
         const results: any[] = [];
         for (const room of rooms) {
-            const exam = await this.examRepositoryService.findByIdRaw(room.examId.toString());
             const assignments = await this.examRoomAssignmentRepositoryService.findByRoomId(room._id as Types.ObjectId);
+            const exams = await this.resolveExamNamesForAssignments(assignments);
             results.push({
                 roomId: (room._id as Types.ObjectId).toString(),
-                examId: room.examId.toString(),
-                examName: exam?.name || '',
+                exams,
                 startDateTime: room.startDateTime,
                 endDateTime: room.endDateTime,
                 status: room.status,
@@ -114,6 +113,19 @@ export class FacultyService {
             });
         }
         return results;
+    }
+
+
+    // Resolves {examId, examName} for every distinct exam represented across a
+    // room's assignments — a pooled room mixes leftover students from multiple
+    // window-sibling exams, so exam identity must be read per-assignment, not
+    // assumed to be a single room-wide value (Dynamic Room Allocation)
+    private async resolveExamNamesForAssignments(
+        assignments: { examId: Types.ObjectId }[],
+    ): Promise<{ examId: string; examName: string }[]> {
+        const distinctExamIds = [...new Set(assignments.map((a) => a.examId.toString()))];
+        const exams = await Promise.all(distinctExamIds.map((id) => this.examRepositoryService.findByIdRaw(id)));
+        return distinctExamIds.map((id, index) => ({ examId: id, examName: exams[index]?.name || '' }));
     }
 
 
@@ -145,21 +157,23 @@ export class FacultyService {
         const facultyId = await this.resolveFaculty(userId);
         const room = await this.ownRoomOrThrow(facultyId, roomId);
 
-        const exam = await this.examRepositoryService.findByIdRaw(room.examId.toString());
         const assignments = await this.examRoomAssignmentRepositoryService.findByRoomId(roomId);
+        const exams = await this.resolveExamNamesForAssignments(assignments);
+        const examNameById = new Map(exams.map((e) => [e.examId, e.examName]));
         const students = await this.studentRepositoryService.findByIdsPreserveOrder(assignments.map((a) => a.studentId));
         const studentCodeById = new Map(students.map((s) => [(s._id as Types.ObjectId).toString(), s.studentId]));
 
         return {
             roomId,
-            examId: room.examId.toString(),
-            examName: exam?.name || '',
+            exams,
             startDateTime: room.startDateTime,
             endDateTime: room.endDateTime,
             status: room.status,
             liveKitSessionId: room.liveKitSessionId,
             assignments: assignments.map((a) => ({
                 assignmentId: (a._id as Types.ObjectId).toString(),
+                examId: a.examId.toString(),
+                examName: examNameById.get(a.examId.toString()) || '',
                 studentId: a.studentId.toString(),
                 studentCode: studentCodeById.get(a.studentId.toString()) || '',
                 attemptId: a.attemptId ? a.attemptId.toString() : null,

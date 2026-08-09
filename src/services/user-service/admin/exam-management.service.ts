@@ -40,6 +40,7 @@ import { ExamRoomSummaryData } from 'src/api/user/admin/exam-management/get-exam
 import { ExamAttemptRepositoryService } from 'src/repositories/exam-attempt-repository/exam-attempt.repository';
 import { ExamAnswerRepositoryService } from 'src/repositories/exam-answer-repository/exam-answer.repository';
 import { EvaluationProgressData } from 'src/api/user/admin/exam-management/get-evaluation-progress/get-evaluation-progress.response';
+import { ExamAttemptSummaryData } from 'src/api/user/admin/exam-management/get-exam-attempts/get-exam-attempts.response';
 
 const MIN_WRITTEN_MARKS = 2;
 const MAX_WRITTEN_MARKS = 20;
@@ -263,7 +264,11 @@ export class ExamManagementService {
 
 
     // Form Exam Rooms API Endpoint — partitions matched students into groups of
-    // <=10 and round-robin assigns an active faculty as invigilator for each group
+    // <=10 and round-robin assigns an active faculty as invigilator for each group.
+    // Dynamic Room Allocation: also discovers other unformed PUBLISHED PROCTORING
+    // exams sharing this exam's exact schedule window and pools each exam's small
+    // leftover remainder together into shared "mixed" rooms, instead of leaving
+    // every exam's remainder as its own sparse room.
     async formExamRoomsAPI(examId: string): Promise<FormedRoomData[]> {
         const exam = await this.examRepositoryService.findById(examId);
         if (!exam) throw new NotFoundException('Exam not found');
@@ -275,14 +280,9 @@ export class ExamManagementService {
             throw new BadRequestException('Exam must be PUBLISHED before forming rooms');
         }
 
-        const existingRooms = await this.examRoomRepositoryService.findByExamId(examId);
-        if (existingRooms.length > 0) {
+        const existingAssignments = await this.examRoomAssignmentRepositoryService.findByExamId(examId);
+        if (existingAssignments.length > 0) {
             throw new ConflictException('Rooms have already been formed for this exam');
-        }
-
-        const studentIds = await this.getMatchedStudentIds(exam);
-        if (studentIds.length === 0) {
-            throw new BadRequestException('No students matched this exam\'s hierarchy selection');
         }
 
         const facultyIds = await this.facultyRepositoryService.findActiveFacultyIds();
@@ -290,32 +290,74 @@ export class ExamManagementService {
             throw new BadRequestException('No active faculty available to assign as invigilators');
         }
 
+        // Pool set: this exam plus any window-sibling PROCTORING exams that
+        // haven't had rooms formed yet (a sibling already formed keeps its own
+        // rooms — no retroactive joining of an already-formed room).
+        const windowSiblings = await this.examRepositoryService.findMatchingProctoringWindow(
+            exam.startDate, exam.endDate, exam.startTime, exam.endTime,
+        );
+        const poolExams: any[] = [];
+        for (const candidate of windowSiblings) {
+            const candidateId = (candidate._id as Types.ObjectId).toString();
+            if (candidateId === examId) {
+                poolExams.push(exam);
+                continue;
+            }
+            const candidateAssignments = await this.examRoomAssignmentRepositoryService.findByExamId(candidateId);
+            if (candidateAssignments.length === 0) {
+                poolExams.push(candidate);
+            }
+        }
+
+        type TaggedStudent = { examId: Types.ObjectId; studentId: Types.ObjectId };
+        const fullGroups: TaggedStudent[][] = [];
+        const leftoverPool: TaggedStudent[] = [];
+
+        for (const poolExam of poolExams) {
+            const poolExamId = poolExam._id as Types.ObjectId;
+            const studentIds = await this.getMatchedStudentIds(poolExam);
+            const tagged = studentIds.map((studentId) => ({ examId: poolExamId, studentId }));
+
+            const fullChunkCount = Math.floor(tagged.length / this.MAX_STUDENTS_PER_ROOM);
+            for (let i = 0; i < fullChunkCount; i++) {
+                fullGroups.push(tagged.slice(i * this.MAX_STUDENTS_PER_ROOM, (i + 1) * this.MAX_STUDENTS_PER_ROOM));
+            }
+            leftoverPool.push(...tagged.slice(fullChunkCount * this.MAX_STUDENTS_PER_ROOM));
+        }
+
+        const leftoverGroups: TaggedStudent[][] = [];
+        for (let i = 0; i < leftoverPool.length; i += this.MAX_STUDENTS_PER_ROOM) {
+            leftoverGroups.push(leftoverPool.slice(i, i + this.MAX_STUDENTS_PER_ROOM));
+        }
+
+        const allGroups = [...fullGroups, ...leftoverGroups];
+        if (allGroups.length === 0) {
+            throw new BadRequestException('No students matched this exam\'s (or its window-siblings\') hierarchy selection');
+        }
+
         const startDateTime = this.combineDateTime(exam.startDate.toISOString(), exam.startTime as string);
         const endDateTime = this.combineDateTime(exam.endDate.toISOString(), exam.endTime as string);
 
-        const groups: Types.ObjectId[][] = [];
-        for (let i = 0; i < studentIds.length; i += this.MAX_STUDENTS_PER_ROOM) {
-            groups.push(studentIds.slice(i, i + this.MAX_STUDENTS_PER_ROOM));
-        }
-
-        const examObjectId = new Types.ObjectId(examId);
-        const roomsToCreate = groups.map((group, index) => ({
-            examId: examObjectId,
-            facultyId: facultyIds[index % facultyIds.length],
-            startDateTime,
-            endDateTime,
-            durationMinutes: exam.durationMinutes,
-            liveKitSessionId: `exam-room-${examId}-${index}`,
-            status: ExamRoomStatus.SCHEDULED,
-        }));
+        const roomsToCreate = allGroups.map((group, index) => {
+            const distinctExamIds = [...new Set(group.map((g) => g.examId.toString()))];
+            return {
+                examId: distinctExamIds.length === 1 ? new Types.ObjectId(distinctExamIds[0]) : undefined,
+                facultyId: facultyIds[index % facultyIds.length],
+                startDateTime,
+                endDateTime,
+                durationMinutes: exam.durationMinutes,
+                liveKitSessionId: `exam-room-${examId}-${index}`,
+                status: ExamRoomStatus.SCHEDULED,
+            };
+        });
 
         const createdRooms = await this.examRoomRepositoryService.createMany(roomsToCreate as any);
 
         const assignmentsToCreate = createdRooms.flatMap((room, index) =>
-            groups[index].map((studentId) => ({
+            allGroups[index].map((tagged) => ({
                 roomId: room._id as Types.ObjectId,
-                examId: examObjectId,
-                studentId,
+                examId: tagged.examId,
+                studentId: tagged.studentId,
                 status: RoomAssignmentStatus.WAITING,
             })),
         );
@@ -325,13 +367,15 @@ export class ExamManagementService {
             createdRooms.map((room) => room.facultyId),
         );
         const facultyCodeById = new Map(faculties.map((f) => [(f._id as Types.ObjectId).toString(), f.facultyId]));
+        const examNameById = new Map(poolExams.map((e) => [(e._id as Types.ObjectId).toString(), e.name]));
 
         return createdRooms.map((room, index) => ({
             roomId: (room._id as Types.ObjectId).toString(),
             facultyId: room.facultyId.toString(),
             facultyCode: facultyCodeById.get(room.facultyId.toString()) || '',
             liveKitSessionId: room.liveKitSessionId,
-            studentCount: groups[index].length,
+            studentCount: allGroups[index].length,
+            pooledExamNames: [...new Set(allGroups[index].map((g) => examNameById.get(g.examId.toString()) || ''))],
         }));
     }
 
@@ -341,7 +385,14 @@ export class ExamManagementService {
         const exam = await this.examRepositoryService.findById(examId);
         if (!exam) throw new NotFoundException('Exam not found');
 
-        const rooms = await this.examRoomRepositoryService.findByExamId(examId);
+        // A pooled room's own examId may be unset — find this exam's rooms via
+        // its assignments' distinct roomIds instead of a room-level examId match.
+        const examAssignments = await this.examRoomAssignmentRepositoryService.findByExamId(examId);
+        const roomIds = [...new Set(examAssignments.map((a) => (a.roomId as Types.ObjectId).toString()))].map(
+            (id) => new Types.ObjectId(id),
+        );
+        const rooms = await this.examRoomRepositoryService.findByIds(roomIds);
+
         const faculties = await this.facultyRepositoryService.findByIdsPreserveOrder(
             rooms.map((room) => room.facultyId),
         );
@@ -349,14 +400,27 @@ export class ExamManagementService {
 
         const summaries: ExamRoomSummaryData[] = [];
         for (const room of rooms) {
-            const assignments = await this.examRoomAssignmentRepositoryService.findByRoomId(room._id as Types.ObjectId);
-            const waitingCount = assignments.filter((a) => a.status === RoomAssignmentStatus.WAITING).length;
-            const admittedCount = assignments.filter((a) => a.status === RoomAssignmentStatus.ADMITTED).length;
-            const inProgressCount = assignments.filter((a) => a.status === RoomAssignmentStatus.IN_PROGRESS).length;
-            const completedCount = assignments.filter((a) => a.status === RoomAssignmentStatus.COMPLETED).length;
-            const removedOrRejectedCount = assignments.filter(
+            const allAssignments = await this.examRoomAssignmentRepositoryService.findByRoomId(room._id as Types.ObjectId);
+            const thisExamAssignments = allAssignments.filter((a) => a.examId.toString() === examId);
+
+            const waitingCount = thisExamAssignments.filter((a) => a.status === RoomAssignmentStatus.WAITING).length;
+            const admittedCount = thisExamAssignments.filter((a) => a.status === RoomAssignmentStatus.ADMITTED).length;
+            const inProgressCount = thisExamAssignments.filter((a) => a.status === RoomAssignmentStatus.IN_PROGRESS).length;
+            const completedCount = thisExamAssignments.filter((a) => a.status === RoomAssignmentStatus.COMPLETED).length;
+            const removedOrRejectedCount = thisExamAssignments.filter(
                 (a) => a.status === RoomAssignmentStatus.REJECTED || a.status === RoomAssignmentStatus.REMOVED,
             ).length;
+
+            const otherExamIds = [...new Set(
+                allAssignments.filter((a) => a.examId.toString() !== examId).map((a) => a.examId.toString()),
+            )];
+            let pooledWithExamNames: string[] = [];
+            if (otherExamIds.length > 0) {
+                const otherExams = await Promise.all(
+                    otherExamIds.map((id) => this.examRepositoryService.findByIdRaw(id)),
+                );
+                pooledWithExamNames = otherExams.filter(Boolean).map((e) => e!.name);
+            }
 
             summaries.push({
                 roomId: (room._id as Types.ObjectId).toString(),
@@ -371,7 +435,9 @@ export class ExamManagementService {
                 inProgressCount,
                 completedCount,
                 removedOrRejectedCount,
-                totalCount: assignments.length,
+                totalCount: thisExamAssignments.length,
+                roomTotalOccupancy: allAssignments.length,
+                pooledWithExamNames,
             });
         }
 
@@ -716,6 +782,37 @@ export class ExamManagementService {
         await this.examRepositoryService.updateById(examId, {
             evaluatorFacultyIds: evaluatorFacultyIds.map((id) => new Types.ObjectId(id)),
         } as any);
+    }
+
+
+    // Get Exam Attempts API Endpoint — every attempt for this exam with its
+    // integrity violation summary, for the admin's "Attempts & Integrity" view
+    async getExamAttemptsAPI(examId: string): Promise<ExamAttemptSummaryData[]> {
+        const exam = await this.examRepositoryService.findByIdRaw(examId);
+        if (!exam) throw new NotFoundException('Exam not found');
+
+        const attempts = await this.examAttemptRepositoryService.findAllByExamId(examId);
+        const students = await this.studentRepositoryService.findByIdsPreserveOrder(
+            attempts.map((a) => a.studentId),
+        );
+        const studentCodeById = new Map(students.map((s) => [(s._id as Types.ObjectId).toString(), s.studentId]));
+
+        return attempts.map((attempt) => {
+            const violationCounts: Record<string, number> = {};
+            for (const violation of attempt.violations || []) {
+                violationCounts[violation.type] = (violationCounts[violation.type] || 0) + 1;
+            }
+            return {
+                attemptId: (attempt._id as Types.ObjectId).toString(),
+                studentId: attempt.studentId.toString(),
+                studentCode: studentCodeById.get(attempt.studentId.toString()) || '',
+                status: attempt.status,
+                isFlagged: attempt.isFlagged,
+                violationCounts,
+                totalScore: attempt.totalScore,
+                passed: attempt.passed,
+            };
+        });
     }
 
 

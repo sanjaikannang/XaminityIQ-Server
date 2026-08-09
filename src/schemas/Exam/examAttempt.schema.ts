@@ -1,8 +1,21 @@
 import { Document, Types } from 'mongoose';
-import { AttemptStatus, MediaStatus, SubmissionTrigger } from 'src/utils/enum';
+import { AttemptStatus, MediaStatus, SubmissionTrigger, ViolationType } from 'src/utils/enum';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 export type ExamAttemptDocument = ExamAttempt & Document;
+
+@Schema({ _id: false })
+export class ViolationEntry {
+
+    @Prop({ required: true, enum: Object.values(ViolationType) })
+    type: string;
+
+    @Prop({ required: true, default: Date.now })
+    occurredAt: Date;
+
+}
+
+export const ViolationEntrySchema = SchemaFactory.createForClass(ViolationEntry);
 
 @Schema({ collection: 'exam_attempts', timestamps: true })
 export class ExamAttempt {
@@ -16,12 +29,13 @@ export class ExamAttempt {
     @Prop({ required: true, enum: Object.values(AttemptStatus), default: AttemptStatus.NOT_STARTED })
     status: string;
 
-    // This student's question sequence — always the base authoring order until
-    // shuffling is implemented (see Sub-Module 8, a later phase)
+    // This student's question sequence — the base authoring order, shuffled at
+    // attempt-creation time if the exam's securitySettings.shuffleQuestions is set
     @Prop({ type: [{ type: Types.ObjectId, ref: 'ExamQuestion' }], default: [] })
     questionOrder: Types.ObjectId[];
 
-    // Map of questionId -> shuffled optionId order. Unused until shuffling is built.
+    // Map of questionId -> shuffled optionId order, populated at attempt-creation
+    // time if the exam's securitySettings.shuffleOptions is set; otherwise unset
     @Prop({ type: Object })
     optionOrder: Record<string, string[]>;
 
@@ -53,9 +67,13 @@ export class ExamAttempt {
     @Prop()
     passed: boolean;
 
-    // Set true on the first logged integrity violation — unused until Sub-Module 8
+    // Set true on the first logged integrity violation
     @Prop({ default: false })
     isFlagged: boolean;
+
+    // Every logged integrity violation for this attempt, in occurrence order
+    @Prop({ type: [ViolationEntrySchema], default: [] })
+    violations: ViolationEntry[];
 
 }
 

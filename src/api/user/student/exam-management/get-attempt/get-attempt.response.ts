@@ -1,4 +1,5 @@
 import { AttemptQuestionData } from '../start-attempt/start-attempt.response';
+import { SecuritySettingsInput } from '../../../admin/exam-management/create-exam/create-exam.request';
 
 export class AttemptAnswerData {
     questionId: string;
@@ -14,6 +15,7 @@ export class GetAttemptData {
     startedAt: Date;
     status: string;
     remainingMs: number;
+    securitySettings: SecuritySettingsInput;
     questions: AttemptQuestionData[];
     answers: AttemptAnswerData[];
 }

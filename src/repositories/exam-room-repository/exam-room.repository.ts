@@ -49,4 +49,15 @@ export class ExamRoomRepositoryService {
         }
     }
 
+
+    // Batch-fetch rooms by id — used when locating an exam's rooms via its
+    // assignments' distinct roomIds (a pooled room's own examId may be unset)
+    async findByIds(roomIds: Types.ObjectId[]): Promise<ExamRoomDocument[]> {
+        try {
+            return await this.examRoomModel.find({ _id: { $in: roomIds } }).sort({ createdAt: 1 }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
 }

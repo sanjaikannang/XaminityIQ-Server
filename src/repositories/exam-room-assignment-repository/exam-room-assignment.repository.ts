@@ -88,4 +88,16 @@ export class ExamRoomAssignmentRepositoryService {
         }
     }
 
+
+    // Find every assignment for an exam, across whatever room(s) it landed in —
+    // used for the "rooms already formed" guard and to locate an exam's rooms
+    // now that a room's own examId may be unset for a pooled room
+    async findByExamId(examId: string | Types.ObjectId): Promise<ExamRoomAssignmentDocument[]> {
+        try {
+            return await this.examRoomAssignmentModel.find({ examId: new Types.ObjectId(examId) }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
 }

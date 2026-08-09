@@ -36,6 +36,7 @@ import { StartAttemptController } from './exam-management/start-attempt/start-at
 import { GetAttemptController } from './exam-management/get-attempt/get-attempt.controller';
 import { SaveAnswerController } from './exam-management/save-answer/save-answer.controller';
 import { SubmitAttemptController } from './exam-management/submit-attempt/submit-attempt.controller';
+import { ReportViolationController } from './exam-management/report-violation/report-violation.controller';
 import { RecordingSignatureController } from './exam-management/recording-signature/recording-signature.controller';
 import { RecordChunkController } from './exam-management/record-chunk/record-chunk.controller';
 import { FinalizeRecordingController } from './exam-management/finalize-recording/finalize-recording.controller';
@@ -84,6 +85,7 @@ import { GetMyResultController } from './exam-management/get-my-result/get-my-re
         GetAttemptController,
         SaveAnswerController,
         SubmitAttemptController,
+        ReportViolationController,
         RecordingSignatureController,
         RecordChunkController,
         FinalizeRecordingController,

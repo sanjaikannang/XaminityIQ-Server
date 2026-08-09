@@ -87,4 +87,21 @@ export class ExamAttemptRepositoryService {
         }
     }
 
+
+    // Append a logged integrity violation and flag the attempt — returns the
+    // updated doc so the caller can count this attempt's occurrences of `type`
+    async appendViolation(id: string, type: string): Promise<ExamAttemptDocument | null> {
+        try {
+            return await this.examAttemptModel
+                .findByIdAndUpdate(
+                    id,
+                    { $push: { violations: { type, occurredAt: new Date() } }, $set: { isFlagged: true } },
+                    { new: true },
+                )
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
 }

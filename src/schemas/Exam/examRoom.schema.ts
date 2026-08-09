@@ -7,8 +7,12 @@ export type ExamRoomDocument = ExamRoom & Document;
 @Schema({ collection: 'exam_rooms', timestamps: true })
 export class ExamRoom {
 
-    @Prop({ type: Types.ObjectId, ref: 'Exam', required: true })
-    examId: Types.ObjectId;
+    // Set only when every assignment in this room belongs to the same exam.
+    // Left unset for a pooled room mixing leftover students from multiple
+    // exams sharing an identical PROCTORING window (Dynamic Room Allocation) —
+    // ExamRoomAssignment.examId is the authoritative per-student exam reference.
+    @Prop({ type: Types.ObjectId, ref: 'Exam' })
+    examId?: Types.ObjectId;
 
     @Prop({ type: Types.ObjectId, ref: 'Faculty', required: true })
     facultyId: Types.ObjectId;

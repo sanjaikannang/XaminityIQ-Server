@@ -1,3 +1,5 @@
+import { SecuritySettingsInput } from '../../../admin/exam-management/create-exam/create-exam.request';
+
 export class AttemptQuestionOption {
     optionId: string;
     text: string;
@@ -18,6 +20,9 @@ export class StartAttemptData {
     examName: string;
     durationMinutes: number;
     startedAt: Date;
+    // The exam's integrity/anti-malpractice config — the client enforces
+    // tab-switch/fullscreen/copy-paste/right-click/backward-nav rules from this
+    securitySettings: SecuritySettingsInput;
     questions: AttemptQuestionData[];
 }
 
