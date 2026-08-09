@@ -46,9 +46,16 @@ export enum CourseType {
 
 export enum QuestionType {
   MCQ = 'MCQ',
-  SHORT_ANSWER = 'SHORT_ANSWER',
-  LONG_ANSWER = 'LONG_ANSWER',
-  TRUE_FALSE = 'TRUE_FALSE'
+  MSQ = 'MSQ',
+  WRITTEN = 'WRITTEN'
+}
+
+export enum ExamStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  ONGOING = 'ONGOING',
+  COMPLETED = 'COMPLETED',
+  RESULTS_PUBLISHED = 'RESULTS_PUBLISHED'
 }
 
 export enum DifficultyLevel {
@@ -60,9 +67,36 @@ export enum DifficultyLevel {
 export enum AttemptStatus {
   NOT_STARTED = 'NOT_STARTED',
   IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  TIME_UP = 'TIME_UP',
-  SUBMITTED = 'SUBMITTED'
+  SUBMITTED = 'SUBMITTED',
+  COMPLETED = 'COMPLETED'
+}
+
+export enum SubmissionTrigger {
+  MANUAL = 'MANUAL',
+  TIMER_EXPIRY = 'TIMER_EXPIRY',
+  INTEGRITY_AUTO_SUBMIT = 'INTEGRITY_AUTO_SUBMIT',
+  FACULTY_REMOVED = 'FACULTY_REMOVED',
+  CONNECTION_LOSS = 'CONNECTION_LOSS'
+}
+
+export enum ViolationType {
+  TAB_SWITCH = 'TAB_SWITCH',
+  FULLSCREEN_EXIT = 'FULLSCREEN_EXIT',
+  COPY_ATTEMPT = 'COPY_ATTEMPT',
+  RIGHT_CLICK_ATTEMPT = 'RIGHT_CLICK_ATTEMPT',
+}
+
+export enum MediaStatus {
+  PENDING_UPLOAD = 'PENDING_UPLOAD',
+  UPLOADING = 'UPLOADING',
+  UPLOAD_COMPLETE = 'UPLOAD_COMPLETE',
+  UPLOAD_FAILED = 'UPLOAD_FAILED'
+}
+
+export enum RecordingMediaType {
+  VIDEO = 'video',
+  AUDIO = 'audio',
+  SCREEN = 'screen'
 }
 
 export enum AdmissionType {
@@ -151,4 +185,30 @@ export enum SubjectType {
   THEORY = 'THEORY',
   PRACTICAL = 'PRACTICAL',
   ELECTIVE = 'ELECTIVE',
+}
+
+export enum ExamRoomStatus {
+  SCHEDULED = 'SCHEDULED',
+  ACTIVE = 'ACTIVE',
+  CLOSED = 'CLOSED',
+}
+
+export enum RoomAssignmentStatus {
+  WAITING = 'WAITING',
+  ADMITTED = 'ADMITTED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  REJECTED = 'REJECTED',
+  REMOVED = 'REMOVED',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum ChatSenderRole {
+  FACULTY = 'FACULTY',
+  STUDENT = 'STUDENT',
+}
+
+export enum ChatRecipientType {
+  INDIVIDUAL = 'INDIVIDUAL',
+  BROADCAST_ROOM = 'BROADCAST_ROOM',
+  BROADCAST_EXAM = 'BROADCAST_EXAM',
 }

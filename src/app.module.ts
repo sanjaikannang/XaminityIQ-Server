@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ApiModule } from './api/api.module';
 
 @Module({
@@ -28,6 +29,7 @@ import { ApiModule } from './api/api.module';
       inject: [ConfigService],
     }),
     ConfigModule,
+    ScheduleModule.forRoot(),
     ApiModule
   ],
   controllers: [AppController],

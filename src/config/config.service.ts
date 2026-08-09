@@ -65,6 +65,10 @@ export class ConfigService {
         return this.getValue("PASSWORD_RESET_JWT_SECRET_KEY", true);
     }
 
+    getQrTokenJwtSecretKey() {
+        return this.getValue("QR_TOKEN_JWT_SECRET_KEY", true);
+    }
+
     getNodeEnv() {
         return process.env.NODE_ENV || 'development';
     }
@@ -87,5 +91,17 @@ export class ConfigService {
 
     getCloudinaryApiSecret() {
         return this.getValue("CLOUDINARY_API_SECRET", true);
+    }
+
+    getLiveKitApiKey() {
+        return this.getValue("LIVEKIT_API_KEY", false);
+    }
+
+    getLiveKitApiSecret() {
+        return this.getValue("LIVEKIT_API_SECRET", false);
+    }
+
+    getLiveKitUrl() {
+        return this.getValue("LIVEKIT_URL", false);
     }
 }

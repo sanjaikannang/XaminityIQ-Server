@@ -22,6 +22,8 @@ import { StudentContactInformation, StudentContactInformationSchema } from 'src/
 import { StudentEducationHistory, StudentEducationHistorySchema } from 'src/schemas/User/Student/studentEducationHistory.schema';
 import { StudentAddressDetail, StudentAddressDetailSchema } from 'src/schemas/User/Student/studentAddressDetail.schema';
 import { StudentAcademicDetail, StudentAcademicDetailSchema } from 'src/schemas/User/Student/studentAcademicDetail.schema';
+import { Exam, ExamSchema } from 'src/schemas/Exam/exam.schema';
+import { ExamQuestion, ExamQuestionSchema } from 'src/schemas/Exam/examQuestion.schema';
 
 // Services
 import { ConfigService } from 'src/config/config.service';
@@ -32,6 +34,7 @@ import { AdminService } from 'src/services/user-service/admin/admin.service';
 import { StudentManagementService } from 'src/services/user-service/admin/student-management.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { FacultyManagementService } from 'src/services/user-service/admin/faculty-management.service';
+import { ExamManagementService } from 'src/services/user-service/admin/exam-management.service';
 import { Faculty, FacultySchema } from 'src/schemas/User/Faculty/faculty.schema';
 import { FacultyPersonalDetail, FacultyPersonalDetailSchema } from 'src/schemas/User/Faculty/facultyPersonalDetail.schema';
 import { FacultyContactInformation, FacultyContactInformationSchema } from 'src/schemas/User/Faculty/facultyContactInformation.schema';
@@ -66,6 +69,21 @@ import { GetAllDepartmentsController } from './get-all-departments/get-all-depar
 import { GetStudentActivityController } from './student-management/get-student-activity/get-student-activity.controller';
 import { GetFacultyActivityController } from './faculty-management/get-faculty-activity/get-faculty-activity.controller';
 import { GetAllSubjectsController } from './get-all-subjects/get-all-subjects.controller';
+import { CreateExamController } from './exam-management/create-exam/create-exam.controller';
+import { GetAllExamsController } from './exam-management/get-all-exams/get-all-exams.controller';
+import { GetExamController } from './exam-management/get-exam/get-exam.controller';
+import { EditExamController } from './exam-management/edit-exam/edit-exam.controller';
+import { DeleteExamController } from './exam-management/delete-exam/delete-exam.controller';
+import { PublishExamController } from './exam-management/publish-exam/publish-exam.controller';
+import { AddQuestionController } from './exam-management/add-question/add-question.controller';
+import { EditQuestionController } from './exam-management/edit-question/edit-question.controller';
+import { DeleteQuestionController } from './exam-management/delete-question/delete-question.controller';
+import { FormExamRoomsController } from './exam-management/form-exam-rooms/form-exam-rooms.controller';
+import { GetExamRoomsController } from './exam-management/get-exam-rooms/get-exam-rooms.controller';
+import { AssignEvaluatorsController } from './exam-management/assign-evaluators/assign-evaluators.controller';
+import { GetEvaluationProgressController } from './exam-management/get-evaluation-progress/get-evaluation-progress.controller';
+import { PublishResultsController } from './exam-management/publish-results/publish-results.controller';
+import { GetExamAttemptsController } from './exam-management/get-exam-attempts/get-exam-attempts.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -98,6 +116,8 @@ import { JwtModule } from '@nestjs/jwt';
             { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
             { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
             { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
+            { name: Exam.name, schema: ExamSchema },
+            { name: ExamQuestion.name, schema: ExamQuestionSchema },
         ]),
         JwtModule.registerAsync({
             inject: [ConfigService],
@@ -136,7 +156,22 @@ import { JwtModule } from '@nestjs/jwt';
         GetAllDepartmentsController,
         GetStudentActivityController,
         GetFacultyActivityController,
-        GetAllSubjectsController
+        GetAllSubjectsController,
+        CreateExamController,
+        GetAllExamsController,
+        GetExamController,
+        EditExamController,
+        DeleteExamController,
+        PublishExamController,
+        AddQuestionController,
+        EditQuestionController,
+        DeleteQuestionController,
+        FormExamRoomsController,
+        GetExamRoomsController,
+        AssignEvaluatorsController,
+        GetEvaluationProgressController,
+        PublishResultsController,
+        GetExamAttemptsController
     ],
     providers: [
         ConfigService,
@@ -146,6 +181,7 @@ import { JwtModule } from '@nestjs/jwt';
         AdminService,
         StudentManagementService,
         FacultyManagementService,
+        ExamManagementService,
         JwtAuthGuard,
         RoleGuard,
         CloudinaryService
@@ -157,6 +193,7 @@ import { JwtModule } from '@nestjs/jwt';
         AdminService,
         StudentManagementService,
         FacultyManagementService,
+        ExamManagementService,
         JwtAuthGuard,
         RoleGuard,
         CloudinaryService

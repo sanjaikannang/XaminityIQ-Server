@@ -167,6 +167,17 @@ export class FacultyRepositoryService {
     }
 
 
+    // Find ids of all active faculty — used for round-robin invigilator assignment
+    async findActiveFacultyIds(): Promise<Types.ObjectId[]> {
+        try {
+            const docs = await this.facultyModel.find({ isActive: true }).select('_id').exec();
+            return docs.map((doc) => doc._id as Types.ObjectId);
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
     // Find faculty by id list, preserving the given order (Mongo's $in doesn't guarantee it)
     async findByIdsPreserveOrder(ids: Types.ObjectId[]): Promise<FacultyDocument[]> {
         try {

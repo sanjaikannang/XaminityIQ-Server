@@ -53,6 +53,22 @@ import { FacultyEmploymentDetailRepositoryService } from "./faculty-employment-d
 import { FacultyWorkExperienceRepositoryService } from "./faculty-work-experience-repository/faculty-work-experience.repository";
 import { AuthActivityLog, AuthActivityLogSchema } from "src/schemas/AuthActivityLog/auth-activity-log.schema";
 import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository/auth-activity-log.repository";
+import { Exam, ExamSchema } from "src/schemas/Exam/exam.schema";
+import { ExamRepositoryService } from "./exam-repository/exam.repository";
+import { ExamQuestion, ExamQuestionSchema } from "src/schemas/Exam/examQuestion.schema";
+import { ExamQuestionRepositoryService } from "./exam-question-repository/exam-question.repository";
+import { ExamAttempt, ExamAttemptSchema } from "src/schemas/Exam/examAttempt.schema";
+import { ExamAttemptRepositoryService } from "./exam-attempt-repository/exam-attempt.repository";
+import { ExamAnswer, ExamAnswerSchema } from "src/schemas/Exam/examAnswer.schema";
+import { ExamAnswerRepositoryService } from "./exam-answer-repository/exam-answer.repository";
+import { ExamRecording, ExamRecordingSchema } from "src/schemas/Exam/examRecording.schema";
+import { ExamRecordingRepositoryService } from "./exam-recording-repository/exam-recording.repository";
+import { ExamRoom, ExamRoomSchema } from "src/schemas/Exam/examRoom.schema";
+import { ExamRoomRepositoryService } from "./exam-room-repository/exam-room.repository";
+import { ExamRoomAssignment, ExamRoomAssignmentSchema } from "src/schemas/Exam/examRoomAssignment.schema";
+import { ExamRoomAssignmentRepositoryService } from "./exam-room-assignment-repository/exam-room-assignment.repository";
+import { ExamRoomChatMessage, ExamRoomChatMessageSchema } from "src/schemas/Exam/examRoomChatMessage.schema";
+import { ExamRoomChatMessageRepositoryService } from "./exam-room-chat-message-repository/exam-room-chat-message.repository";
 
 @Module({
     imports: [
@@ -81,6 +97,14 @@ import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository
             { name: FacultyEducationHistory.name, schema: FacultyEducationHistorySchema },
             { name: FacultyEmploymentDetail.name, schema: FacultyEmploymentDetailSchema },
             { name: FacultyWorkExperience.name, schema: FacultyWorkExperienceSchema },
+            { name: Exam.name, schema: ExamSchema },
+            { name: ExamQuestion.name, schema: ExamQuestionSchema },
+            { name: ExamAttempt.name, schema: ExamAttemptSchema },
+            { name: ExamAnswer.name, schema: ExamAnswerSchema },
+            { name: ExamRecording.name, schema: ExamRecordingSchema },
+            { name: ExamRoom.name, schema: ExamRoomSchema },
+            { name: ExamRoomAssignment.name, schema: ExamRoomAssignmentSchema },
+            { name: ExamRoomChatMessage.name, schema: ExamRoomChatMessageSchema },
         ]),
     ],
     controllers: [],
@@ -109,6 +133,14 @@ import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository
         FacultyEducationHistoryRepositoryService,
         FacultyEmploymentDetailRepositoryService,
         FacultyWorkExperienceRepositoryService,
+        ExamRepositoryService,
+        ExamQuestionRepositoryService,
+        ExamAttemptRepositoryService,
+        ExamAnswerRepositoryService,
+        ExamRecordingRepositoryService,
+        ExamRoomRepositoryService,
+        ExamRoomAssignmentRepositoryService,
+        ExamRoomChatMessageRepositoryService,
     ],
     exports: [
         AdminRepositoryService,
@@ -135,6 +167,14 @@ import { AuthActivityLogRepositoryService } from "./auth-activity-log-repository
         FacultyEducationHistoryRepositoryService,
         FacultyEmploymentDetailRepositoryService,
         FacultyWorkExperienceRepositoryService,
+        ExamRepositoryService,
+        ExamQuestionRepositoryService,
+        ExamAttemptRepositoryService,
+        ExamAnswerRepositoryService,
+        ExamRecordingRepositoryService,
+        ExamRoomRepositoryService,
+        ExamRoomAssignmentRepositoryService,
+        ExamRoomChatMessageRepositoryService,
     ],
 })
 export class RepositoryModule { }

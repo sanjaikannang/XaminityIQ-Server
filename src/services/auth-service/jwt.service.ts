@@ -16,6 +16,13 @@ export interface PasswordResetJwtPayload {
     purpose: 'password-reset';
 }
 
+export interface WrittenAnswerQrPayload {
+    sub: string; // examAnswerId
+    attemptId: string;
+    questionId: string;
+    purpose: 'written-answer-qr';
+}
+
 @Injectable()
 export class AuthJwtService {
     constructor(
@@ -113,6 +120,37 @@ export class AuthJwtService {
             return payload;
         } catch (error) {
             throw new UnauthorizedException('Invalid or expired password reset token', error);
+        }
+    }
+
+
+    // Generate Written-Answer QR Token
+    generateWrittenAnswerQrToken(payload: Omit<WrittenAnswerQrPayload, 'purpose'>): string {
+        try {
+            const token = this.jwtService.sign(
+                { ...payload, purpose: 'written-answer-qr' },
+                {
+                    secret: this.configService.getQrTokenJwtSecretKey(),
+                    expiresIn: '15m',
+                },
+            );
+            return token;
+        } catch (error) {
+            throw new UnauthorizedException('Failed to generate written-answer QR token', error);
+        }
+    }
+
+
+    // Verify Written-Answer QR Token
+    verifyWrittenAnswerQrToken(token: string): WrittenAnswerQrPayload {
+        try {
+            const payload = this.jwtService.verify(token, {
+                secret: this.configService.getQrTokenJwtSecretKey(),
+            });
+
+            return payload;
+        } catch (error) {
+            throw new UnauthorizedException('Invalid or expired QR code', error);
         }
     }
 
