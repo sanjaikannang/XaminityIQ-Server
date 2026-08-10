@@ -2,6 +2,8 @@ export class ExamAttemptSummaryData {
     attemptId: string;
     studentId: string;
     studentCode: string;
+    studentName: string;
+    studentEmail: string;
     status: string;
     isFlagged: boolean;
     // Count of each logged ViolationType for this attempt, keyed by type

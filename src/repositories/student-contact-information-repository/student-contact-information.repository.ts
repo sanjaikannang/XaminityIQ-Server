@@ -40,6 +40,18 @@ export class StudentContactInformationRepositoryService {
     }
 
 
+    // Find contact information for multiple MongoDB ObjectIds
+    async findByIds(ids: Types.ObjectId[]): Promise<StudentContactInformationDocument[]> {
+        try {
+            return await this.studentContactInformationModel.find({ _id: { $in: ids } }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
+    }
+
+
     // Find contact information using personal email address
     async findByPersonalEmail(email: string): Promise<StudentContactInformationDocument | null> {
         try {

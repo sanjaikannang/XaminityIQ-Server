@@ -38,6 +38,18 @@ export class StudentPersonalDetailRepositoryService {
     }
 
 
+    // Find student personal details for multiple MongoDB ObjectIds
+    async findByIds(ids: Types.ObjectId[]): Promise<StudentPersonalDetailDocument[]> {
+        try {
+            return await this.studentPersonalDetailModel.find({ _id: { $in: ids } }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(
+                `Database error: ${error.message}`
+            );
+        }
+    }
+
+
     // Update student personal details by MongoDB ObjectId
     async updateById(
         id: Types.ObjectId,

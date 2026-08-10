@@ -35,6 +35,7 @@ import { StudentManagementService } from 'src/services/user-service/admin/studen
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { FacultyManagementService } from 'src/services/user-service/admin/faculty-management.service';
 import { ExamManagementService } from 'src/services/user-service/admin/exam-management.service';
+import { DashboardService } from 'src/services/user-service/admin/dashboard.service';
 import { Faculty, FacultySchema } from 'src/schemas/User/Faculty/faculty.schema';
 import { FacultyPersonalDetail, FacultyPersonalDetailSchema } from 'src/schemas/User/Faculty/facultyPersonalDetail.schema';
 import { FacultyContactInformation, FacultyContactInformationSchema } from 'src/schemas/User/Faculty/facultyContactInformation.schema';
@@ -84,6 +85,7 @@ import { AssignEvaluatorsController } from './exam-management/assign-evaluators/
 import { GetEvaluationProgressController } from './exam-management/get-evaluation-progress/get-evaluation-progress.controller';
 import { PublishResultsController } from './exam-management/publish-results/publish-results.controller';
 import { GetExamAttemptsController } from './exam-management/get-exam-attempts/get-exam-attempts.controller';
+import { GetDashboardOverviewController } from './dashboard/get-dashboard-overview/get-dashboard-overview.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -171,7 +173,8 @@ import { JwtModule } from '@nestjs/jwt';
         AssignEvaluatorsController,
         GetEvaluationProgressController,
         PublishResultsController,
-        GetExamAttemptsController
+        GetExamAttemptsController,
+        GetDashboardOverviewController
     ],
     providers: [
         ConfigService,
@@ -182,6 +185,7 @@ import { JwtModule } from '@nestjs/jwt';
         StudentManagementService,
         FacultyManagementService,
         ExamManagementService,
+        DashboardService,
         JwtAuthGuard,
         RoleGuard,
         CloudinaryService
@@ -194,6 +198,7 @@ import { JwtModule } from '@nestjs/jwt';
         StudentManagementService,
         FacultyManagementService,
         ExamManagementService,
+        DashboardService,
         JwtAuthGuard,
         RoleGuard,
         CloudinaryService

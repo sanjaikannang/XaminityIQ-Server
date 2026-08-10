@@ -26,6 +26,14 @@ export class FacultyPersonalDetailRepositoryService {
         }
     }
 
+    async findByIds(ids: Types.ObjectId[]): Promise<FacultyPersonalDetailDocument[]> {
+        try {
+            return await this.facultyPersonalDetailModel.find({ _id: { $in: ids } }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
     async updateById(
         id: Types.ObjectId,
         data: Partial<FacultyPersonalDetail>,
