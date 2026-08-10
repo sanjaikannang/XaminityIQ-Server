@@ -1,7 +1,7 @@
 {
   "name": "xaminity-iq-server",
   "version": "0.0.1",
-  "description": "",
+  "description": "<div align=\"center\">",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -91,5 +91,19 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  }
+  },
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanjaikannang/XaminityIQ-Server.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sanjaikannang/XaminityIQ-Server/issues"
+  },
+  "homepage": "https://github.com/sanjaikannang/XaminityIQ-Server#readme"
 }
