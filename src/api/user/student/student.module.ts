@@ -30,6 +30,7 @@ import { LiveKitService } from 'src/livekit/livekit.service';
 import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 
 // Controllers
+import { GetMyProfileController } from './profile/get-my-profile/get-my-profile.controller';
 import { GetAllSubjectsController } from './subject-management/get-all-subjects/get-all-subjects.controller';
 import { GetAllExamsController } from './exam-management/get-all-exams/get-all-exams.controller';
 import { StartAttemptController } from './exam-management/start-attempt/start-attempt.controller';
@@ -79,6 +80,7 @@ import { GetMyResultController } from './exam-management/get-my-result/get-my-re
         RepositoryModule
     ],
     controllers: [
+        GetMyProfileController,
         GetAllSubjectsController,
         GetAllExamsController,
         StartAttemptController,

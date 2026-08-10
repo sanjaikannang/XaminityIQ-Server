@@ -35,4 +35,17 @@ export class AuthActivityLogRepositoryService {
     }
 
 
+    // Find the most recent activity across every user — admin dashboard feed
+    async findRecent(limit = 20): Promise<AuthActivityLogDocument[]> {
+        try {
+            return await this.authActivityLogModel
+                .find({})
+                .sort({ createdAt: -1 })
+                .limit(limit)
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch auth activity log', error);
+        }
+    }
+
 }
