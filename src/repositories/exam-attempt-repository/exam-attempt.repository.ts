@@ -68,6 +68,16 @@ export class ExamAttemptRepositoryService {
     }
 
 
+    // Count attempts matching an arbitrary filter — used for dashboard status breakdowns
+    async countDocuments(filter: any): Promise<number> {
+        try {
+            return await this.examAttemptModel.countDocuments(filter).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
     // Find every attempt in a given status, across all students — used by the lifecycle sweep
     async findAllByStatus(status: string): Promise<ExamAttemptDocument[]> {
         try {

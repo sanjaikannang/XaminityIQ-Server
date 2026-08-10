@@ -30,13 +30,17 @@ import { BatchDepartmentRepositoryService } from 'src/repositories/batch-departm
 import { SectionRepositoryService } from 'src/repositories/section-repository/section.repository';
 import { SubjectRepositoryService } from 'src/repositories/subject-repository/subject.repository';
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
+import { StudentPersonalDetailRepositoryService } from 'src/repositories/student-personal-detail-repository/student-personal-detail.repository';
+import { StudentContactInformationRepositoryService } from 'src/repositories/student-contact-information-repository/student-contact-information.repository';
 import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
 import { ExamQuestionRepositoryService } from 'src/repositories/exam-question-repository/exam-question.repository';
 import { FacultyRepositoryService } from 'src/repositories/faculty-repository/faculty.repository';
+import { FacultyPersonalDetailRepositoryService } from 'src/repositories/faculty-personal-detail-repository/faculty-personal-detail.repository';
+import { FacultyContactInformationRepositoryService } from 'src/repositories/faculty-contact-information-repository/faculty-contact-information.repository';
 import { ExamRoomRepositoryService } from 'src/repositories/exam-room-repository/exam-room.repository';
 import { ExamRoomAssignmentRepositoryService } from 'src/repositories/exam-room-assignment-repository/exam-room-assignment.repository';
 import { FormedRoomData } from 'src/api/user/admin/exam-management/form-exam-rooms/form-exam-rooms.response';
-import { ExamRoomSummaryData } from 'src/api/user/admin/exam-management/get-exam-rooms/get-exam-rooms.response';
+import { ExamRoomSummaryData, RoomAssignmentDetailData } from 'src/api/user/admin/exam-management/get-exam-rooms/get-exam-rooms.response';
 import { ExamAttemptRepositoryService } from 'src/repositories/exam-attempt-repository/exam-attempt.repository';
 import { ExamAnswerRepositoryService } from 'src/repositories/exam-answer-repository/exam-answer.repository';
 import { EvaluationProgressData } from 'src/api/user/admin/exam-management/get-evaluation-progress/get-evaluation-progress.response';
@@ -56,9 +60,13 @@ export class ExamManagementService {
         private readonly sectionRepositoryService: SectionRepositoryService,
         private readonly subjectRepositoryService: SubjectRepositoryService,
         private readonly studentRepositoryService: StudentRepositoryService,
+        private readonly studentPersonalDetailRepositoryService: StudentPersonalDetailRepositoryService,
+        private readonly studentContactInformationRepositoryService: StudentContactInformationRepositoryService,
         private readonly examRepositoryService: ExamRepositoryService,
         private readonly examQuestionRepositoryService: ExamQuestionRepositoryService,
         private readonly facultyRepositoryService: FacultyRepositoryService,
+        private readonly facultyPersonalDetailRepositoryService: FacultyPersonalDetailRepositoryService,
+        private readonly facultyContactInformationRepositoryService: FacultyContactInformationRepositoryService,
         private readonly examRoomRepositoryService: ExamRoomRepositoryService,
         private readonly examRoomAssignmentRepositoryService: ExamRoomAssignmentRepositoryService,
         private readonly examAttemptRepositoryService: ExamAttemptRepositoryService,
@@ -397,10 +405,37 @@ export class ExamManagementService {
             rooms.map((room) => room.facultyId),
         );
         const facultyCodeById = new Map(faculties.map((f) => [(f._id as Types.ObjectId).toString(), f.facultyId]));
+        const facultyDetailById = await this.resolveFacultyDetails(faculties);
+
+        // Load every room's assignments up front so student/exam identity can
+        // be resolved in one batch each, instead of once per room.
+        const assignmentsByRoomId = new Map(
+            await Promise.all(rooms.map(async (room) => {
+                const assignments = await this.examRoomAssignmentRepositoryService.findByRoomId(room._id as Types.ObjectId);
+                return [(room._id as Types.ObjectId).toString(), assignments] as const;
+            })),
+        );
+        const allAssignmentsFlat = [...assignmentsByRoomId.values()].flat();
+
+        const allStudents = await this.studentRepositoryService.findByIdsPreserveOrder(
+            [...new Set(allAssignmentsFlat.map((a) => a.studentId.toString()))].map((id) => new Types.ObjectId(id)),
+        );
+        const studentCodeById = new Map(allStudents.map((s) => [(s._id as Types.ObjectId).toString(), s.studentId]));
+        const studentDetailById = await this.resolveStudentDetails(allStudents);
+
+        const examNameById = new Map<string, string>([[examId, exam.name]]);
+        const otherExamIds = [...new Set(allAssignmentsFlat.map((a) => a.examId.toString()))].filter((id) => id !== examId);
+        if (otherExamIds.length > 0) {
+            const otherExams = await Promise.all(otherExamIds.map((id) => this.examRepositoryService.findByIdRaw(id)));
+            otherExamIds.forEach((id, index) => {
+                if (otherExams[index]) examNameById.set(id, otherExams[index]!.name);
+            });
+        }
 
         const summaries: ExamRoomSummaryData[] = [];
         for (const room of rooms) {
-            const allAssignments = await this.examRoomAssignmentRepositoryService.findByRoomId(room._id as Types.ObjectId);
+            const roomIdStr = (room._id as Types.ObjectId).toString();
+            const allAssignments = assignmentsByRoomId.get(roomIdStr) || [];
             const thisExamAssignments = allAssignments.filter((a) => a.examId.toString() === examId);
 
             const waitingCount = thisExamAssignments.filter((a) => a.status === RoomAssignmentStatus.WAITING).length;
@@ -411,21 +446,39 @@ export class ExamManagementService {
                 (a) => a.status === RoomAssignmentStatus.REJECTED || a.status === RoomAssignmentStatus.REMOVED,
             ).length;
 
-            const otherExamIds = [...new Set(
-                allAssignments.filter((a) => a.examId.toString() !== examId).map((a) => a.examId.toString()),
-            )];
-            let pooledWithExamNames: string[] = [];
-            if (otherExamIds.length > 0) {
-                const otherExams = await Promise.all(
-                    otherExamIds.map((id) => this.examRepositoryService.findByIdRaw(id)),
-                );
-                pooledWithExamNames = otherExams.filter(Boolean).map((e) => e!.name);
-            }
+            const pooledWithExamNames = [...new Set(
+                allAssignments
+                    .filter((a) => a.examId.toString() !== examId)
+                    .map((a) => examNameById.get(a.examId.toString()) || ''),
+            )].filter(Boolean);
+
+            const assignments: RoomAssignmentDetailData[] = allAssignments.map((a) => {
+                const studentIdStr = a.studentId.toString();
+                const studentDetail = studentDetailById.get(studentIdStr);
+                return {
+                    assignmentId: (a._id as Types.ObjectId).toString(),
+                    examId: a.examId.toString(),
+                    examName: examNameById.get(a.examId.toString()) || '',
+                    studentId: studentIdStr,
+                    studentCode: studentCodeById.get(studentIdStr) || '',
+                    studentName: studentDetail?.name || '',
+                    studentEmail: studentDetail?.email || '',
+                    status: a.status,
+                    enteredWaitingRoomAt: a.enteredWaitingRoomAt,
+                    admittedAt: a.admittedAt,
+                    removedAt: a.removedAt,
+                    removalReason: a.removalReason,
+                };
+            });
+
+            const facultyDetail = facultyDetailById.get(room.facultyId.toString());
 
             summaries.push({
-                roomId: (room._id as Types.ObjectId).toString(),
+                roomId: roomIdStr,
                 facultyId: room.facultyId.toString(),
                 facultyCode: facultyCodeById.get(room.facultyId.toString()) || '',
+                facultyName: facultyDetail?.name || '',
+                facultyEmail: facultyDetail?.email || '',
                 liveKitSessionId: room.liveKitSessionId,
                 startDateTime: room.startDateTime,
                 endDateTime: room.endDateTime,
@@ -438,6 +491,7 @@ export class ExamManagementService {
                 totalCount: thisExamAssignments.length,
                 roomTotalOccupancy: allAssignments.length,
                 pooledWithExamNames,
+                assignments,
             });
         }
 
@@ -796,16 +850,20 @@ export class ExamManagementService {
             attempts.map((a) => a.studentId),
         );
         const studentCodeById = new Map(students.map((s) => [(s._id as Types.ObjectId).toString(), s.studentId]));
+        const studentDetailById = await this.resolveStudentDetails(students);
 
         return attempts.map((attempt) => {
             const violationCounts: Record<string, number> = {};
             for (const violation of attempt.violations || []) {
                 violationCounts[violation.type] = (violationCounts[violation.type] || 0) + 1;
             }
+            const detail = studentDetailById.get(attempt.studentId.toString());
             return {
                 attemptId: (attempt._id as Types.ObjectId).toString(),
                 studentId: attempt.studentId.toString(),
                 studentCode: studentCodeById.get(attempt.studentId.toString()) || '',
+                studentName: detail?.name || '',
+                studentEmail: detail?.email || '',
                 status: attempt.status,
                 isFlagged: attempt.isFlagged,
                 violationCounts,
@@ -813,6 +871,63 @@ export class ExamManagementService {
                 passed: attempt.passed,
             };
         });
+    }
+
+
+    // Resolves {name, email} for a batch of student documents, keyed by
+    // student _id — batches the personal-detail/contact-info lookups instead
+    // of one query per student
+    private async resolveStudentDetails(
+        students: { _id: any; personalDetailId: Types.ObjectId; contactInformationId: Types.ObjectId }[],
+    ): Promise<Map<string, { name: string; email: string }>> {
+        const personalDetails = await this.studentPersonalDetailRepositoryService.findByIds(
+            students.map((s) => s.personalDetailId),
+        );
+        const contactInfos = await this.studentContactInformationRepositoryService.findByIds(
+            students.map((s) => s.contactInformationId),
+        );
+        const personalById = new Map(personalDetails.map((p) => [(p._id as Types.ObjectId).toString(), p]));
+        const contactById = new Map(contactInfos.map((c) => [(c._id as Types.ObjectId).toString(), c]));
+
+        return new Map(students.map((s) => {
+            const personal = personalById.get(s.personalDetailId.toString());
+            const contact = contactById.get(s.contactInformationId.toString());
+            return [
+                (s._id as Types.ObjectId).toString(),
+                {
+                    name: personal ? `${personal.firstName} ${personal.lastName}` : '',
+                    email: contact?.studentEmail || '',
+                },
+            ];
+        }));
+    }
+
+
+    // Resolves {name, email} for a batch of faculty documents, keyed by
+    // faculty _id — same batching rationale as resolveStudentDetails
+    private async resolveFacultyDetails(
+        faculties: { _id: any; personalDetailId: Types.ObjectId; contactInformationId: Types.ObjectId }[],
+    ): Promise<Map<string, { name: string; email: string }>> {
+        const personalDetails = await this.facultyPersonalDetailRepositoryService.findByIds(
+            faculties.map((f) => f.personalDetailId),
+        );
+        const contactInfos = await this.facultyContactInformationRepositoryService.findByIds(
+            faculties.map((f) => f.contactInformationId),
+        );
+        const personalById = new Map(personalDetails.map((p) => [(p._id as Types.ObjectId).toString(), p]));
+        const contactById = new Map(contactInfos.map((c) => [(c._id as Types.ObjectId).toString(), c]));
+
+        return new Map(faculties.map((f) => {
+            const personal = personalById.get(f.personalDetailId.toString());
+            const contact = contactById.get(f.contactInformationId.toString());
+            return [
+                (f._id as Types.ObjectId).toString(),
+                {
+                    name: personal ? `${personal.firstName} ${personal.lastName}` : '',
+                    email: contact?.facultyEmail || '',
+                },
+            ];
+        }));
     }
 
 

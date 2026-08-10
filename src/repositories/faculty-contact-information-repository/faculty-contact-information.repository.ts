@@ -26,6 +26,14 @@ export class FacultyContactInformationRepositoryService {
         }
     }
 
+    async findByIds(ids: Types.ObjectId[]): Promise<FacultyContactInformationDocument[]> {
+        try {
+            return await this.facultyContactInformationModel.find({ _id: { $in: ids } }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
     async findByPersonalEmail(email: string): Promise<FacultyContactInformationDocument | null> {
         try {
             return await this.facultyContactInformationModel.findOne({ personalEmail: email }).exec();

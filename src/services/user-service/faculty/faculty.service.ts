@@ -16,8 +16,16 @@ import { GetAllSubjectsRequest } from 'src/api/user/faculty/subject-management/g
 // Response
 import { PaginationMeta, SubjectData } from 'src/api/user/faculty/subject-management/get-all-subjects/get-all-subjects.response';
 
+// Response
+import { FacultyProfileData } from 'src/api/user/faculty/profile/get-my-profile/get-my-profile.response';
+
 // Repositories
 import { FacultyRepositoryService } from 'src/repositories/faculty-repository/faculty.repository';
+import { FacultyPersonalDetailRepositoryService } from 'src/repositories/faculty-personal-detail-repository/faculty-personal-detail.repository';
+import { FacultyContactInformationRepositoryService } from 'src/repositories/faculty-contact-information-repository/faculty-contact-information.repository';
+import { FacultyAddressRepositoryService } from 'src/repositories/faculty-address-repository/faculty-address.repository';
+import { FacultyEducationHistoryRepositoryService } from 'src/repositories/faculty-education-history-repository/faculty-education-history.repository';
+import { FacultyWorkExperienceRepositoryService } from 'src/repositories/faculty-work-experience-repository/faculty-work-experience.repository';
 import { FacultyEmploymentDetailRepositoryService } from 'src/repositories/faculty-employment-detail-repository/faculty-employment-detail.repository';
 import { DepartmentRepositoryService } from 'src/repositories/department-repository/department.repository';
 import { CourseRepositoryService } from 'src/repositories/course-repository/course.repository';
@@ -42,6 +50,11 @@ const SUBJECT_LIMIT_PER_SEMESTER = 6;
 export class FacultyService {
     constructor(
         private readonly facultyRepositoryService: FacultyRepositoryService,
+        private readonly facultyPersonalDetailRepositoryService: FacultyPersonalDetailRepositoryService,
+        private readonly facultyContactInformationRepositoryService: FacultyContactInformationRepositoryService,
+        private readonly facultyAddressRepositoryService: FacultyAddressRepositoryService,
+        private readonly facultyEducationHistoryRepositoryService: FacultyEducationHistoryRepositoryService,
+        private readonly facultyWorkExperienceRepositoryService: FacultyWorkExperienceRepositoryService,
         private readonly facultyEmploymentDetailRepositoryService: FacultyEmploymentDetailRepositoryService,
         private readonly departmentRepositoryService: DepartmentRepositoryService,
         private readonly courseRepositoryService: CourseRepositoryService,
@@ -68,6 +81,137 @@ export class FacultyService {
             throw new NotFoundException('Faculty profile not found');
         }
         return faculty._id as Types.ObjectId;
+    }
+
+
+    // Get My Profile API Endpoint — the authenticated faculty's own full
+    // profile, resolved from the JWT rather than an admin-supplied id
+    async getMyProfileAPI(userId: string): Promise<FacultyProfileData> {
+        const faculty = await this.facultyRepositoryService.findByUserId(new Types.ObjectId(userId));
+        if (!faculty) {
+            throw new NotFoundException('Faculty profile not found');
+        }
+
+        const personalDetail = await this.facultyPersonalDetailRepositoryService.findById(faculty.personalDetailId);
+        if (!personalDetail) {
+            throw new NotFoundException('Personal details not found');
+        }
+
+        const contactInfo = await this.facultyContactInformationRepositoryService.findById(faculty.contactInformationId);
+        if (!contactInfo) {
+            throw new NotFoundException('Contact information not found');
+        }
+
+        const addressDetail = await this.facultyAddressRepositoryService.findById(faculty.addressDetailId);
+        if (!addressDetail) {
+            throw new NotFoundException('Address details not found');
+        }
+
+        const employmentDetail = await this.facultyEmploymentDetailRepositoryService.findById(faculty.employmentDetailId);
+        if (!employmentDetail) {
+            throw new NotFoundException('Employment details not found');
+        }
+
+        const department = await this.departmentRepositoryService.findById(employmentDetail.departmentId.toString());
+        if (!department) {
+            throw new NotFoundException('Department not found');
+        }
+
+        const educationHistory = await this.facultyEducationHistoryRepositoryService.findByFacultyId(faculty._id as Types.ObjectId);
+        const workExperience = await this.facultyWorkExperienceRepositoryService.findByFacultyId(faculty._id as Types.ObjectId);
+        const departmentSubjects = await this.subjectRepositoryService.findByDepartment(
+            employmentDetail.departmentId, {}, 0, 100,
+        );
+
+        return {
+            facultyId: faculty.facultyId,
+            userId: faculty.userId.toString(),
+            personalDetails: {
+                firstName: personalDetail.firstName,
+                lastName: personalDetail.lastName,
+                gender: personalDetail.gender,
+                dateOfBirth: personalDetail.dateOfBirth,
+                maritalStatus: personalDetail.maritalStatus,
+                profilePhotoUrl: personalDetail.profilePhotoUrl,
+                nationality: personalDetail.nationality,
+                religion: personalDetail.religion,
+            },
+            contactDetails: {
+                personalEmail: contactInfo.personalEmail,
+                facultyEmail: contactInfo.facultyEmail,
+                phoneNumber: contactInfo.phoneNumber,
+                alternatePhoneNumber: contactInfo.alternatePhoneNumber,
+                emergencyContact: {
+                    name: contactInfo.emergencyContact.name,
+                    relation: contactInfo.emergencyContact.relation,
+                    phoneNumber: contactInfo.emergencyContact.phoneNumber,
+                },
+            },
+            addressDetails: {
+                currentAddress: {
+                    addressLine1: addressDetail.currentAddress.addressLine1,
+                    addressLine2: addressDetail.currentAddress.addressLine2,
+                    city: addressDetail.currentAddress.city,
+                    state: addressDetail.currentAddress.state,
+                    pincode: addressDetail.currentAddress.pincode,
+                    country: addressDetail.currentAddress.country,
+                },
+                sameAsCurrent: addressDetail.sameAsCurrent,
+                permanentAddress: addressDetail.permanentAddress
+                    ? {
+                        addressLine1: addressDetail.permanentAddress.addressLine1,
+                        addressLine2: addressDetail.permanentAddress.addressLine2,
+                        city: addressDetail.permanentAddress.city,
+                        state: addressDetail.permanentAddress.state,
+                        pincode: addressDetail.permanentAddress.pincode,
+                        country: addressDetail.permanentAddress.country,
+                    }
+                    : undefined,
+            },
+            employmentDetails: {
+                employeeId: employmentDetail.employeeId,
+                designation: employmentDetail.designation,
+                departmentName: department.deptName,
+                employmentType: employmentDetail.employmentType,
+                dateOfJoining: employmentDetail.dateOfJoining,
+                dateOfLeaving: employmentDetail.dateOfLeaving,
+                totalExperienceYears: employmentDetail.totalExperienceYears,
+                highestQualification: employmentDetail.highestQualification,
+                status: employmentDetail.status,
+                remarks: employmentDetail.remarks,
+            },
+            educationHistory: educationHistory.map((edu) => ({
+                level: edu.level,
+                qualification: edu.qualification,
+                boardOrUniversity: edu.boardOrUniversity,
+                institutionName: edu.institutionName,
+                yearOfPassing: edu.yearOfPassing,
+                percentageOrCGPA: edu.percentageOrCGPA,
+                specialization: edu.specialization,
+            })),
+            workExperience: workExperience.map((work) => ({
+                organization: work.organization,
+                role: work.role,
+                department: work.department,
+                fromDate: work.fromDate,
+                toDate: work.toDate,
+                experienceYears: work.experienceYears,
+                jobDescription: work.jobDescription,
+                reasonForLeaving: work.reasonForLeaving,
+                isCurrent: work.isCurrent,
+            })),
+            departmentSubjects: departmentSubjects.map((subject) => ({
+                _id: (subject._id as Types.ObjectId).toString(),
+                subjectCode: subject.subjectCode,
+                subjectName: subject.subjectName,
+                semester: subject.semester,
+                credits: subject.credits,
+                subjectType: subject.subjectType,
+                description: subject.description,
+                createdAt: (subject as any).createdAt,
+            })),
+            isActive: faculty.isActive,
+        };
     }
 
 
