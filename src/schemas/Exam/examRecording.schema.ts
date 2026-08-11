@@ -42,9 +42,6 @@ export class ExamRecording {
     video: RecordingStream;
 
     @Prop({ type: RecordingStream, default: () => ({}) })
-    audio: RecordingStream;
-
-    @Prop({ type: RecordingStream, default: () => ({}) })
     screen: RecordingStream;
 
 }

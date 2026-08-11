@@ -31,6 +31,8 @@ import { DepartmentRepositoryService } from 'src/repositories/department-reposit
 import { CourseRepositoryService } from 'src/repositories/course-repository/course.repository';
 import { SubjectRepositoryService } from 'src/repositories/subject-repository/subject.repository';
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
+import { StudentPersonalDetailRepositoryService } from 'src/repositories/student-personal-detail-repository/student-personal-detail.repository';
+import { StudentContactInformationRepositoryService } from 'src/repositories/student-contact-information-repository/student-contact-information.repository';
 import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.repository';
 import { ExamRoomRepositoryService } from 'src/repositories/exam-room-repository/exam-room.repository';
 import { ExamRoomAssignmentRepositoryService } from 'src/repositories/exam-room-assignment-repository/exam-room-assignment.repository';
@@ -60,6 +62,8 @@ export class FacultyService {
         private readonly courseRepositoryService: CourseRepositoryService,
         private readonly subjectRepositoryService: SubjectRepositoryService,
         private readonly studentRepositoryService: StudentRepositoryService,
+        private readonly studentPersonalDetailRepositoryService: StudentPersonalDetailRepositoryService,
+        private readonly studentContactInformationRepositoryService: StudentContactInformationRepositoryService,
         private readonly examRepositoryService: ExamRepositoryService,
         private readonly examRoomRepositoryService: ExamRoomRepositoryService,
         private readonly examRoomAssignmentRepositoryService: ExamRoomAssignmentRepositoryService,
@@ -306,6 +310,7 @@ export class FacultyService {
         const examNameById = new Map(exams.map((e) => [e.examId, e.examName]));
         const students = await this.studentRepositoryService.findByIdsPreserveOrder(assignments.map((a) => a.studentId));
         const studentCodeById = new Map(students.map((s) => [(s._id as Types.ObjectId).toString(), s.studentId]));
+        const studentDetailById = await this.resolveStudentDetails(students);
 
         return {
             roomId,
@@ -314,20 +319,55 @@ export class FacultyService {
             endDateTime: room.endDateTime,
             status: room.status,
             liveKitSessionId: room.liveKitSessionId,
-            assignments: assignments.map((a) => ({
-                assignmentId: (a._id as Types.ObjectId).toString(),
-                examId: a.examId.toString(),
-                examName: examNameById.get(a.examId.toString()) || '',
-                studentId: a.studentId.toString(),
-                studentCode: studentCodeById.get(a.studentId.toString()) || '',
-                attemptId: a.attemptId ? a.attemptId.toString() : null,
-                status: a.status,
-                enteredWaitingRoomAt: a.enteredWaitingRoomAt,
-                admittedAt: a.admittedAt,
-                removedAt: a.removedAt,
-                removalReason: a.removalReason,
-            })),
+            assignments: assignments.map((a) => {
+                const studentIdStr = a.studentId.toString();
+                const detail = studentDetailById.get(studentIdStr);
+                return {
+                    assignmentId: (a._id as Types.ObjectId).toString(),
+                    examId: a.examId.toString(),
+                    examName: examNameById.get(a.examId.toString()) || '',
+                    studentId: studentIdStr,
+                    studentCode: studentCodeById.get(studentIdStr) || '',
+                    studentName: detail?.name || '',
+                    studentEmail: detail?.email || '',
+                    attemptId: a.attemptId ? a.attemptId.toString() : null,
+                    status: a.status,
+                    enteredWaitingRoomAt: a.enteredWaitingRoomAt,
+                    admittedAt: a.admittedAt,
+                    removedAt: a.removedAt,
+                    removalReason: a.removalReason,
+                };
+            }),
         };
+    }
+
+
+    // Resolves {name, email} for a batch of student documents, keyed by
+    // student _id — batches the personal-detail/contact-info lookups instead
+    // of one query per student
+    private async resolveStudentDetails(
+        students: { _id: any; personalDetailId: Types.ObjectId; contactInformationId: Types.ObjectId }[],
+    ): Promise<Map<string, { name: string; email: string }>> {
+        const personalDetails = await this.studentPersonalDetailRepositoryService.findByIds(
+            students.map((s) => s.personalDetailId),
+        );
+        const contactInfos = await this.studentContactInformationRepositoryService.findByIds(
+            students.map((s) => s.contactInformationId),
+        );
+        const personalById = new Map(personalDetails.map((p) => [(p._id as Types.ObjectId).toString(), p]));
+        const contactById = new Map(contactInfos.map((c) => [(c._id as Types.ObjectId).toString(), c]));
+
+        return new Map(students.map((s) => {
+            const personal = personalById.get(s.personalDetailId.toString());
+            const contact = contactById.get(s.contactInformationId.toString());
+            return [
+                (s._id as Types.ObjectId).toString(),
+                {
+                    name: personal ? `${personal.firstName} ${personal.lastName}` : '',
+                    email: contact?.studentEmail || '',
+                },
+            ];
+        }));
     }
 
 
@@ -415,6 +455,28 @@ export class FacultyService {
         }
 
         return { message: 'Student removed' };
+    }
+
+
+    // Mute/Unmute Student Mic API Endpoint — server-side forced mute of the
+    // student's own published mic track via LiveKit; returns null muted state
+    // if the student hasn't published a mic track yet (e.g. no mic permission)
+    async setStudentMicMutedAPI(userId: string, roomId: string, assignmentId: string, muted: boolean) {
+        const facultyId = await this.resolveFaculty(userId);
+        const room = await this.ownRoomOrThrow(facultyId, roomId);
+
+        const assignment = await this.examRoomAssignmentRepositoryService.findByRoomAndId(roomId, assignmentId);
+        if (!assignment) {
+            throw new NotFoundException('Assignment not found');
+        }
+
+        const identity = `student-${assignment.studentId.toString()}`;
+        const result = await this.liveKitService.setParticipantMicMuted(room.liveKitSessionId, identity, muted);
+
+        return {
+            message: result === null ? 'Student has no active mic track to mute' : (muted ? 'Student mic muted' : 'Student mic unmuted'),
+            muted: result,
+        };
     }
 
 
