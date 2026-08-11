@@ -45,6 +45,7 @@ import { GetExamRoomDetailController } from './exam-proctoring/get-exam-room-det
 import { AdmitStudentController } from './exam-proctoring/admit-student/admit-student.controller';
 import { RejectStudentController } from './exam-proctoring/reject-student/reject-student.controller';
 import { RemoveStudentController } from './exam-proctoring/remove-student/remove-student.controller';
+import { SetStudentMicController } from './exam-proctoring/set-student-mic/set-student-mic.controller';
 import { SendChatController } from './exam-proctoring/send-chat/send-chat.controller';
 import { GetChatHistoryController } from './exam-proctoring/get-chat-history/get-chat-history.controller';
 import { GetLiveKitTokenController } from './exam-proctoring/get-livekit-token/get-livekit-token.controller';
@@ -96,6 +97,7 @@ import { EvaluateAnswerController } from './exam-evaluation/evaluate-answer/eval
         AdmitStudentController,
         RejectStudentController,
         RemoveStudentController,
+        SetStudentMicController,
         SendChatController,
         GetChatHistoryController,
         GetLiveKitTokenController,

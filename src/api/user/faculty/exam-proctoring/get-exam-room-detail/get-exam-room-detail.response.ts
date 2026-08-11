@@ -11,6 +11,8 @@ export class RoomAssignmentData {
     examName: string;
     studentId: string;
     studentCode: string;
+    studentName: string;
+    studentEmail: string;
     attemptId: string | null;
     status: string;
     enteredWaitingRoomAt?: Date;

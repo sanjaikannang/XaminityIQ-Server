@@ -87,6 +87,7 @@ import { PublishResultsController } from './exam-management/publish-results/publ
 import { GetExamAttemptsController } from './exam-management/get-exam-attempts/get-exam-attempts.controller';
 import { GetDashboardOverviewController } from './dashboard/get-dashboard-overview/get-dashboard-overview.controller';
 import { GetAllExamRoomsController } from './exam-management/get-all-exam-rooms/get-all-exam-rooms.controller';
+import { GetAttemptRecordingController } from './exam-management/get-attempt-recording/get-attempt-recording.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -176,7 +177,8 @@ import { JwtModule } from '@nestjs/jwt';
         PublishResultsController,
         GetExamAttemptsController,
         GetDashboardOverviewController,
-        GetAllExamRoomsController
+        GetAllExamRoomsController,
+        GetAttemptRecordingController
     ],
     providers: [
         ConfigService,
