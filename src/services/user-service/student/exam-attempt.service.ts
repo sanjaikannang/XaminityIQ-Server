@@ -569,7 +569,6 @@ export class ExamAttemptService {
 
         const allComplete =
             recording?.video.status === MediaStatus.UPLOAD_COMPLETE &&
-            recording?.audio.status === MediaStatus.UPLOAD_COMPLETE &&
             recording?.screen.status === MediaStatus.UPLOAD_COMPLETE;
 
         if (allComplete) {
