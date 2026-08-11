@@ -60,4 +60,50 @@ export class ExamRoomRepositoryService {
         }
     }
 
+
+    // The stored `status` field is set once at room formation and never
+    // transitions afterwards — nothing in this codebase moves a room to
+    // ACTIVE/CLOSED. For the admin overview page, "real-time" status is
+    // derived from the room's own schedule instead: this filter expresses
+    // that same UPCOMING/IN_PROGRESS/COMPLETED bucketing as a Mongo query
+    // against startDateTime/endDateTime, so it can be pushed to the DB
+    // rather than fetching every room to filter in memory.
+    private buildEffectiveStatusFilter(effectiveStatus?: 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED'): any {
+        const now = new Date();
+        if (effectiveStatus === 'UPCOMING') return { startDateTime: { $gt: now } };
+        if (effectiveStatus === 'IN_PROGRESS') return { startDateTime: { $lte: now }, endDateTime: { $gt: now } };
+        if (effectiveStatus === 'COMPLETED') return { endDateTime: { $lte: now } };
+        return {};
+    }
+
+
+    // Count rooms across all exams, optionally bucketed by real-time status
+    async countAllRooms(effectiveStatus?: 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED'): Promise<number> {
+        try {
+            return await this.examRoomModel.countDocuments(this.buildEffectiveStatusFilter(effectiveStatus)).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Find rooms across all exams, optionally bucketed by real-time status —
+    // the admin "Exam Room Allocation" overview page's data source
+    async findAllRooms(
+        effectiveStatus: 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED' | undefined,
+        skip: number,
+        limit: number,
+    ): Promise<ExamRoomDocument[]> {
+        try {
+            return await this.examRoomModel
+                .find(this.buildEffectiveStatusFilter(effectiveStatus))
+                .sort({ startDateTime: -1 })
+                .skip(skip)
+                .limit(limit)
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
 }

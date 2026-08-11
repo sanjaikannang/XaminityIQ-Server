@@ -45,6 +45,8 @@ import { ExamAttemptRepositoryService } from 'src/repositories/exam-attempt-repo
 import { ExamAnswerRepositoryService } from 'src/repositories/exam-answer-repository/exam-answer.repository';
 import { EvaluationProgressData } from 'src/api/user/admin/exam-management/get-evaluation-progress/get-evaluation-progress.response';
 import { ExamAttemptSummaryData } from 'src/api/user/admin/exam-management/get-exam-attempts/get-exam-attempts.response';
+import { GetAllExamRoomsRequest } from 'src/api/user/admin/exam-management/get-all-exam-rooms/get-all-exam-rooms.request';
+import { RoomOverviewData, PaginationMeta as RoomPaginationMeta } from 'src/api/user/admin/exam-management/get-all-exam-rooms/get-all-exam-rooms.response';
 
 const MIN_WRITTEN_MARKS = 2;
 const MAX_WRITTEN_MARKS = 20;
@@ -496,6 +498,131 @@ export class ExamManagementService {
         }
 
         return summaries;
+    }
+
+
+    // Get All Exam Rooms Overview API Endpoint — every room across every
+    // exam, for the admin "Exam Room Allocation" monitoring page
+    async getAllExamRoomsOverviewAPI(query: GetAllExamRoomsRequest): Promise<{
+        rooms: RoomOverviewData[];
+        pagination: RoomPaginationMeta;
+        statusCounts: { upcoming: number; inProgress: number; completed: number };
+    }> {
+        const page = query.page ?? 1;
+        const limit = query.limit ?? 20;
+        const skip = (page - 1) * limit;
+
+        const [totalItems, upcomingCount, inProgressCount, completedCount, rooms] = await Promise.all([
+            this.examRoomRepositoryService.countAllRooms(query.effectiveStatus),
+            this.examRoomRepositoryService.countAllRooms('UPCOMING'),
+            this.examRoomRepositoryService.countAllRooms('IN_PROGRESS'),
+            this.examRoomRepositoryService.countAllRooms('COMPLETED'),
+            this.examRoomRepositoryService.findAllRooms(query.effectiveStatus, skip, limit),
+        ]);
+
+        const faculties = await this.facultyRepositoryService.findByIdsPreserveOrder(
+            rooms.map((room) => room.facultyId),
+        );
+        const facultyCodeById = new Map(faculties.map((f) => [(f._id as Types.ObjectId).toString(), f.facultyId]));
+        const facultyDetailById = await this.resolveFacultyDetails(faculties);
+
+        const assignmentsByRoomId = new Map(
+            await Promise.all(rooms.map(async (room) => {
+                const assignments = await this.examRoomAssignmentRepositoryService.findByRoomId(room._id as Types.ObjectId);
+                return [(room._id as Types.ObjectId).toString(), assignments] as const;
+            })),
+        );
+        const allAssignmentsFlat = [...assignmentsByRoomId.values()].flat();
+
+        const allStudents = await this.studentRepositoryService.findByIdsPreserveOrder(
+            [...new Set(allAssignmentsFlat.map((a) => a.studentId.toString()))].map((id) => new Types.ObjectId(id)),
+        );
+        const studentCodeById = new Map(allStudents.map((s) => [(s._id as Types.ObjectId).toString(), s.studentId]));
+        const studentDetailById = await this.resolveStudentDetails(allStudents);
+
+        const distinctExamIds = [...new Set(allAssignmentsFlat.map((a) => a.examId.toString()))];
+        const examNameById = new Map<string, string>();
+        if (distinctExamIds.length > 0) {
+            const examDocs = await Promise.all(distinctExamIds.map((id) => this.examRepositoryService.findByIdRaw(id)));
+            distinctExamIds.forEach((id, index) => {
+                if (examDocs[index]) examNameById.set(id, examDocs[index]!.name);
+            });
+        }
+
+        const now = Date.now();
+        const roomsData: RoomOverviewData[] = rooms.map((room) => {
+            const roomIdStr = (room._id as Types.ObjectId).toString();
+            const assignments = assignmentsByRoomId.get(roomIdStr) || [];
+
+            const waitingCount = assignments.filter((a) => a.status === RoomAssignmentStatus.WAITING).length;
+            const admittedCount = assignments.filter((a) => a.status === RoomAssignmentStatus.ADMITTED).length;
+            const inProgressCount = assignments.filter((a) => a.status === RoomAssignmentStatus.IN_PROGRESS).length;
+            const completedCount = assignments.filter((a) => a.status === RoomAssignmentStatus.COMPLETED).length;
+            const removedOrRejectedCount = assignments.filter(
+                (a) => a.status === RoomAssignmentStatus.REJECTED || a.status === RoomAssignmentStatus.REMOVED,
+            ).length;
+
+            const startMs = new Date(room.startDateTime).getTime();
+            const endMs = new Date(room.endDateTime).getTime();
+            const effectiveStatus: RoomOverviewData['effectiveStatus'] =
+                now < startMs ? 'UPCOMING' : now < endMs ? 'IN_PROGRESS' : 'COMPLETED';
+
+            const facultyDetail = facultyDetailById.get(room.facultyId.toString());
+
+            return {
+                roomId: roomIdStr,
+                facultyId: room.facultyId.toString(),
+                facultyCode: facultyCodeById.get(room.facultyId.toString()) || '',
+                facultyName: facultyDetail?.name || '',
+                facultyEmail: facultyDetail?.email || '',
+                liveKitSessionId: room.liveKitSessionId,
+                startDateTime: room.startDateTime,
+                endDateTime: room.endDateTime,
+                durationMinutes: room.durationMinutes,
+                status: room.status,
+                effectiveStatus,
+                examNames: [...new Set(assignments.map((a) => examNameById.get(a.examId.toString()) || ''))].filter(Boolean),
+                waitingCount,
+                admittedCount,
+                inProgressCount,
+                completedCount,
+                removedOrRejectedCount,
+                totalOccupancy: assignments.length,
+                assignments: assignments.map((a) => {
+                    const studentIdStr = a.studentId.toString();
+                    const studentDetail = studentDetailById.get(studentIdStr);
+                    return {
+                        assignmentId: (a._id as Types.ObjectId).toString(),
+                        examId: a.examId.toString(),
+                        examName: examNameById.get(a.examId.toString()) || '',
+                        studentId: studentIdStr,
+                        studentCode: studentCodeById.get(studentIdStr) || '',
+                        studentName: studentDetail?.name || '',
+                        studentEmail: studentDetail?.email || '',
+                        status: a.status,
+                        enteredWaitingRoomAt: a.enteredWaitingRoomAt,
+                        admittedAt: a.admittedAt,
+                        removedAt: a.removedAt,
+                        removalReason: a.removalReason,
+                    };
+                }),
+            };
+        });
+
+        const totalPages = Math.ceil(totalItems / limit) || 1;
+
+        return {
+            rooms: roomsData,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalItems,
+                itemsPerPage: limit,
+                hasNextPage: page < totalPages,
+                hasPreviousPage: page > 1,
+            },
+            statusCounts: { upcoming: upcomingCount, inProgress: inProgressCount, completed: completedCount },
+        };
     }
 
 
