@@ -77,6 +77,7 @@ import { EditExamController } from './exam-management/edit-exam/edit-exam.contro
 import { DeleteExamController } from './exam-management/delete-exam/delete-exam.controller';
 import { PublishExamController } from './exam-management/publish-exam/publish-exam.controller';
 import { AddQuestionController } from './exam-management/add-question/add-question.controller';
+import { BulkUploadQuestionsController } from './exam-management/bulk-upload-questions/bulk-upload-questions.controller';
 import { EditQuestionController } from './exam-management/edit-question/edit-question.controller';
 import { DeleteQuestionController } from './exam-management/delete-question/delete-question.controller';
 import { FormExamRoomsController } from './exam-management/form-exam-rooms/form-exam-rooms.controller';
@@ -88,6 +89,7 @@ import { GetExamAttemptsController } from './exam-management/get-exam-attempts/g
 import { GetDashboardOverviewController } from './dashboard/get-dashboard-overview/get-dashboard-overview.controller';
 import { GetAllExamRoomsController } from './exam-management/get-all-exam-rooms/get-all-exam-rooms.controller';
 import { GetAttemptRecordingController } from './exam-management/get-attempt-recording/get-attempt-recording.controller';
+import { GetAttemptAnswersController } from './exam-management/get-attempt-answers/get-attempt-answers.controller';
 
 // Modules
 import { ServiceModule } from 'src/services/service.module';
@@ -168,6 +170,7 @@ import { JwtModule } from '@nestjs/jwt';
         DeleteExamController,
         PublishExamController,
         AddQuestionController,
+        BulkUploadQuestionsController,
         EditQuestionController,
         DeleteQuestionController,
         FormExamRoomsController,
@@ -178,7 +181,8 @@ import { JwtModule } from '@nestjs/jwt';
         GetExamAttemptsController,
         GetDashboardOverviewController,
         GetAllExamRoomsController,
-        GetAttemptRecordingController
+        GetAttemptRecordingController,
+        GetAttemptAnswersController
     ],
     providers: [
         ConfigService,

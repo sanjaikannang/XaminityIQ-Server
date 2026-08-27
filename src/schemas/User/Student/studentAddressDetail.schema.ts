@@ -27,7 +27,10 @@ export class Address {
 
 @Schema({ timestamps: true })
 export class StudentAddressDetail {
-    @Prop({ type: Address, required: true })
+    // Optional — not collected at admission time (self-serve profile
+    // completion fills this in). A StudentAddressDetail row now only exists
+    // once the student adds one.
+    @Prop({ type: Address })
     currentAddress: Address;
 
     @Prop({ default: false })

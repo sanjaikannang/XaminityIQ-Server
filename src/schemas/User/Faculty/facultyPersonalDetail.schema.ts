@@ -18,10 +18,11 @@ export class FacultyPersonalDetail {
     @Prop({ required: true })
     dateOfBirth: string;
 
-    @Prop({ required: true, enum: Object.values(MaritalStatus) })
+    // Optional at creation — self-serve profile completion
+    @Prop({ enum: Object.values(MaritalStatus) })
     maritalStatus: string;
 
-    @Prop({ required: true })
+    @Prop()
     profilePhotoUrl: string;
 
     @Prop({ required: true, default: Nationality.INDIAN })

@@ -3,7 +3,7 @@ export class PersonalDetails {
     lastName: string;
     gender: string;
     dateOfBirth: string;
-    profilePhotoUrl: string;
+    profilePhotoUrl?: string;
     nationality: string;
     religion?: string;
 }
@@ -19,7 +19,7 @@ export class ContactDetails {
     studentEmail: string;
     phoneNumber: string;
     alternatePhoneNumber?: string;
-    emergencyContact: EmergencyContact;
+    emergencyContact?: EmergencyContact;
 }
 
 export class Address {
@@ -32,7 +32,7 @@ export class Address {
 }
 
 export class AddressDetails {
-    currentAddress: Address;
+    currentAddress?: Address;
     sameAsCurrent: boolean;
     permanentAddress?: Address;
 }
@@ -88,6 +88,8 @@ export class StudentProfileData {
     academicDetails: AcademicDetails;
     educationHistory: EducationHistory[];
     parentDetails?: ParentDetails;
+    // 0-100 — see StudentService.computeProfileCompletion for the definition
+    profileCompletionPercentage: number;
 }
 
 export class GetMyProfileResponse {

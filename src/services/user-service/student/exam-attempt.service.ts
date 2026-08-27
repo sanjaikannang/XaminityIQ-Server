@@ -7,7 +7,8 @@ import {
     ConflictException,
     BadRequestException,
 } from '@nestjs/common';
-import { AttemptStatus, ChatRecipientType, ChatSenderRole, ExamMode, ExamStatus, MediaStatus, QuestionType, RecordingMediaType, SubmissionTrigger, ViolationType } from 'src/utils/enum';
+import { AttemptStatus, ChatRecipientType, ChatSenderRole, ExamMode, ExamStatus, MediaStatus, QuestionType, RecordingMediaType, RoomAssignmentStatus, SubmissionTrigger, ViolationType } from 'src/utils/enum';
+import { combineDateTimeIST } from 'src/utils/date.util';
 
 // Repositories
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
@@ -83,8 +84,13 @@ export class ExamAttemptService {
             text: question.text,
             marks: question.marks,
             order: question.order,
+            examSectionId: question.examSectionId ? question.examSectionId.toString() : undefined,
             options: options?.map((opt: any) => ({ optionId: opt.optionId, text: opt.text })),
         };
+    }
+
+    private mapExamSections(exam: any) {
+        return (exam.examSections || []).map((s: any) => ({ _id: s._id.toString(), label: s.label, order: s.order }));
     }
 
     // Fisher-Yates shuffle — used for per-student question/option order (securitySettings)
@@ -180,8 +186,14 @@ export class ExamAttemptService {
             throw new ForbiddenException('This exam is not currently open');
         }
 
+        // IST-aware — exam.startTime/endTime are "HH:mm" always interpreted as
+        // IST (see date.util.ts). Using exam.startDate/endDate alone (dates
+        // with no time-of-day) previously opened the window at UTC midnight,
+        // silently 5:30 off from what an IST-thinking admin expects.
         const now = new Date();
-        if (now < exam.startDate || now > exam.endDate) {
+        const windowStart = combineDateTimeIST(exam.startDate, exam.startTime);
+        const windowEnd = combineDateTimeIST(exam.endDate, exam.endTime);
+        if (now < windowStart || now > windowEnd) {
             throw new ForbiddenException('This exam is outside its scheduled window');
         }
 
@@ -287,6 +299,7 @@ export class ExamAttemptService {
             durationMinutes: exam.durationMinutes,
             startedAt: attempt.startedAt,
             securitySettings: exam.securitySettings,
+            examSections: this.mapExamSections(exam),
             questions: orderedQuestions.map((q) =>
                 this.sanitizeQuestion(q, attempt.optionOrder?.[(q._id as Types.ObjectId).toString()]),
             ),
@@ -320,6 +333,7 @@ export class ExamAttemptService {
             status: attempt.status,
             remainingMs,
             securitySettings: exam.securitySettings,
+            examSections: this.mapExamSections(exam),
             questions: orderedQuestions.map((q) =>
                 this.sanitizeQuestion(q, (attempt as any).optionOrder?.[(q._id as Types.ObjectId).toString()]),
             ),
@@ -327,7 +341,39 @@ export class ExamAttemptService {
                 questionId: a.questionId.toString(),
                 selectedOptionId: a.selectedOptionId,
                 selectedOptionIds: a.selectedOptionIds,
+                answerText: a.answerText,
+                firstViewedAt: a.firstViewedAt,
             })),
+        };
+    }
+
+
+    // Record that the student has navigated to a question — a no-op past
+    // the first call. Returns firstViewedAt (+ the exam's configured
+    // minTimePerQuestionSeconds) so the client can compute when navigation
+    // past this question is allowed.
+    async viewQuestionAPI(userId: string, attemptId: string, questionId: string) {
+        const { attempt } = await this.ownAttemptOrThrow(userId, attemptId);
+
+        if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+            throw new ForbiddenException('This attempt is no longer in progress');
+        }
+
+        const exam = await this.examRepositoryService.findByIdRaw(attempt.examId.toString());
+        if (!exam) {
+            throw new NotFoundException('Exam not found');
+        }
+
+        const question = await this.examQuestionRepositoryService.findById(questionId);
+        if (!question || question.examId.toString() !== attempt.examId.toString()) {
+            throw new NotFoundException('Question not found');
+        }
+
+        const answer = await this.examAnswerRepositoryService.markFirstViewed(attemptId, questionId);
+
+        return {
+            firstViewedAt: answer?.firstViewedAt,
+            minTimePerQuestionSeconds: (exam.securitySettings as any)?.minTimePerQuestionSeconds || 0,
         };
     }
 
@@ -337,7 +383,7 @@ export class ExamAttemptService {
         userId: string,
         attemptId: string,
         questionId: string,
-        data: { selectedOptionId?: string; selectedOptionIds?: string[] },
+        data: { selectedOptionId?: string; selectedOptionIds?: string[]; answerText?: string },
     ) {
         const { attempt } = await this.ownAttemptOrThrow(userId, attemptId);
 
@@ -375,6 +421,10 @@ export class ExamAttemptService {
             await this.examAnswerRepositoryService.upsertAnswer(attemptId, questionId, {
                 selectedOptionIds: selected,
             });
+        } else if (question.type === QuestionType.TYPING) {
+            await this.examAnswerRepositoryService.upsertAnswer(attemptId, questionId, {
+                answerText: data.answerText ?? '',
+            });
         } else {
             throw new BadRequestException('WRITTEN questions cannot be answered this way yet');
         }
@@ -391,6 +441,18 @@ export class ExamAttemptService {
         const exam = await this.examRepositoryService.findByIdRaw(attempt.examId.toString());
         if (!exam) {
             throw new NotFoundException('Exam not found');
+        }
+
+        // Only a student-initiated MANUAL submit respects the minimum — a
+        // timer expiry, integrity auto-submit, or faculty removal is a forced
+        // exit and must always be allowed through regardless of elapsed time.
+        const minExamMinutes = (exam.securitySettings as any)?.minTimePerExamMinutes;
+        if (clientTrigger === SubmissionTrigger.MANUAL && minExamMinutes) {
+            const elapsedMs = Date.now() - new Date(attempt.startedAt as Date).getTime();
+            if (elapsedMs < minExamMinutes * 60000) {
+                const remainingSeconds = Math.ceil((minExamMinutes * 60000 - elapsedMs) / 1000);
+                throw new ForbiddenException(`You must spend at least ${minExamMinutes} minute(s) on this exam before submitting — ${remainingSeconds}s remaining`);
+            }
         }
 
         return this.finalizeAttempt(attempt, exam, clientTrigger);
@@ -615,6 +677,19 @@ export class ExamAttemptService {
             throw new NotFoundException('Room not yet assigned for this exam — please try again closer to the exam start time');
         }
 
+        // A DISCONNECTED assignment (grace-period-exceeded LiveKit dropout,
+        // not a faculty action) is the one non-terminal status here — rejoining
+        // resets it back to WAITING for re-admission. REMOVED/REJECTED stay
+        // terminal (faculty-initiated, shown with their reason instead).
+        let effectiveStatus = assignment.status;
+        if (assignment.status === RoomAssignmentStatus.DISCONNECTED) {
+            const updated = await this.examRoomAssignmentRepositoryService.updateById((assignment._id as Types.ObjectId).toString(), {
+                status: RoomAssignmentStatus.WAITING,
+                disconnectedAt: null,
+            } as any);
+            effectiveStatus = updated?.status ?? RoomAssignmentStatus.WAITING;
+        }
+
         if (!assignment.enteredWaitingRoomAt) {
             await this.examRoomAssignmentRepositoryService.updateById((assignment._id as Types.ObjectId).toString(), {
                 enteredWaitingRoomAt: new Date(),
@@ -624,7 +699,7 @@ export class ExamAttemptService {
         return {
             roomId: assignment.roomId.toString(),
             assignmentId: (assignment._id as Types.ObjectId).toString(),
-            status: assignment.status,
+            status: effectiveStatus,
         };
     }
 
@@ -793,16 +868,41 @@ export class ExamAttemptService {
     }
 
 
-    // Poll target for the desktop screen while the QR is displayed
+    // Poll target for the desktop screen while the QR is displayed — also the
+    // manual "Sync" action's target, since it's the same data either way.
     async getWrittenQrStatusAPI(userId: string, attemptId: string, questionId: string) {
         const { answer } = await this.resolveWrittenAnswer(userId, attemptId, questionId);
 
         return {
             pageCount: answer.pages.length,
+            pages: [...answer.pages].sort((a, b) => a.pageNumber - b.pageNumber),
             qrScannedAt: answer.qrScannedAt,
             isFinalized: answer.isFinalized,
             qrTokenExpiresAt: answer.qrTokenExpiresAt,
         };
+    }
+
+
+    // Desktop-side delete — lets the student remove a mis-uploaded page before
+    // finalizing. Cloudinary's public_id is deterministically
+    // `written-answers/{answerId}/{pageNumber}` (see written-answer.service.ts's
+    // getUploadSignatureAPI), so it can be reconstructed here without storing
+    // it separately on the page record.
+    async deleteWrittenAnswerPageAPI(userId: string, attemptId: string, questionId: string, pageNumber: number) {
+        const { answer } = await this.resolveWrittenAnswer(userId, attemptId, questionId);
+
+        const exists = answer.pages.some((p) => p.pageNumber === pageNumber);
+        if (!exists) {
+            throw new NotFoundException('Page not found');
+        }
+
+        const answerId = (answer._id as Types.ObjectId).toString();
+        const publicId = `written-answers/${answerId}/${pageNumber}`;
+        await this.cloudinaryService.destroyByPublicId(publicId);
+
+        const updated = await this.examAnswerRepositoryService.removePage(answerId, pageNumber);
+
+        return { pageCount: updated?.pages.length ?? 0 };
     }
 
 

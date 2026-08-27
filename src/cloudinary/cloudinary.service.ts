@@ -72,6 +72,19 @@ export class CloudinaryService {
     }
 
 
+    // Delete an asset by its exact known public_id (including folder prefix) —
+    // use this over deleteImage() whenever the public_id was deterministically
+    // constructed at upload time (e.g. multi-level folders), since
+    // extractPublicId() below only recovers one folder level from a URL.
+    async destroyByPublicId(publicId: string): Promise<void> {
+        try {
+            await cloudinary.uploader.destroy(publicId);
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to delete image from Cloudinary');
+        }
+    }
+
+
     // Delete Image
     async deleteImage(imageUrl: string): Promise<void> {
         try {

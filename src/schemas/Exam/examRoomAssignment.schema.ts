@@ -41,6 +41,13 @@ export class ExamRoomAssignment {
     @Prop()
     removalReason: string;
 
+    // Set when a LiveKit `participant_left` webhook fires for this student
+    // while ADMITTED/IN_PROGRESS; cleared on reconnect (`participant_joined`).
+    // A scheduled sweep (see LiveKitDisconnectSweepService) flips the status
+    // to DISCONNECTED once this exceeds the exam's connectionLossGracePeriodMinutes.
+    @Prop()
+    disconnectedAt: Date;
+
 }
 
 export const ExamRoomAssignmentSchema = SchemaFactory.createForClass(ExamRoomAssignment);

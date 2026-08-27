@@ -1,9 +1,9 @@
 import { Type } from 'class-transformer';
 import { ExamMode } from 'src/utils/enum';
-import { SecuritySettingsInput } from '../create-exam/create-exam.request';
+import { ExamSectionInput, SecuritySettingsInput } from '../create-exam/create-exam.request';
 import {
     IsString, IsNotEmpty, IsOptional, IsEnum, IsMongoId, IsInt, Min,
-    IsDateString, ValidateNested,
+    IsDateString, ValidateNested, IsArray, ArrayMinSize,
 } from 'class-validator';
 
 export class EditExamRequest {
@@ -78,6 +78,15 @@ export class EditExamRequest {
     @IsString()
     @IsNotEmpty()
     endTime?: string;
+
+    // Replaces the full list when provided (matches how securitySettings is
+    // already edited as a whole nested object, not per-field).
+    @IsOptional()
+    @IsArray()
+    @ArrayMinSize(1)
+    @ValidateNested({ each: true })
+    @Type(() => ExamSectionInput)
+    examSections?: ExamSectionInput[];
 
     @IsOptional()
     @ValidateNested()

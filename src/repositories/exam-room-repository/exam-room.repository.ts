@@ -30,6 +30,17 @@ export class ExamRoomRepositoryService {
     }
 
 
+    // Find a room by its LiveKit session/room name — used by the LiveKit
+    // webhook to map an incoming event's room.name back to our own room doc
+    async findByLiveKitSessionId(liveKitSessionId: string): Promise<ExamRoomDocument | null> {
+        try {
+            return await this.examRoomModel.findOne({ liveKitSessionId }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
     // Find all rooms belonging to an exam
     async findByExamId(examId: string | Types.ObjectId): Promise<ExamRoomDocument[]> {
         try {

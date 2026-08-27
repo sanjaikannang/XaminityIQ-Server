@@ -2,8 +2,31 @@ import { Type } from 'class-transformer';
 import { ExamMode } from 'src/utils/enum';
 import {
     IsString, IsNotEmpty, IsOptional, IsEnum, IsMongoId, IsInt, Min,
-    IsDateString, ValidateIf, ValidateNested, IsBoolean,
+    IsDateString, ValidateNested, IsBoolean, IsArray, ArrayMinSize,
 } from 'class-validator';
+
+// A named group of questions ("Section A", "Section B", ...) — not to be
+// confused with the academic `sectionId` (class/division) field below.
+export class ExamSectionInput {
+
+    // Omit when creating a new section; include an EXISTING section's id
+    // (from a prior GetExam response) to rename/reorder it in place on edit
+    // — Mongoose preserves a provided subdocument _id and only generates a
+    // fresh one when absent, so existing ExamQuestion.examSectionId
+    // references stay valid across an edit.
+    @IsOptional()
+    @IsMongoId()
+    _id?: string;
+
+    @IsString()
+    @IsNotEmpty()
+    label: string;
+
+    @IsInt()
+    @Min(1)
+    order: number;
+
+}
 
 export class SecuritySettingsInput {
 
@@ -54,6 +77,18 @@ export class SecuritySettingsInput {
     @IsOptional()
     @IsBoolean()
     faceDetectionEnabled?: boolean;
+
+    // 0/omitted means no minimum — disabled
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    minTimePerQuestionSeconds?: number;
+
+    // 0/omitted means no minimum — disabled
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    minTimePerExamMinutes?: number;
 
 }
 
@@ -107,16 +142,21 @@ export class CreateExamRequest {
     @IsDateString()
     endDate: string;
 
-    // PROCTORING only
-    @ValidateIf((o) => o.mode === ExamMode.PROCTORING)
+    // Required for both AUTO and PROCTORING — always IST (see date.util.ts)
     @IsString()
     @IsNotEmpty()
-    startTime?: string;
+    startTime: string;
 
-    @ValidateIf((o) => o.mode === ExamMode.PROCTORING)
     @IsString()
     @IsNotEmpty()
-    endTime?: string;
+    endTime: string;
+
+    @IsOptional()
+    @IsArray()
+    @ArrayMinSize(1)
+    @ValidateNested({ each: true })
+    @Type(() => ExamSectionInput)
+    examSections?: ExamSectionInput[];
 
     @IsOptional()
     @ValidateNested()

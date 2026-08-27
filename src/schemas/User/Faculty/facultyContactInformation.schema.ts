@@ -30,7 +30,8 @@ export class FacultyContactInformation {
     @Prop()
     alternatePhoneNumber: string;
 
-    @Prop({ type: FacultyEmergencyContact, required: true })
+    // Optional at creation — self-serve profile completion
+    @Prop({ type: FacultyEmergencyContact })
     emergencyContact: FacultyEmergencyContact;
 }
 

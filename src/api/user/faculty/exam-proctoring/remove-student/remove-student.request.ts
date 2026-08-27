@@ -1,10 +1,10 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class RemoveStudentRequest {
 
-    @IsOptional()
     @IsString()
+    @IsNotEmpty()
     @MaxLength(500)
-    reason?: string;
+    reason: string;
 
 }

@@ -40,6 +40,30 @@ export class SecuritySettings {
     @Prop({ default: false })
     faceDetectionEnabled: boolean;
 
+    // 0 (default) means no minimum — disabled
+    @Prop({ default: 0 })
+    minTimePerQuestionSeconds: number;
+
+    // 0 (default) means no minimum — disabled
+    @Prop({ default: 0 })
+    minTimePerExamMinutes: number;
+
+}
+
+// A named group of questions within an exam ("Section A", "Section B", ...),
+// purely an authoring/navigation grouping — not to be confused with the
+// academic `Section` (class/division) referenced by `Exam.sectionId` below.
+// Not `{ _id: false }`: each entry keeps its own ObjectId so `ExamQuestion`
+// can reference it via `examSectionId`.
+@Schema()
+export class ExamSectionDef {
+
+    @Prop({ required: true })
+    label: string;
+
+    @Prop({ required: true })
+    order: number;
+
 }
 
 @Schema({ timestamps: true })
@@ -92,12 +116,16 @@ export class Exam {
     @Prop({ required: true })
     endDate: Date;
 
-    // PROCTORING only (e.g. "09:00"). Null for AUTO
-    @Prop()
+    // "HH:mm", e.g. "09:00" — always IST (see src/utils/date.util.ts).
+    // Required for both AUTO and PROCTORING modes.
+    @Prop({ required: true })
     startTime: string;
 
-    @Prop()
+    @Prop({ required: true })
     endTime: string;
+
+    @Prop({ type: [ExamSectionDef], default: [] })
+    examSections: ExamSectionDef[];
 
     @Prop({ type: [{ type: Types.ObjectId, ref: 'Faculty' }], default: [] })
     evaluatorFacultyIds: Types.ObjectId[];
