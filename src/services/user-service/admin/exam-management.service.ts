@@ -8,6 +8,7 @@ import {
     ForbiddenException,
 } from '@nestjs/common';
 import { AttemptStatus, ExamMode, ExamRoomStatus, ExamStatus, MediaStatus, QuestionType, RoomAssignmentStatus, StudentStatus } from 'src/utils/enum';
+import { combineDateTimeIST } from 'src/utils/date.util';
 
 // Requests
 import { CreateExamRequest } from 'src/api/user/admin/exam-management/create-exam/create-exam.request';
@@ -48,10 +49,15 @@ import { ExamAttemptSummaryData } from 'src/api/user/admin/exam-management/get-e
 import { GetAllExamRoomsRequest } from 'src/api/user/admin/exam-management/get-all-exam-rooms/get-all-exam-rooms.request';
 import { RoomOverviewData, PaginationMeta as RoomPaginationMeta } from 'src/api/user/admin/exam-management/get-all-exam-rooms/get-all-exam-rooms.response';
 import { AttemptRecordingData } from 'src/api/user/admin/exam-management/get-attempt-recording/get-attempt-recording.response';
+import { AttemptQuestionAnswerData } from 'src/api/user/admin/exam-management/get-attempt-answers/get-attempt-answers.response';
 import { ExamRecordingRepositoryService } from 'src/repositories/exam-recording-repository/exam-recording.repository';
 
 const MIN_WRITTEN_MARKS = 2;
 const MAX_WRITTEN_MARKS = 20;
+
+// Question types scored by hand (photo upload / typed text), sharing the
+// same marks-range constraint and the same evaluation queue.
+const SUBJECTIVE_TYPES: QuestionType[] = [QuestionType.WRITTEN, QuestionType.TYPING];
 
 @Injectable()
 export class ExamManagementService {
@@ -126,36 +132,31 @@ export class ExamManagementService {
             throw new BadRequestException('Subject does not belong to the selected department/semester');
         }
 
-        const startDate = new Date(data.startDate);
-        const endDate = new Date(data.endDate);
-
-        if (data.mode === ExamMode.AUTO) {
-            if (endDate.getTime() <= startDate.getTime()) {
-                throw new BadRequestException('End Date must be after Start Date');
-            }
-            if (endDate.getTime() - startDate.getTime() < data.durationMinutes * 60000) {
-                throw new BadRequestException('The Start-End window must be at least as long as the Duration');
-            }
-        } else {
-            if (!data.startTime || !data.endTime) {
-                throw new BadRequestException('Start Time and End Time are required for PROCTORING exams');
-            }
-            const startDateTime = this.combineDateTime(data.startDate, data.startTime);
-            const endDateTime = this.combineDateTime(data.endDate, data.endTime);
-            if (endDateTime.getTime() <= startDateTime.getTime()) {
-                throw new BadRequestException('End Date+Time must be after Start Date+Time');
-            }
-            if (endDateTime.getTime() - startDateTime.getTime() < data.durationMinutes * 60000) {
-                throw new BadRequestException('The Start-End window must be at least as long as the Duration');
-            }
+        // Time-of-day is required for both AUTO and PROCTORING — always IST
+        // (see src/utils/date.util.ts). AUTO's own availability window
+        // (student-facing startAttemptAPI) is IST-aware for the same reason.
+        if (!data.startTime || !data.endTime) {
+            throw new BadRequestException('Start Time and End Time are required');
+        }
+        const startDateTime = combineDateTimeIST(data.startDate, data.startTime);
+        const endDateTime = combineDateTimeIST(data.endDate, data.endTime);
+        if (endDateTime.getTime() <= startDateTime.getTime()) {
+            throw new BadRequestException('End Date+Time must be after Start Date+Time');
+        }
+        if (endDateTime.getTime() - startDateTime.getTime() < data.durationMinutes * 60000) {
+            throw new BadRequestException('The Start-End window must be at least as long as the Duration');
         }
 
         return { batch, course, department, section, subject };
     }
 
-    private combineDateTime(date: string, time: string): Date {
-        const datePart = new Date(date).toISOString().split('T')[0];
-        return new Date(`${datePart}T${time}:00`);
+    // minTimePerExamMinutes must leave room for a manual submit — otherwise
+    // only TIMER_EXPIRY could ever finalize the attempt.
+    private validateMinTimeSettings(durationMinutes: number, securitySettings?: { minTimePerExamMinutes?: number }) {
+        const minTime = securitySettings?.minTimePerExamMinutes;
+        if (minTime && minTime >= durationMinutes) {
+            throw new BadRequestException('Min. Time For Whole Exam must be less than the exam Duration');
+        }
     }
 
     private validateMarks(totalMarks: number, passingMarks: number) {
@@ -208,6 +209,7 @@ export class ExamManagementService {
             text: question.text,
             marks: question.marks,
             order: question.order,
+            examSectionId: question.examSectionId ? question.examSectionId.toString() : undefined,
             options: question.options,
             correctOptionIds: question.correctOptionIds,
             createdAt: question.createdAt,
@@ -218,6 +220,7 @@ export class ExamManagementService {
     // Create Exam API Endpoint
     async createExamAPI(createExamData: CreateExamRequest, userId?: string) {
         this.validateMarks(createExamData.totalMarks, createExamData.passingMarks);
+        this.validateMinTimeSettings(createExamData.durationMinutes, createExamData.securitySettings);
         await this.validateHierarchyAndSchedule(createExamData);
 
         const exam = await this.examRepositoryService.create({
@@ -236,8 +239,9 @@ export class ExamManagementService {
             passingMarks: createExamData.passingMarks,
             startDate: new Date(createExamData.startDate),
             endDate: new Date(createExamData.endDate),
-            startTime: createExamData.mode === ExamMode.PROCTORING ? createExamData.startTime : undefined,
-            endTime: createExamData.mode === ExamMode.PROCTORING ? createExamData.endTime : undefined,
+            startTime: createExamData.startTime,
+            endTime: createExamData.endTime,
+            examSections: (createExamData.examSections || []).map((s) => ({ label: s.label, order: s.order })),
             securitySettings: createExamData.securitySettings as any,
             createdBy: userId ? new Types.ObjectId(userId) : undefined,
         } as any);
@@ -348,8 +352,8 @@ export class ExamManagementService {
             throw new BadRequestException('No students matched this exam\'s (or its window-siblings\') hierarchy selection');
         }
 
-        const startDateTime = this.combineDateTime(exam.startDate.toISOString(), exam.startTime as string);
-        const endDateTime = this.combineDateTime(exam.endDate.toISOString(), exam.endTime as string);
+        const startDateTime = combineDateTimeIST(exam.startDate, exam.startTime as string);
+        const endDateTime = combineDateTimeIST(exam.endDate, exam.endTime as string);
 
         const roomsToCreate = allGroups.map((group, index) => {
             const distinctExamIds = [...new Set(group.map((g) => g.examId.toString()))];
@@ -678,6 +682,61 @@ export class ExamManagementService {
     }
 
 
+    private isAnswerCorrect(question: any, answer: any): boolean {
+        if (!answer) return false;
+        if (question.type === QuestionType.MCQ) {
+            return !!answer.selectedOptionId && (question.correctOptionIds || []).includes(answer.selectedOptionId);
+        }
+        if (question.type === QuestionType.MSQ) {
+            const selected: string[] = answer.selectedOptionIds || [];
+            const correct: string[] = question.correctOptionIds || [];
+            return selected.length === correct.length && selected.every((id) => correct.includes(id));
+        }
+        return false;
+    }
+
+
+    // Get Attempt Answers API Endpoint — every question in the exam alongside
+    // this attempt's answer (MCQ/MSQ selections resolved to option text +
+    // correctness, WRITTEN pages, TYPING text), for the admin per-attempt
+    // review view. Unlike the faculty evaluation queue, this is admin-only,
+    // covers every question type, and isn't scoped to a single evaluator.
+    async getAttemptAnswersAPI(attemptId: string): Promise<AttemptQuestionAnswerData[]> {
+        const attempt = await this.examAttemptRepositoryService.findById(attemptId);
+        if (!attempt) throw new NotFoundException('Attempt not found');
+
+        const [questions, answers] = await Promise.all([
+            this.examQuestionRepositoryService.findByExamId(attempt.examId.toString()),
+            this.examAnswerRepositoryService.findByAttemptId(attemptId),
+        ]);
+        const answerByQuestionId = new Map(answers.map((a) => [a.questionId.toString(), a]));
+
+        return questions.map((question) => {
+            const questionId = (question._id as Types.ObjectId).toString();
+            const answer = answerByQuestionId.get(questionId);
+            const optionById = new Map((question.options || []).map((o) => [o.optionId, o.text]));
+
+            return {
+                questionId,
+                type: question.type,
+                text: question.text,
+                marks: question.marks,
+                order: question.order,
+                examSectionId: question.examSectionId ? question.examSectionId.toString() : undefined,
+                selectedOptionText: answer?.selectedOptionId ? optionById.get(answer.selectedOptionId) : undefined,
+                selectedOptionTexts: answer?.selectedOptionIds?.map((id) => optionById.get(id)).filter((t): t is string => !!t),
+                isCorrect: (question.type === QuestionType.MCQ || question.type === QuestionType.MSQ)
+                    ? this.isAnswerCorrect(question, answer)
+                    : undefined,
+                pages: answer?.pages,
+                answerText: answer?.answerText,
+                marksAwarded: answer?.marksAwarded,
+                remarks: answer?.remarks,
+            };
+        });
+    }
+
+
     // Get Exam By Id API Endpoint
     async getExamByIdAPI(examId: string): Promise<ExamDetailData> {
         const exam = await this.examRepositoryService.findById(examId);
@@ -691,6 +750,11 @@ export class ExamManagementService {
             ...this.mapExam(exam),
             evaluatorFacultyIds: (exam.evaluatorFacultyIds || []).map((id: any) => id.toString()),
             securitySettings: exam.securitySettings as any,
+            examSections: (exam.examSections || []).map((s: any) => ({
+                _id: s._id.toString(),
+                label: s.label,
+                order: s.order,
+            })),
             questions: questions.map((q) => this.mapQuestion(q)),
             totalQuestionMarks,
             matchedStudentCount,
@@ -760,6 +824,10 @@ export class ExamManagementService {
             };
             await this.validateHierarchyAndSchedule(merged);
             this.validateMarks(data.totalMarks ?? exam.totalMarks, data.passingMarks ?? exam.passingMarks);
+            this.validateMinTimeSettings(
+                data.durationMinutes ?? exam.durationMinutes,
+                (data.securitySettings ?? exam.securitySettings) as any,
+            );
 
             const updatePayload: any = { ...data, updatedBy: userId ? new Types.ObjectId(userId) : undefined };
             if (data.batchId) updatePayload.batchId = new Types.ObjectId(data.batchId);
@@ -850,7 +918,7 @@ export class ExamManagementService {
 
 
     private buildOptionsAndCorrectIds(type: QuestionType, options?: { text: string; isCorrect: boolean }[]) {
-        if (type === QuestionType.WRITTEN) {
+        if (SUBJECTIVE_TYPES.includes(type)) {
             return { options: undefined, correctOptionIds: undefined };
         }
 
@@ -877,14 +945,25 @@ export class ExamManagementService {
     }
 
 
+    // A provided examSectionId must reference one of the exam's own examSections
+    private assertValidExamSection(exam: any, examSectionId?: string) {
+        if (!examSectionId) return;
+        const exists = (exam.examSections || []).some((s: any) => s._id.toString() === examSectionId);
+        if (!exists) {
+            throw new BadRequestException('examSectionId does not belong to this exam');
+        }
+    }
+
+
     // Add Question API Endpoint
     async addQuestionAPI(examId: string, data: AddQuestionRequest, userId?: string): Promise<QuestionData> {
         const exam = await this.examRepositoryService.findById(examId);
         this.assertExamIsDraft(exam);
+        this.assertValidExamSection(exam, data.examSectionId);
 
-        if (data.type === QuestionType.WRITTEN) {
+        if (SUBJECTIVE_TYPES.includes(data.type)) {
             if (data.marks < MIN_WRITTEN_MARKS || data.marks > MAX_WRITTEN_MARKS) {
-                throw new BadRequestException(`Written questions must be worth between ${MIN_WRITTEN_MARKS} and ${MAX_WRITTEN_MARKS} marks`);
+                throw new BadRequestException(`Written/Typing questions must be worth between ${MIN_WRITTEN_MARKS} and ${MAX_WRITTEN_MARKS} marks`);
             }
         }
 
@@ -897,6 +976,7 @@ export class ExamManagementService {
             text: data.text,
             marks: data.marks,
             order,
+            examSectionId: data.examSectionId ? new Types.ObjectId(data.examSectionId) : undefined,
             options,
             correctOptionIds,
             createdBy: userId ? new Types.ObjectId(userId) : undefined,
@@ -906,10 +986,42 @@ export class ExamManagementService {
     }
 
 
+    // Bulk Upload Questions API Endpoint — CSV-parsed rows from the client,
+    // each validated/created the same way as a single addQuestionAPI call.
+    // No cross-row transaction: question creation touches a single
+    // collection, so a failed row just gets recorded and skipped.
+    async bulkUploadQuestionsAPI(examId: string, data: { questions: AddQuestionRequest[] }, userId?: string) {
+        const exam = await this.examRepositoryService.findById(examId);
+        this.assertExamIsDraft(exam);
+
+        const successfulUploads: { rowNumber: number; questionId?: string; status: 'success' | 'failed'; error?: string }[] = [];
+        const failedUploads: { rowNumber: number; questionId?: string; status: 'success' | 'failed'; error?: string }[] = [];
+
+        for (let i = 0; i < data.questions.length; i++) {
+            const rowNumber = i + 1;
+            try {
+                const question = await this.addQuestionAPI(examId, data.questions[i], userId);
+                successfulUploads.push({ rowNumber, questionId: question._id, status: 'success' });
+            } catch (error: any) {
+                failedUploads.push({ rowNumber, status: 'failed', error: error?.message || 'Failed to create question' });
+            }
+        }
+
+        return {
+            totalRecords: data.questions.length,
+            successCount: successfulUploads.length,
+            failedCount: failedUploads.length,
+            successfulUploads,
+            failedUploads,
+        };
+    }
+
+
     // Edit Question API Endpoint
     async editQuestionAPI(examId: string, questionId: string, data: EditQuestionRequest, userId?: string): Promise<void> {
         const exam = await this.examRepositoryService.findById(examId);
         this.assertExamIsDraft(exam);
+        this.assertValidExamSection(exam, data.examSectionId);
 
         const question = await this.examQuestionRepositoryService.findById(questionId);
         if (!question || question.examId.toString() !== examId) {
@@ -919,8 +1031,8 @@ export class ExamManagementService {
         const type = data.type ?? (question.type as QuestionType);
         const marks = data.marks ?? question.marks;
 
-        if (type === QuestionType.WRITTEN && (marks < MIN_WRITTEN_MARKS || marks > MAX_WRITTEN_MARKS)) {
-            throw new BadRequestException(`Written questions must be worth between ${MIN_WRITTEN_MARKS} and ${MAX_WRITTEN_MARKS} marks`);
+        if (SUBJECTIVE_TYPES.includes(type) && (marks < MIN_WRITTEN_MARKS || marks > MAX_WRITTEN_MARKS)) {
+            throw new BadRequestException(`Written/Typing questions must be worth between ${MIN_WRITTEN_MARKS} and ${MAX_WRITTEN_MARKS} marks`);
         }
 
         const updatePayload: any = {
@@ -929,6 +1041,10 @@ export class ExamManagementService {
             marks,
             updatedBy: userId ? new Types.ObjectId(userId) : undefined,
         };
+
+        if (data.examSectionId !== undefined) {
+            updatePayload.examSectionId = new Types.ObjectId(data.examSectionId);
+        }
 
         if (data.options || type !== question.type) {
             const { options, correctOptionIds } = this.buildOptionsAndCorrectIds(type, data.options);

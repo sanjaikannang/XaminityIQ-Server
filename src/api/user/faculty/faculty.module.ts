@@ -35,6 +35,7 @@ import { LiveKitService } from 'src/livekit/livekit.service';
 
 // Controllers
 import { GetMyProfileController } from './profile/get-my-profile/get-my-profile.controller';
+import { UpdateMyProfileController } from './profile/update-my-profile/update-my-profile.controller';
 import { CreateSubjectController } from './subject-management/create-subject/create-subject.controller';
 import { GetAllSubjectsController } from './subject-management/get-all-subjects/get-all-subjects.controller';
 import { GetSubjectController } from './subject-management/get-subject/get-subject.controller';
@@ -87,6 +88,7 @@ import { EvaluateAnswerController } from './exam-evaluation/evaluate-answer/eval
     ],
     controllers: [
         GetMyProfileController,
+        UpdateMyProfileController,
         CreateSubjectController,
         GetAllSubjectsController,
         GetSubjectController,

@@ -31,11 +31,13 @@ import { AuthJwtService } from 'src/services/auth-service/jwt.service';
 
 // Controllers
 import { GetMyProfileController } from './profile/get-my-profile/get-my-profile.controller';
+import { UpdateMyProfileController } from './profile/update-my-profile/update-my-profile.controller';
 import { GetAllSubjectsController } from './subject-management/get-all-subjects/get-all-subjects.controller';
 import { GetAllExamsController } from './exam-management/get-all-exams/get-all-exams.controller';
 import { StartAttemptController } from './exam-management/start-attempt/start-attempt.controller';
 import { GetAttemptController } from './exam-management/get-attempt/get-attempt.controller';
 import { SaveAnswerController } from './exam-management/save-answer/save-answer.controller';
+import { ViewQuestionController } from './exam-management/view-question/view-question.controller';
 import { SubmitAttemptController } from './exam-management/submit-attempt/submit-attempt.controller';
 import { ReportViolationController } from './exam-management/report-violation/report-violation.controller';
 import { RecordingSignatureController } from './exam-management/recording-signature/recording-signature.controller';
@@ -50,6 +52,7 @@ import { GetChatHistoryController } from './exam-proctoring/get-chat-history/get
 import { GenerateWrittenQrController } from './exam-management/generate-written-qr/generate-written-qr.controller';
 import { GetWrittenQrStatusController } from './exam-management/get-written-qr-status/get-written-qr-status.controller';
 import { FinalizeWrittenAnswerController } from './exam-management/finalize-written-answer/finalize-written-answer.controller';
+import { DeleteWrittenAnswerPageController } from './exam-management/delete-written-answer-page/delete-written-answer-page.controller';
 import { GetMyResultController } from './exam-management/get-my-result/get-my-result.controller';
 
 @Module({
@@ -81,11 +84,13 @@ import { GetMyResultController } from './exam-management/get-my-result/get-my-re
     ],
     controllers: [
         GetMyProfileController,
+        UpdateMyProfileController,
         GetAllSubjectsController,
         GetAllExamsController,
         StartAttemptController,
         GetAttemptController,
         SaveAnswerController,
+        ViewQuestionController,
         SubmitAttemptController,
         ReportViolationController,
         RecordingSignatureController,
@@ -100,6 +105,7 @@ import { GetMyResultController } from './exam-management/get-my-result/get-my-re
         GenerateWrittenQrController,
         GetWrittenQrStatusController,
         FinalizeWrittenAnswerController,
+        DeleteWrittenAnswerPageController,
         GetMyResultController,
     ],
     providers: [
@@ -114,6 +120,7 @@ import { GetMyResultController } from './exam-management/get-my-result/get-my-re
     ],
     exports: [
         ConfigService,
+        ExamAttemptService,
     ],
 })
 export class StudentModule { }

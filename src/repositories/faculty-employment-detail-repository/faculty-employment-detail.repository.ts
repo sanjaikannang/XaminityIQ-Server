@@ -33,4 +33,12 @@ export class FacultyEmploymentDetailRepositoryService {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }
     }
+
+    async updateById(id: Types.ObjectId, data: Partial<FacultyEmploymentDetail>, session?: ClientSession): Promise<FacultyEmploymentDetailDocument | null> {
+        try {
+            return await this.facultyEmploymentDetailModel.findByIdAndUpdate(id, data, { new: true, session }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
 }

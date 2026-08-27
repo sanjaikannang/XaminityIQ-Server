@@ -8,7 +8,7 @@ import {
 } from 'src/utils/enum';
 import {
     IsString, IsEmail, IsEnum, IsDateString, IsBoolean, IsOptional, IsNumber, ValidateNested,
-    IsNotEmpty, Matches, MaxLength, ArrayMinSize, IsArray
+    IsNotEmpty, Matches, MaxLength, IsArray
 } from 'class-validator';
 
 class FacultyEmergencyContactDto {
@@ -139,12 +139,14 @@ export class CreateFacultyRequest {
     @IsDateString()
     dateOfBirth: string;
 
+    // Optional — self-serve profile completion
     @IsEnum(MaritalStatus)
-    maritalStatus: MaritalStatus;
+    @IsOptional()
+    maritalStatus?: MaritalStatus;
 
     @IsString()
-    @IsNotEmpty()
-    profilePhotoUrl: string;
+    @IsOptional()
+    profilePhotoUrl?: string;
 
     // @IsString()
     // @IsNotEmpty()
@@ -169,17 +171,21 @@ export class CreateFacultyRequest {
     @Matches(/^\+91\d{10}$/, { message: 'Alternate phone number must start with +91 and contain 10 digits' })
     alternatePhoneNumber: string;
 
+    // Optional — self-serve profile completion
     @ValidateNested()
     @Type(() => FacultyEmergencyContactDto)
-    emergencyContact: FacultyEmergencyContactDto;
+    @IsOptional()
+    emergencyContact?: FacultyEmergencyContactDto;
 
-    // Address Details
+    // Address Details — optional, self-serve profile completion
     @ValidateNested()
     @Type(() => FacultyAddressDto)
-    currentAddress: FacultyAddressDto;
+    @IsOptional()
+    currentAddress?: FacultyAddressDto;
 
     @IsBoolean()
-    sameAsCurrent: boolean;
+    @IsOptional()
+    sameAsCurrent?: boolean;
 
     @ValidateNested()
     @Type(() => FacultyAddressDto)
@@ -201,22 +207,25 @@ export class CreateFacultyRequest {
     @IsEnum(EmploymentType)
     employmentType: string;
 
+    // Optional — self-serve profile completion
     @IsNumber()
-    totalExperienceYears: number;
+    @IsOptional()
+    totalExperienceYears?: number;
 
     @IsEnum(HighestQualification)
-    highestQualification: string;
+    @IsOptional()
+    highestQualification?: string;
 
     @IsString()
     @IsOptional()
     remarks: string;
 
-    // Education History
+    // Education History — optional, self-serve profile completion
     @ValidateNested({ each: true })
     @Type(() => FacultyEducationHistoryDto)
     @IsArray()
-    @ArrayMinSize(1, { message: 'At least one education record is required' })
-    educationHistory: FacultyEducationHistoryDto[];
+    @IsOptional()
+    educationHistory?: FacultyEducationHistoryDto[];
 
     // Work Experience (Optional)
     @ValidateNested({ each: true })

@@ -9,7 +9,11 @@ dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 async function bootstrap() {
 
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true exposes req.rawBody (Buffer) alongside the normal parsed
+  // req.body — needed by the LiveKit webhook controller to verify the
+  // signature over the exact raw bytes (JSON.stringify(req.body) is not
+  // guaranteed to reproduce the original bytes LiveKit signed).
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.use(cookieParser());
 

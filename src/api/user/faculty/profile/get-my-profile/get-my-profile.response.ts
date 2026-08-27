@@ -5,8 +5,8 @@ export class PersonalDetails {
     lastName: string;
     gender: string;
     dateOfBirth: string;
-    maritalStatus: string;
-    profilePhotoUrl: string;
+    maritalStatus?: string;
+    profilePhotoUrl?: string;
     nationality: string;
     religion?: string;
 }
@@ -22,7 +22,7 @@ export class ContactDetails {
     facultyEmail: string;
     phoneNumber: string;
     alternatePhoneNumber?: string;
-    emergencyContact: EmergencyContact;
+    emergencyContact?: EmergencyContact;
 }
 
 export class Address {
@@ -35,7 +35,7 @@ export class Address {
 }
 
 export class AddressDetails {
-    currentAddress: Address;
+    currentAddress?: Address;
     sameAsCurrent: boolean;
     permanentAddress?: Address;
 }
@@ -48,7 +48,7 @@ export class EmploymentDetails {
     dateOfJoining: Date;
     dateOfLeaving?: Date;
     totalExperienceYears: number;
-    highestQualification: string;
+    highestQualification?: string;
     status: string;
     remarks?: string;
 }
@@ -89,6 +89,8 @@ export class FacultyProfileData {
     // department's own subject catalog rather than a personal teaching load
     departmentSubjects: SubjectData[];
     isActive: boolean;
+    // 0-100 — see FacultyService.computeProfileCompletion for the definition
+    profileCompletionPercentage: number;
 }
 
 export class GetMyProfileResponse {

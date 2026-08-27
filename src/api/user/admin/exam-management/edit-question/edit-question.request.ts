@@ -2,7 +2,7 @@ import { Type } from 'class-transformer';
 import { QuestionType } from 'src/utils/enum';
 import { QuestionOptionInput } from '../add-question/add-question.request';
 import {
-    IsString, IsNotEmpty, IsEnum, IsInt, Min, IsOptional,
+    IsString, IsNotEmpty, IsEnum, IsInt, Min, IsOptional, IsMongoId,
     IsArray, ValidateNested, ArrayMinSize, ArrayMaxSize,
 } from 'class-validator';
 
@@ -29,5 +29,9 @@ export class EditQuestionRequest {
     @ValidateNested({ each: true })
     @Type(() => QuestionOptionInput)
     options?: QuestionOptionInput[];
+
+    @IsOptional()
+    @IsMongoId()
+    examSectionId?: string;
 
 }

@@ -44,11 +44,11 @@ export class ExamAnswerRepositoryService {
     }
 
 
-    // Upsert an MCQ/MSQ selection onto the pre-seeded answer row
+    // Upsert an MCQ/MSQ/TYPING answer onto the pre-seeded answer row
     async upsertAnswer(
         attemptId: string,
         questionId: string,
-        data: { selectedOptionId?: string; selectedOptionIds?: string[] },
+        data: { selectedOptionId?: string; selectedOptionIds?: string[]; answerText?: string },
     ): Promise<ExamAnswerDocument | null> {
         try {
             return await this.examAnswerModel
@@ -58,6 +58,29 @@ export class ExamAnswerRepositoryService {
                     { new: true },
                 )
                 .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Records the first time a student navigates to a question — a no-op if
+    // already set, so repeated navigation back to the same question doesn't
+    // reset the minTimePerQuestionSeconds clock. Returns the row so the
+    // caller can report back the effective firstViewedAt either way.
+    async markFirstViewed(attemptId: string, questionId: string): Promise<ExamAnswerDocument | null> {
+        try {
+            await this.examAnswerModel
+                .updateOne(
+                    {
+                        attemptId: new Types.ObjectId(attemptId),
+                        questionId: new Types.ObjectId(questionId),
+                        firstViewedAt: { $exists: false },
+                    },
+                    { $set: { firstViewedAt: new Date() } },
+                )
+                .exec();
+            return await this.findByAttemptAndQuestion(attemptId, questionId);
         } catch (error) {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }
@@ -108,6 +131,18 @@ export class ExamAnswerRepositoryService {
                 .exec();
             return await this.examAnswerModel
                 .findByIdAndUpdate(examAnswerId, { $push: { pages: page } }, { new: true })
+                .exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Remove one uploaded WRITTEN answer page (student deleting a mis-uploaded photo)
+    async removePage(examAnswerId: string, pageNumber: number): Promise<ExamAnswerDocument | null> {
+        try {
+            return await this.examAnswerModel
+                .findByIdAndUpdate(examAnswerId, { $pull: { pages: { pageNumber } } }, { new: true })
                 .exec();
         } catch (error) {
             throw new InternalServerErrorException(`Database error: ${error.message}`);

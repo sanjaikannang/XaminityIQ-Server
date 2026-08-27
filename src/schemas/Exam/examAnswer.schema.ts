@@ -50,6 +50,16 @@ export class ExamAnswer {
     @Prop({ type: [AnswerPage], default: [] })
     pages: AnswerPage[];
 
+    // TYPING only — rich-text answer, stored as HTML from the Tiptap editor.
+    @Prop()
+    answerText: string;
+
+    // Set the first time the student navigates to this question, regardless
+    // of type — drives minTimePerQuestionSeconds enforcement
+    // (SecuritySettings on the parent Exam).
+    @Prop()
+    firstViewedAt: Date;
+
     // WRITTEN only — true once the student clicks "Upload Answer" on desktop.
     // MCQ/MSQ are implicitly finalized at exam submission.
     @Prop({ default: false })
