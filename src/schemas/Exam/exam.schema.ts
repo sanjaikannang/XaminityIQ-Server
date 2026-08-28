@@ -151,7 +151,12 @@ export class Exam {
 
 export const ExamSchema = SchemaFactory.createForClass(Exam);
 
-ExamSchema.index({ batchId: 1, courseId: 1, departmentId: 1, sectionIds: 1, semesters: 1, subjectId: 1 });
+// MongoDB rejects a compound index across two array fields at once ("cannot
+// index parallel arrays") — sectionIds and semesters are both multikey, so
+// they're indexed separately rather than combined into one compound index.
+ExamSchema.index({ batchId: 1, courseId: 1, departmentId: 1, subjectId: 1 });
+ExamSchema.index({ sectionIds: 1 });
+ExamSchema.index({ semesters: 1 });
 ExamSchema.index({ mode: 1, status: 1 });
 ExamSchema.index({ startDate: 1, endDate: 1, startTime: 1, endTime: 1, durationMinutes: 1 });
 ExamSchema.index({ status: 1 });
