@@ -187,12 +187,13 @@ export class ExamAttemptService {
         }
 
         // IST-aware — exam.startTime/endTime are "HH:mm" always interpreted as
-        // IST (see date.util.ts). Using exam.startDate/endDate alone (dates
-        // with no time-of-day) previously opened the window at UTC midnight,
-        // silently 5:30 off from what an IST-thinking admin expects.
+        // IST (see date.util.ts). AUTO exams don't collect a time-of-day at
+        // all (see exam.schema.ts) — a full calendar-day window (00:00
+        // startDate to 23:59 endDate IST) is used instead, matching the same
+        // sentinel-time window validateHierarchyAndSchedule checked at create/edit time.
         const now = new Date();
-        const windowStart = combineDateTimeIST(exam.startDate, exam.startTime);
-        const windowEnd = combineDateTimeIST(exam.endDate, exam.endTime);
+        const windowStart = combineDateTimeIST(exam.startDate, exam.startTime || '00:00');
+        const windowEnd = combineDateTimeIST(exam.endDate, exam.endTime || '23:59');
         if (now < windowStart || now > windowEnd) {
             throw new ForbiddenException('This exam is outside its scheduled window');
         }
@@ -201,8 +202,8 @@ export class ExamAttemptService {
             exam.batchId.toString() === academicDetail.batchId.toString() &&
             exam.courseId.toString() === academicDetail.courseId.toString() &&
             exam.departmentId.toString() === academicDetail.departmentId.toString() &&
-            exam.sectionId.toString() === academicDetail.sectionId.toString() &&
-            exam.semester === academicDetail.currentSemester;
+            exam.sectionIds.some((id) => id.toString() === academicDetail.sectionId.toString()) &&
+            exam.semesters.includes(academicDetail.currentSemester);
         if (!matchesHierarchy) {
             throw new ForbiddenException('You are not assigned to this exam');
         }
@@ -665,8 +666,8 @@ export class ExamAttemptService {
             exam.batchId.toString() === academicDetail.batchId.toString() &&
             exam.courseId.toString() === academicDetail.courseId.toString() &&
             exam.departmentId.toString() === academicDetail.departmentId.toString() &&
-            exam.sectionId.toString() === academicDetail.sectionId.toString() &&
-            exam.semester === academicDetail.currentSemester;
+            exam.sectionIds.some((id) => id.toString() === academicDetail.sectionId.toString()) &&
+            exam.semesters.includes(academicDetail.currentSemester);
         if (!matchesHierarchy) {
             throw new ForbiddenException('You are not assigned to this exam');
         }

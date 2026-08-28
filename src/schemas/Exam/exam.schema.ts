@@ -90,13 +90,16 @@ export class Exam {
     @Prop({ type: Types.ObjectId, ref: 'Department', required: true })
     departmentId: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'Section', required: true })
-    sectionId: Types.ObjectId;
+    // An exam can target more than one section/semester at once — a student
+    // matches if their own sectionId/currentSemester is a member of these
+    // arrays (see getMatchedStudentIds and startAttemptAPI's matchesHierarchy).
+    @Prop({ type: [{ type: Types.ObjectId, ref: 'Section' }], required: true })
+    sectionIds: Types.ObjectId[];
 
-    // Plain number, matching Subject.semester / StudentAcademicDetail.currentSemester —
+    // Plain numbers, matching Subject.semester / StudentAcademicDetail.currentSemester —
     // there is no separate Semester collection in this app.
-    @Prop({ required: true })
-    semester: number;
+    @Prop({ type: [Number], required: true })
+    semesters: number[];
 
     @Prop({ type: Types.ObjectId, ref: 'Subject', required: true })
     subjectId: Types.ObjectId;
@@ -117,12 +120,14 @@ export class Exam {
     endDate: Date;
 
     // "HH:mm", e.g. "09:00" — always IST (see src/utils/date.util.ts).
-    // Required for both AUTO and PROCTORING modes.
-    @Prop({ required: true })
-    startTime: string;
+    // PROCTORING-only: a proctored exam needs a precise window for room
+    // scheduling/invigilation. AUTO exams are date-only (see startAttemptAPI,
+    // which uses a full-day 00:00-23:59 IST window for AUTO instead).
+    @Prop()
+    startTime?: string;
 
-    @Prop({ required: true })
-    endTime: string;
+    @Prop()
+    endTime?: string;
 
     @Prop({ type: [ExamSectionDef], default: [] })
     examSections: ExamSectionDef[];
@@ -146,7 +151,7 @@ export class Exam {
 
 export const ExamSchema = SchemaFactory.createForClass(Exam);
 
-ExamSchema.index({ batchId: 1, courseId: 1, departmentId: 1, sectionId: 1, semester: 1, subjectId: 1 });
+ExamSchema.index({ batchId: 1, courseId: 1, departmentId: 1, sectionIds: 1, semesters: 1, subjectId: 1 });
 ExamSchema.index({ mode: 1, status: 1 });
 ExamSchema.index({ startDate: 1, endDate: 1, startTime: 1, endTime: 1, durationMinutes: 1 });
 ExamSchema.index({ status: 1 });

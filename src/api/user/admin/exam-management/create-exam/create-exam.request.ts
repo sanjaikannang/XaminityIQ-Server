@@ -114,12 +114,16 @@ export class CreateExamRequest {
     @IsMongoId()
     departmentId: string;
 
-    @IsMongoId()
-    sectionId: string;
+    @IsArray()
+    @ArrayMinSize(1)
+    @IsMongoId({ each: true })
+    sectionIds: string[];
 
-    @IsInt()
-    @Min(1)
-    semester: number;
+    @IsArray()
+    @ArrayMinSize(1)
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    semesters: number[];
 
     @IsMongoId()
     subjectId: string;
@@ -142,14 +146,18 @@ export class CreateExamRequest {
     @IsDateString()
     endDate: string;
 
-    // Required for both AUTO and PROCTORING — always IST (see date.util.ts)
+    // PROCTORING-only — always IST (see date.util.ts). Required/ignored based
+    // on `mode`, enforced in ExamManagementService.validateHierarchyAndSchedule
+    // rather than here, since the rule depends on another field's value.
+    @IsOptional()
     @IsString()
     @IsNotEmpty()
-    startTime: string;
+    startTime?: string;
 
+    @IsOptional()
     @IsString()
     @IsNotEmpty()
-    endTime: string;
+    endTime?: string;
 
     @IsOptional()
     @IsArray()
