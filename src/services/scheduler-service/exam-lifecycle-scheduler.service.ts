@@ -6,7 +6,7 @@ import { ExamRepositoryService } from 'src/repositories/exam-repository/exam.rep
 import { ExamAttemptRepositoryService } from 'src/repositories/exam-attempt-repository/exam-attempt.repository';
 import { ExamAttemptService } from 'src/services/user-service/student/exam-attempt.service';
 
-const SWEEP_INTERVAL_MS = 60 * 1000;
+const SWEEP_INTERVAL_MS = 5 * 1000;
 const SUBMIT_GRACE_MS = 5000;
 const STUCK_SUBMITTED_GRACE_MS = 15 * 60 * 1000;
 
