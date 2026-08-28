@@ -34,13 +34,17 @@ export class EditExamRequest {
     departmentId?: string;
 
     @IsOptional()
-    @IsMongoId()
-    sectionId?: string;
+    @IsArray()
+    @ArrayMinSize(1)
+    @IsMongoId({ each: true })
+    sectionIds?: string[];
 
     @IsOptional()
-    @IsInt()
-    @Min(1)
-    semester?: number;
+    @IsArray()
+    @ArrayMinSize(1)
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    semesters?: number[];
 
     @IsOptional()
     @IsMongoId()

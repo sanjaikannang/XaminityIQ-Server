@@ -10,9 +10,9 @@ export class ExamData {
     courseName: string;
     departmentId: string;
     deptName: string;
-    sectionId: string;
-    sectionName: string;
-    semester: number;
+    sectionIds: string[];
+    sectionNames: string[];
+    semesters: number[];
     subjectId: string;
     subjectName: string;
     durationMinutes: number;
