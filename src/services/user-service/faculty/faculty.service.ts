@@ -356,17 +356,27 @@ export class FacultyService {
     async getMyExamRoomsAPI(userId: string) {
         const facultyId = await this.resolveFaculty(userId);
         const rooms = await this.examRoomRepositoryService.findByFacultyId(facultyId);
+        const now = Date.now();
 
         const results: any[] = [];
         for (const room of rooms) {
             const assignments = await this.examRoomAssignmentRepositoryService.findByRoomId(room._id as Types.ObjectId);
             const exams = await this.resolveExamNamesForAssignments(assignments);
+
+            // room.status is set once at formation and never transitions — see
+            // ExamRoomRepositoryService.buildEffectiveStatusFilter — so the real-time
+            // state shown to faculty is derived from the room's own schedule instead.
+            const startMs = new Date(room.startDateTime).getTime();
+            const endMs = new Date(room.endDateTime).getTime();
+            const effectiveStatus = now < startMs ? 'UPCOMING' : now < endMs ? 'IN_PROGRESS' : 'COMPLETED';
+
             results.push({
                 roomId: (room._id as Types.ObjectId).toString(),
                 exams,
                 startDateTime: room.startDateTime,
                 endDateTime: room.endDateTime,
                 status: room.status,
+                effectiveStatus,
                 studentCount: assignments.length,
             });
         }

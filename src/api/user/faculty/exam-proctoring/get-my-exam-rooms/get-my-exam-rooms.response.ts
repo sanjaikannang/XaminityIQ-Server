@@ -10,7 +10,11 @@ export class MyExamRoomData {
     exams: RoomExamRef[];
     startDateTime: Date;
     endDateTime: Date;
+    // Persisted room status (in practice always SCHEDULED — see
+    // ExamRoomRepositoryService.buildEffectiveStatusFilter) alongside the
+    // time-derived one the client actually renders and gates on
     status: string;
+    effectiveStatus: 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED';
     studentCount: number;
 }
 
