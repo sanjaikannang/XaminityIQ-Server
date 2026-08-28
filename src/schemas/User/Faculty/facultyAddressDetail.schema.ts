@@ -27,7 +27,8 @@ export class AddressInfo {
 
 @Schema({ timestamps: true })
 export class FacultyAddress {
-    @Prop({ type: AddressInfo, required: true })
+    // Optional — self-serve profile completion
+    @Prop({ type: AddressInfo })
     currentAddress: AddressInfo;
 
     @Prop({ default: false })

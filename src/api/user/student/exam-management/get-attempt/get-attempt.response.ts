@@ -1,10 +1,12 @@
-import { AttemptQuestionData } from '../start-attempt/start-attempt.response';
+import { AttemptQuestionData, AttemptExamSectionData } from '../start-attempt/start-attempt.response';
 import { SecuritySettingsInput } from '../../../admin/exam-management/create-exam/create-exam.request';
 
 export class AttemptAnswerData {
     questionId: string;
     selectedOptionId?: string;
     selectedOptionIds?: string[];
+    answerText?: string;
+    firstViewedAt?: Date;
 }
 
 export class GetAttemptData {
@@ -16,6 +18,7 @@ export class GetAttemptData {
     status: string;
     remainingMs: number;
     securitySettings: SecuritySettingsInput;
+    examSections: AttemptExamSectionData[];
     questions: AttemptQuestionData[];
     answers: AttemptAnswerData[];
 }

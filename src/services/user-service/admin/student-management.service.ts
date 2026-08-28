@@ -291,8 +291,8 @@ export class StudentManagementService {
                 }, session);
                 console.log("student...", student)
 
-                // Create Education History
-                const educationHistoryPromises = createStudentData.educationHistory.map(edu =>
+                // Create Education History — optional at creation now (self-serve completion)
+                const educationHistoryPromises = (createStudentData.educationHistory || []).map(edu =>
                     this.studentEducationHistoryRepositoryService.create({
                         studentId: student._id as Types.ObjectId,
                         level: edu.level,

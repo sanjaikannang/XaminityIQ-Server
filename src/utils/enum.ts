@@ -47,7 +47,8 @@ export enum CourseType {
 export enum QuestionType {
   MCQ = 'MCQ',
   MSQ = 'MSQ',
-  WRITTEN = 'WRITTEN'
+  WRITTEN = 'WRITTEN',
+  TYPING = 'TYPING'
 }
 
 export enum ExamStatus {
@@ -198,6 +199,10 @@ export enum RoomAssignmentStatus {
   IN_PROGRESS = 'IN_PROGRESS',
   REJECTED = 'REJECTED',
   REMOVED = 'REMOVED',
+  // Grace-period-exceeded LiveKit disconnect (not a faculty action) — unlike
+  // REMOVED/REJECTED this is NOT terminal: joinLobbyAPI resets it back to
+  // WAITING so the student can rejoin and be re-admitted.
+  DISCONNECTED = 'DISCONNECTED',
   COMPLETED = 'COMPLETED',
 }
 

@@ -9,6 +9,7 @@ export class QuestionData {
     text: string;
     marks: number;
     order: number;
+    examSectionId?: string;
     options?: QuestionOptionData[];
     correctOptionIds?: string[];
     createdAt: Date;

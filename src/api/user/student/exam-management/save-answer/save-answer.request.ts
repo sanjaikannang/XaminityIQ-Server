@@ -11,4 +11,9 @@ export class SaveAnswerRequest {
     @IsString({ each: true })
     selectedOptionIds?: string[];
 
+    // TYPING only — HTML from the Tiptap editor
+    @IsOptional()
+    @IsString()
+    answerText?: string;
+
 }

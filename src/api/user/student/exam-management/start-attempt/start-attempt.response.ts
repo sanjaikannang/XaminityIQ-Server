@@ -5,12 +5,19 @@ export class AttemptQuestionOption {
     text: string;
 }
 
+export class AttemptExamSectionData {
+    _id: string;
+    label: string;
+    order: number;
+}
+
 export class AttemptQuestionData {
     _id: string;
     type: string;
     text: string;
     marks: number;
     order: number;
+    examSectionId?: string;
     options?: AttemptQuestionOption[];
 }
 
@@ -23,6 +30,7 @@ export class StartAttemptData {
     // The exam's integrity/anti-malpractice config — the client enforces
     // tab-switch/fullscreen/copy-paste/right-click/backward-nav rules from this
     securitySettings: SecuritySettingsInput;
+    examSections: AttemptExamSectionData[];
     questions: AttemptQuestionData[];
 }
 

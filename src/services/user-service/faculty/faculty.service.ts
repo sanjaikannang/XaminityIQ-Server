@@ -18,6 +18,7 @@ import { PaginationMeta, SubjectData } from 'src/api/user/faculty/subject-manage
 
 // Response
 import { FacultyProfileData } from 'src/api/user/faculty/profile/get-my-profile/get-my-profile.response';
+import { UpdateMyFacultyProfileRequest } from 'src/api/user/faculty/profile/update-my-profile/update-my-profile.request';
 
 // Repositories
 import { FacultyRepositoryService } from 'src/repositories/faculty-repository/faculty.repository';
@@ -145,21 +146,25 @@ export class FacultyService {
                 facultyEmail: contactInfo.facultyEmail,
                 phoneNumber: contactInfo.phoneNumber,
                 alternatePhoneNumber: contactInfo.alternatePhoneNumber,
-                emergencyContact: {
-                    name: contactInfo.emergencyContact.name,
-                    relation: contactInfo.emergencyContact.relation,
-                    phoneNumber: contactInfo.emergencyContact.phoneNumber,
-                },
+                emergencyContact: contactInfo.emergencyContact
+                    ? {
+                        name: contactInfo.emergencyContact.name,
+                        relation: contactInfo.emergencyContact.relation,
+                        phoneNumber: contactInfo.emergencyContact.phoneNumber,
+                    }
+                    : undefined,
             },
             addressDetails: {
-                currentAddress: {
-                    addressLine1: addressDetail.currentAddress.addressLine1,
-                    addressLine2: addressDetail.currentAddress.addressLine2,
-                    city: addressDetail.currentAddress.city,
-                    state: addressDetail.currentAddress.state,
-                    pincode: addressDetail.currentAddress.pincode,
-                    country: addressDetail.currentAddress.country,
-                },
+                currentAddress: addressDetail.currentAddress
+                    ? {
+                        addressLine1: addressDetail.currentAddress.addressLine1,
+                        addressLine2: addressDetail.currentAddress.addressLine2,
+                        city: addressDetail.currentAddress.city,
+                        state: addressDetail.currentAddress.state,
+                        pincode: addressDetail.currentAddress.pincode,
+                        country: addressDetail.currentAddress.country,
+                    }
+                    : undefined,
                 sameAsCurrent: addressDetail.sameAsCurrent,
                 permanentAddress: addressDetail.permanentAddress
                     ? {
@@ -215,7 +220,112 @@ export class FacultyService {
                 createdAt: (subject as any).createdAt,
             })),
             isActive: faculty.isActive,
+            profileCompletionPercentage: this.computeProfileCompletion(personalDetail, contactInfo, addressDetail, employmentDetail, educationHistory, workExperience),
         };
+    }
+
+
+    // Weighted equally across the fields that moved from mandatory-at-creation
+    // to self-serve (see the schema/DTO comments on each).
+    private computeProfileCompletion(personalDetail: any, contactInfo: any, addressDetail: any, employmentDetail: any, educationHistory: any[], workExperience: any[]): number {
+        const checks = [
+            !!personalDetail.profilePhotoUrl,
+            !!personalDetail.maritalStatus,
+            !!contactInfo.emergencyContact,
+            !!addressDetail.currentAddress,
+            !!employmentDetail.highestQualification,
+            educationHistory.length > 0,
+            workExperience.length > 0,
+        ];
+        const filled = checks.filter(Boolean).length;
+        return Math.round((filled / checks.length) * 100);
+    }
+
+
+    // Update My Profile API Endpoint — self-serve completion of everything
+    // that's optional at admin-creation time (see create-faculty.request.ts).
+    // Each section only touches what's provided; omitted sections are left as-is.
+    async updateMyProfileAPI(userId: string, data: UpdateMyFacultyProfileRequest): Promise<{ message: string }> {
+        const faculty = await this.facultyRepositoryService.findByUserId(new Types.ObjectId(userId));
+        if (!faculty) {
+            throw new NotFoundException('Faculty profile not found');
+        }
+
+        if (data.profilePhotoUrl !== undefined || data.maritalStatus !== undefined) {
+            const personalUpdate: any = {};
+            if (data.profilePhotoUrl !== undefined) personalUpdate.profilePhotoUrl = data.profilePhotoUrl;
+            if (data.maritalStatus !== undefined) personalUpdate.maritalStatus = data.maritalStatus;
+            await this.facultyPersonalDetailRepositoryService.updateById(faculty.personalDetailId, personalUpdate);
+        }
+
+        if (data.emergencyContact !== undefined || data.alternatePhoneNumber !== undefined) {
+            const contactUpdate: any = {};
+            if (data.emergencyContact !== undefined) contactUpdate.emergencyContact = data.emergencyContact;
+            if (data.alternatePhoneNumber !== undefined) contactUpdate.alternatePhoneNumber = data.alternatePhoneNumber;
+            await this.facultyContactInformationRepositoryService.updateById(faculty.contactInformationId, contactUpdate);
+        }
+
+        if (data.currentAddress !== undefined || data.permanentAddress !== undefined || data.sameAsCurrent !== undefined) {
+            const addressUpdate: any = {};
+            if (data.currentAddress !== undefined) addressUpdate.currentAddress = data.currentAddress;
+            if (data.sameAsCurrent !== undefined) addressUpdate.sameAsCurrent = data.sameAsCurrent;
+            if (data.permanentAddress !== undefined || data.sameAsCurrent) {
+                addressUpdate.permanentAddress = data.sameAsCurrent ? (data.currentAddress ?? addressUpdate.currentAddress) : data.permanentAddress;
+            }
+            await this.facultyAddressRepositoryService.updateById(faculty.addressDetailId, addressUpdate);
+        }
+
+        if (data.totalExperienceYears !== undefined || data.highestQualification !== undefined) {
+            const employmentUpdate: any = {};
+            if (data.totalExperienceYears !== undefined) employmentUpdate.totalExperienceYears = data.totalExperienceYears;
+            if (data.highestQualification !== undefined) employmentUpdate.highestQualification = data.highestQualification;
+            await this.facultyEmploymentDetailRepositoryService.updateById(faculty.employmentDetailId, employmentUpdate);
+        }
+
+        if (data.educationHistory && data.educationHistory.length > 0) {
+            await this.facultyEducationHistoryRepositoryService.deleteByFacultyId(faculty._id as Types.ObjectId);
+            const educationHistoryDocs = await Promise.all(
+                data.educationHistory.map((edu) =>
+                    this.facultyEducationHistoryRepositoryService.create({
+                        facultyId: faculty._id as Types.ObjectId,
+                        level: edu.level,
+                        qualification: edu.qualification,
+                        boardOrUniversity: edu.boardOrUniversity,
+                        institutionName: edu.institutionName,
+                        yearOfPassing: edu.yearOfPassing,
+                        percentageOrCGPA: edu.percentageOrCGPA,
+                        specialization: edu.specialization,
+                    } as any),
+                ),
+            );
+            await this.facultyRepositoryService.updateById(faculty._id as Types.ObjectId, {
+                educationHistoryIds: educationHistoryDocs.map((doc) => doc._id as Types.ObjectId),
+            });
+        }
+
+        if (data.workExperience && data.workExperience.length > 0) {
+            const workExperienceDocs = await Promise.all(
+                data.workExperience.map((work) =>
+                    this.facultyWorkExperienceRepositoryService.create({
+                        facultyId: faculty._id as Types.ObjectId,
+                        organization: work.organization,
+                        role: work.role,
+                        department: work.department,
+                        fromDate: work.fromDate,
+                        toDate: work.toDate,
+                        experienceYears: work.experienceYears,
+                        jobDescription: work.jobDescription,
+                        reasonForLeaving: work.reasonForLeaving,
+                        isCurrent: work.isCurrent || false,
+                    } as any),
+                ),
+            );
+            await this.facultyRepositoryService.updateById(faculty._id as Types.ObjectId, {
+                workExperienceIds: workExperienceDocs.map((doc) => doc._id as Types.ObjectId),
+            });
+        }
+
+        return { message: 'Profile updated successfully' };
     }
 
 
@@ -246,17 +356,27 @@ export class FacultyService {
     async getMyExamRoomsAPI(userId: string) {
         const facultyId = await this.resolveFaculty(userId);
         const rooms = await this.examRoomRepositoryService.findByFacultyId(facultyId);
+        const now = Date.now();
 
         const results: any[] = [];
         for (const room of rooms) {
             const assignments = await this.examRoomAssignmentRepositoryService.findByRoomId(room._id as Types.ObjectId);
             const exams = await this.resolveExamNamesForAssignments(assignments);
+
+            // room.status is set once at formation and never transitions — see
+            // ExamRoomRepositoryService.buildEffectiveStatusFilter — so the real-time
+            // state shown to faculty is derived from the room's own schedule instead.
+            const startMs = new Date(room.startDateTime).getTime();
+            const endMs = new Date(room.endDateTime).getTime();
+            const effectiveStatus = now < startMs ? 'UPCOMING' : now < endMs ? 'IN_PROGRESS' : 'COMPLETED';
+
             results.push({
                 roomId: (room._id as Types.ObjectId).toString(),
                 exams,
                 startDateTime: room.startDateTime,
                 endDateTime: room.endDateTime,
                 status: room.status,
+                effectiveStatus,
                 studentCount: assignments.length,
             });
         }
@@ -746,8 +866,9 @@ export class FacultyService {
     }
 
 
-    // Get Exam Answers For Evaluation API Endpoint — every WRITTEN answer across
-    // every terminal attempt for this exam, forming the faculty's grading queue
+    // Get Exam Answers For Evaluation API Endpoint — every WRITTEN/TYPING
+    // (hand-graded) answer across every terminal attempt for this exam,
+    // forming the faculty's grading queue
     async getExamAnswersForEvaluationAPI(userId: string, examId: string) {
         const facultyId = await this.resolveFaculty(userId);
         const exam = await this.examRepositoryService.findByIdRaw(examId);
@@ -756,7 +877,9 @@ export class FacultyService {
 
         const questions = await this.examQuestionRepositoryService.findByExamId(examId);
         const writtenQuestionById = new Map(
-            questions.filter((q) => q.type === QuestionType.WRITTEN).map((q) => [(q._id as Types.ObjectId).toString(), q]),
+            questions
+                .filter((q) => q.type === QuestionType.WRITTEN || q.type === QuestionType.TYPING)
+                .map((q) => [(q._id as Types.ObjectId).toString(), q]),
         );
 
         const allAttempts = await this.examAttemptRepositoryService.findAllByExamId(examId);
@@ -785,9 +908,11 @@ export class FacultyService {
                     answerId: (answer._id as Types.ObjectId).toString(),
                     attemptId: answer.attemptId.toString(),
                     studentCode: studentCodeById.get(studentId) || '',
+                    type: question.type,
                     questionText: question.text,
                     maxMarks: question.marks,
                     pages: answer.pages,
+                    answerText: answer.answerText,
                     marksAwarded: answer.marksAwarded,
                     remarks: answer.remarks,
                     evaluatedAt: answer.evaluatedAt,
@@ -812,8 +937,8 @@ export class FacultyService {
         this.assertCanEvaluate(facultyId, exam, true);
 
         const question = await this.examQuestionRepositoryService.findById(answer.questionId.toString());
-        if (!question || question.type !== QuestionType.WRITTEN) {
-            throw new BadRequestException('This answer is not for a WRITTEN question');
+        if (!question || (question.type !== QuestionType.WRITTEN && question.type !== QuestionType.TYPING)) {
+            throw new BadRequestException('This answer is not for a WRITTEN or TYPING question');
         }
 
         if (marksAwarded < 0 || marksAwarded > question.marks) {

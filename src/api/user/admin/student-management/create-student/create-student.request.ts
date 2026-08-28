@@ -4,7 +4,7 @@ import {
 } from 'src/utils/enum';
 import {
     IsString, IsEmail, IsEnum, IsDateString, IsBoolean, IsOptional, IsNumber, ValidateNested,
-    IsNotEmpty, Matches, MinLength, MaxLength, ArrayMinSize
+    IsNotEmpty, Matches, MinLength, MaxLength
 } from 'class-validator';
 
 class EmergencyContactDto {
@@ -115,9 +115,10 @@ export class CreateStudentRequest {
     @IsDateString()
     dateOfBirth: string;
 
+    // Optional — self-serve profile completion (see update-my-profile)
     @IsString()
-    @IsNotEmpty()
-    profilePhotoUrl: string;
+    @IsOptional()
+    profilePhotoUrl?: string;
 
     @IsString()
     @IsOptional()
@@ -138,17 +139,21 @@ export class CreateStudentRequest {
     @Matches(/^\+91\d{10}$/, { message: 'Phone number must start with +91 and contain 10 digits' })
     alternatePhoneNumber: string;
 
+    // Optional — self-serve profile completion
     @ValidateNested()
     @Type(() => EmergencyContactDto)
-    emergencyContact: EmergencyContactDto;
+    @IsOptional()
+    emergencyContact?: EmergencyContactDto;
 
-    // Address Details
+    // Address Details — optional, self-serve profile completion
     @ValidateNested()
     @Type(() => AddressDto)
-    currentAddress: AddressDto;
+    @IsOptional()
+    currentAddress?: AddressDto;
 
     @IsBoolean()
-    sameAsCurrent: boolean;
+    @IsOptional()
+    sameAsCurrent?: boolean;
 
     @ValidateNested()
     @Type(() => AddressDto)
@@ -190,9 +195,9 @@ export class CreateStudentRequest {
     @IsOptional()
     guardian: GuardianInfoDto;
 
-    // Education History
+    // Education History — optional, self-serve profile completion
     @ValidateNested({ each: true })
     @Type(() => EducationHistoryDto)
-    @ArrayMinSize(1, { message: 'At least one education record is required' })
-    educationHistory: EducationHistoryDto[];
+    @IsOptional()
+    educationHistory?: EducationHistoryDto[];
 }

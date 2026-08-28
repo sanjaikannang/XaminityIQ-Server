@@ -1,6 +1,7 @@
 import { Model, Types } from 'mongoose';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { RoomAssignmentStatus } from 'src/utils/enum';
 import { ExamRoomAssignment, ExamRoomAssignmentDocument } from 'src/schemas/Exam/examRoomAssignment.schema';
 
 @Injectable()
@@ -83,6 +84,20 @@ export class ExamRoomAssignmentRepositoryService {
     async updateById(id: string | Types.ObjectId, data: Partial<ExamRoomAssignment>): Promise<ExamRoomAssignmentDocument | null> {
         try {
             return await this.examRoomAssignmentModel.findByIdAndUpdate(id, data, { new: true }).exec();
+        } catch (error) {
+            throw new InternalServerErrorException(`Database error: ${error.message}`);
+        }
+    }
+
+
+    // Every currently-mid-disconnect assignment (ADMITTED/IN_PROGRESS with
+    // disconnectedAt set) — the LiveKitDisconnectSweepService's scan target
+    async findDisconnected(): Promise<ExamRoomAssignmentDocument[]> {
+        try {
+            return await this.examRoomAssignmentModel.find({
+                status: { $in: [RoomAssignmentStatus.ADMITTED, RoomAssignmentStatus.IN_PROGRESS] },
+                disconnectedAt: { $ne: null },
+            }).exec();
         } catch (error) {
             throw new InternalServerErrorException(`Database error: ${error.message}`);
         }

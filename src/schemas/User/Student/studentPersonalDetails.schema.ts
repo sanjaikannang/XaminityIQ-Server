@@ -18,7 +18,9 @@ export class StudentPersonalDetail {
     @Prop({ required: true })
     dateOfBirth: string;
 
-    @Prop({ required: true })
+    // Optional at creation — the student can add this later via self-serve
+    // profile completion (see StudentService.updateMyProfileAPI).
+    @Prop()
     profilePhotoUrl: string;
 
     @Prop({ required: true, default: Nationality.INDIAN })

@@ -33,6 +33,12 @@ export class ExamQuestion {
     @Prop({ required: true })
     order: number;
 
+    // Optional — which Exam.examSections[] entry this question belongs to.
+    // Absent means "no section" (flat question list), for backward
+    // compatibility with exams authored before sections existed.
+    @Prop({ type: Types.ObjectId })
+    examSectionId?: Types.ObjectId;
+
     // MCQ/MSQ only — always exactly 4 entries
     @Prop({ type: [QuestionOption] })
     options: QuestionOption[];

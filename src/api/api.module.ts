@@ -4,6 +4,7 @@ import { AdminModule } from './user/admin/admin.module';
 import { FacultyModule } from './user/faculty/faculty.module';
 import { StudentModule } from './user/student/student.module';
 import { PublicModule } from './public/public.module';
+import { LiveKitModule } from 'src/livekit/livekit.module';
 
 @Module({
   imports: [
@@ -11,7 +12,8 @@ import { PublicModule } from './public/public.module';
     AdminModule,
     FacultyModule,
     StudentModule,
-    PublicModule
+    PublicModule,
+    LiveKitModule
   ],
   controllers: [],
   providers: [],

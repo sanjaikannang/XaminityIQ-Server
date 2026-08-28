@@ -27,7 +27,8 @@ export class FacultyEmploymentDetail {
     @Prop({ required: true, default: 0 })
     totalExperienceYears: number;
 
-    @Prop({ required: true, enum: Object.values(HighestQualification) })
+    // Optional at creation — self-serve profile completion
+    @Prop({ enum: Object.values(HighestQualification) })
     highestQualification: string;
 
     @Prop({ required: true, enum: Object.values(FacultyStatus) })

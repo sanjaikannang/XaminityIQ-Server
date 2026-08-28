@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { SubjectData } from 'src/api/user/faculty/subject-management/get-all-subjects/get-all-subjects.response';
 import { StudentProfileData } from 'src/api/user/student/profile/get-my-profile/get-my-profile.response';
+import { UpdateMyStudentProfileRequest } from 'src/api/user/student/profile/update-my-profile/update-my-profile.request';
 import { StudentRepositoryService } from 'src/repositories/student-repository/student.repository';
 import { StudentAcademicDetailRepositoryService } from 'src/repositories/student-academic-detail-repository/student-academic-detail.repository';
 import { StudentPersonalDetailRepositoryService } from 'src/repositories/student-personal-detail-repository/student-personal-detail.repository';
@@ -64,6 +65,22 @@ export class StudentService {
             description: subject.description,
             createdAt: (subject as any).createdAt,
         }));
+    }
+
+
+    // Weighted equally across the fields that moved from mandatory-at-creation
+    // to self-serve (see the schema/DTO comments on each) — 0 means none of
+    // them have been filled in yet, 100 means all have.
+    private computeProfileCompletion(personalDetail: any, contactInfo: any, addressDetail: any, educationHistory: any[], parentDetail: any): number {
+        const checks = [
+            !!personalDetail.profilePhotoUrl,
+            !!contactInfo.emergencyContact,
+            !!addressDetail.currentAddress,
+            educationHistory.length > 0,
+            !!(parentDetail && (parentDetail.father || parentDetail.mother || parentDetail.guardian)),
+        ];
+        const filled = checks.filter(Boolean).length;
+        return Math.round((filled / checks.length) * 100);
     }
 
 
@@ -131,21 +148,25 @@ export class StudentService {
                 studentEmail: contactInfo.studentEmail,
                 phoneNumber: contactInfo.phoneNumber,
                 alternatePhoneNumber: contactInfo.alternatePhoneNumber,
-                emergencyContact: {
-                    name: contactInfo.emergencyContact.name,
-                    relation: contactInfo.emergencyContact.relation,
-                    phoneNumber: contactInfo.emergencyContact.phoneNumber,
-                },
+                emergencyContact: contactInfo.emergencyContact
+                    ? {
+                        name: contactInfo.emergencyContact.name,
+                        relation: contactInfo.emergencyContact.relation,
+                        phoneNumber: contactInfo.emergencyContact.phoneNumber,
+                    }
+                    : undefined,
             },
             addressDetails: {
-                currentAddress: {
-                    addressLine1: addressDetail.currentAddress.addressLine1,
-                    addressLine2: addressDetail.currentAddress.addressLine2,
-                    city: addressDetail.currentAddress.city,
-                    state: addressDetail.currentAddress.state,
-                    pincode: addressDetail.currentAddress.pincode,
-                    country: addressDetail.currentAddress.country,
-                },
+                currentAddress: addressDetail.currentAddress
+                    ? {
+                        addressLine1: addressDetail.currentAddress.addressLine1,
+                        addressLine2: addressDetail.currentAddress.addressLine2,
+                        city: addressDetail.currentAddress.city,
+                        state: addressDetail.currentAddress.state,
+                        pincode: addressDetail.currentAddress.pincode,
+                        country: addressDetail.currentAddress.country,
+                    }
+                    : undefined,
                 sameAsCurrent: addressDetail.sameAsCurrent,
                 permanentAddress: addressDetail.permanentAddress
                     ? {
@@ -206,7 +227,82 @@ export class StudentService {
                         : undefined,
                 }
                 : undefined,
+            profileCompletionPercentage: this.computeProfileCompletion(personalDetail, contactInfo, addressDetail, educationHistory, parentDetail),
         };
+    }
+
+
+    // Update My Profile API Endpoint — self-serve completion of everything
+    // that's optional at admin-creation time (see create-student.request.ts).
+    // Each section only touches what's provided; omitted sections are left
+    // as-is rather than cleared.
+    async updateMyProfileAPI(userId: string, data: UpdateMyStudentProfileRequest): Promise<{ message: string }> {
+        const student = await this.studentRepositoryService.findByUserId(new Types.ObjectId(userId));
+        if (!student) {
+            throw new NotFoundException('Student profile not found');
+        }
+
+        if (data.profilePhotoUrl !== undefined) {
+            await this.studentPersonalDetailRepositoryService.updateById(student.personalDetailId, {
+                profilePhotoUrl: data.profilePhotoUrl,
+            });
+        }
+
+        if (data.emergencyContact !== undefined || data.alternatePhoneNumber !== undefined) {
+            const contactUpdate: any = {};
+            if (data.emergencyContact !== undefined) contactUpdate.emergencyContact = data.emergencyContact;
+            if (data.alternatePhoneNumber !== undefined) contactUpdate.alternatePhoneNumber = data.alternatePhoneNumber;
+            await this.studentContactInformationRepositoryService.updateById(student.contactInformationId, contactUpdate);
+        }
+
+        if (data.currentAddress !== undefined || data.permanentAddress !== undefined || data.sameAsCurrent !== undefined) {
+            const addressUpdate: any = {};
+            if (data.currentAddress !== undefined) addressUpdate.currentAddress = data.currentAddress;
+            if (data.sameAsCurrent !== undefined) addressUpdate.sameAsCurrent = data.sameAsCurrent;
+            if (data.permanentAddress !== undefined || data.sameAsCurrent) {
+                addressUpdate.permanentAddress = data.sameAsCurrent ? (data.currentAddress ?? addressUpdate.currentAddress) : data.permanentAddress;
+            }
+            await this.studentAddressDetailRepositoryService.updateById(student.addressDetailId, addressUpdate);
+        }
+
+        if (data.educationHistory && data.educationHistory.length > 0) {
+            await this.studentEducationHistoryRepositoryService.deleteByStudentId(student._id as Types.ObjectId);
+            await Promise.all(
+                data.educationHistory.map((edu) =>
+                    this.studentEducationHistoryRepositoryService.create({
+                        studentId: student._id as Types.ObjectId,
+                        level: edu.level,
+                        qualification: edu.qualification,
+                        boardOrUniversity: edu.boardOrUniversity,
+                        institutionName: edu.institutionName,
+                        yearOfPassing: edu.yearOfPassing,
+                        percentageOrCGPA: edu.percentageOrCGPA,
+                    } as any),
+                ),
+            );
+        }
+
+        if (data.father || data.mother || data.guardian) {
+            if (student.parentDetailId) {
+                await this.studentParentDetailRepositoryService.updateById(student.parentDetailId, {
+                    father: data.father,
+                    mother: data.mother,
+                    guardian: data.guardian,
+                });
+            } else {
+                const parentDetail = await this.studentParentDetailRepositoryService.create({
+                    studentId: student._id as Types.ObjectId,
+                    father: data.father,
+                    mother: data.mother,
+                    guardian: data.guardian,
+                } as any);
+                await this.studentRepositoryService.updateById(student._id as Types.ObjectId, {
+                    parentDetailId: parentDetail._id as Types.ObjectId,
+                });
+            }
+        }
+
+        return { message: 'Profile updated successfully' };
     }
 
 }
