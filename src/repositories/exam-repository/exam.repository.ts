@@ -4,7 +4,22 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Exam, ExamDocument } from 'src/schemas/Exam/exam.schema';
 import { ExamMode, ExamStatus } from 'src/utils/enum';
 
-const POPULATE_FIELDS = ['batchId', 'courseId', 'departmentId', 'sectionId', 'subjectId'];
+const POPULATE_FIELDS = ['batchId', 'courseId', 'departmentId', 'sectionIds', 'subjectId'];
+
+// sectionId/semester below are a single STUDENT's own values — matched
+// against the exam's sectionIds/semesters arrays via Mongo's implicit
+// scalar-vs-array containment (`{ sectionIds: someId }` matches any document
+// whose sectionIds array contains someId, no $in needed).
+interface ExamFilters {
+    mode?: string;
+    status?: string | string[];
+    batchId?: string;
+    courseId?: string;
+    departmentId?: string;
+    sectionId?: string;
+    semester?: number;
+    search?: string;
+}
 
 @Injectable()
 export class ExamRepositoryService {
@@ -48,24 +63,15 @@ export class ExamRepositoryService {
     }
 
 
-    private buildFilter(filters: {
-        mode?: string;
-        status?: string | string[];
-        batchId?: string;
-        courseId?: string;
-        departmentId?: string;
-        sectionId?: string;
-        semester?: number;
-        search?: string;
-    }): any {
+    private buildFilter(filters: ExamFilters): any {
         const filter: any = { isDeleted: false };
         if (filters.mode) filter.mode = filters.mode;
         if (filters.status) filter.status = Array.isArray(filters.status) ? { $in: filters.status } : filters.status;
         if (filters.batchId) filter.batchId = new Types.ObjectId(filters.batchId);
         if (filters.courseId) filter.courseId = new Types.ObjectId(filters.courseId);
         if (filters.departmentId) filter.departmentId = new Types.ObjectId(filters.departmentId);
-        if (filters.sectionId) filter.sectionId = new Types.ObjectId(filters.sectionId);
-        if (filters.semester) filter.semester = filters.semester;
+        if (filters.sectionId) filter.sectionIds = new Types.ObjectId(filters.sectionId);
+        if (filters.semester) filter.semesters = filters.semester;
         if (filters.search && filters.search.trim() !== '') {
             filter.name = { $regex: filters.search, $options: 'i' };
         }
@@ -74,16 +80,7 @@ export class ExamRepositoryService {
 
 
     // Count exams matching filters
-    async countWithFilters(filters: {
-        mode?: string;
-        status?: string | string[];
-        batchId?: string;
-        courseId?: string;
-        departmentId?: string;
-        sectionId?: string;
-        semester?: number;
-        search?: string;
-    }): Promise<number> {
+    async countWithFilters(filters: ExamFilters): Promise<number> {
         try {
             return await this.examModel.countDocuments(this.buildFilter(filters)).exec();
         } catch (error) {
@@ -94,16 +91,7 @@ export class ExamRepositoryService {
 
     // Find exams matching filters, paginated + sorted, hierarchy refs populated
     async findAllWithFilters(
-        filters: {
-            mode?: string;
-            status?: string | string[];
-            batchId?: string;
-            courseId?: string;
-            departmentId?: string;
-            sectionId?: string;
-            semester?: number;
-            search?: string;
-        },
+        filters: ExamFilters,
         skip: number,
         limit: number,
         sortBy?: string,

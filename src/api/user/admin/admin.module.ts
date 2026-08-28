@@ -86,6 +86,7 @@ import { AssignEvaluatorsController } from './exam-management/assign-evaluators/
 import { GetEvaluationProgressController } from './exam-management/get-evaluation-progress/get-evaluation-progress.controller';
 import { PublishResultsController } from './exam-management/publish-results/publish-results.controller';
 import { GetExamAttemptsController } from './exam-management/get-exam-attempts/get-exam-attempts.controller';
+import { GetAssignedStudentsController } from './exam-management/get-assigned-students/get-assigned-students.controller';
 import { GetDashboardOverviewController } from './dashboard/get-dashboard-overview/get-dashboard-overview.controller';
 import { GetAllExamRoomsController } from './exam-management/get-all-exam-rooms/get-all-exam-rooms.controller';
 import { GetAttemptRecordingController } from './exam-management/get-attempt-recording/get-attempt-recording.controller';
@@ -179,6 +180,7 @@ import { JwtModule } from '@nestjs/jwt';
         GetEvaluationProgressController,
         PublishResultsController,
         GetExamAttemptsController,
+        GetAssignedStudentsController,
         GetDashboardOverviewController,
         GetAllExamRoomsController,
         GetAttemptRecordingController,

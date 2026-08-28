@@ -46,6 +46,7 @@ import { ExamAttemptRepositoryService } from 'src/repositories/exam-attempt-repo
 import { ExamAnswerRepositoryService } from 'src/repositories/exam-answer-repository/exam-answer.repository';
 import { EvaluationProgressData } from 'src/api/user/admin/exam-management/get-evaluation-progress/get-evaluation-progress.response';
 import { ExamAttemptSummaryData } from 'src/api/user/admin/exam-management/get-exam-attempts/get-exam-attempts.response';
+import { AssignedStudentData } from 'src/api/user/admin/exam-management/get-assigned-students/get-assigned-students.response';
 import { GetAllExamRoomsRequest } from 'src/api/user/admin/exam-management/get-all-exam-rooms/get-all-exam-rooms.request';
 import { RoomOverviewData, PaginationMeta as RoomPaginationMeta } from 'src/api/user/admin/exam-management/get-all-exam-rooms/get-all-exam-rooms.response';
 import { AttemptRecordingData } from 'src/api/user/admin/exam-management/get-attempt-recording/get-attempt-recording.response';
@@ -88,10 +89,10 @@ export class ExamManagementService {
 
 
     // Validate the academic hierarchy chain and mode-specific schedule; returns the
-    // resolved course (needed by callers to bound the semester value)
+    // resolved course (needed by callers to bound the semester values)
     private async validateHierarchyAndSchedule(data: {
-        batchId: string; courseId: string; departmentId: string; sectionId: string;
-        semester: number; subjectId: string; mode: string; durationMinutes: number;
+        batchId: string; courseId: string; departmentId: string; sectionIds: string[];
+        semesters: number[]; subjectId: string; mode: string; durationMinutes: number;
         startDate: string; endDate: string; startTime?: string; endTime?: string;
     }) {
         const batch = await this.batchRepositoryService.findById(data.batchId);
@@ -112,42 +113,65 @@ export class ExamManagementService {
         );
         if (!batchDepartment) throw new BadRequestException('Department is not mapped to the selected batch/course');
 
-        const section = await this.sectionRepositoryService.findById(data.sectionId);
-        if (!section) throw new NotFoundException('Section not found');
-        if (
-            section.batchId.toString() !== data.batchId ||
-            section.courseId.toString() !== data.courseId ||
-            section.departmentId.toString() !== data.departmentId
-        ) {
-            throw new BadRequestException('Section does not belong to the selected batch/course/department');
+        if (!data.sectionIds || data.sectionIds.length === 0) {
+            throw new BadRequestException('At least one section is required');
+        }
+        const sections = await Promise.all(data.sectionIds.map((id) => this.sectionRepositoryService.findById(id)));
+        for (const section of sections) {
+            if (!section) throw new NotFoundException('Section not found');
+            if (
+                section.batchId.toString() !== data.batchId ||
+                section.courseId.toString() !== data.courseId ||
+                section.departmentId.toString() !== data.departmentId
+            ) {
+                throw new BadRequestException('Section does not belong to the selected batch/course/department');
+            }
         }
 
-        if (data.semester < 1 || data.semester > course.semesters) {
-            throw new BadRequestException(`Semester must be between 1 and ${course.semesters} for this course`);
+        if (!data.semesters || data.semesters.length === 0) {
+            throw new BadRequestException('At least one semester is required');
+        }
+        for (const semester of data.semesters) {
+            if (semester < 1 || semester > course.semesters) {
+                throw new BadRequestException(`Semester must be between 1 and ${course.semesters} for this course`);
+            }
         }
 
         const subject = await this.subjectRepositoryService.findById(data.subjectId);
         if (!subject) throw new NotFoundException('Subject not found');
-        if (subject.departmentId.toString() !== data.departmentId || subject.semester !== data.semester) {
-            throw new BadRequestException('Subject does not belong to the selected department/semester');
+        if (subject.departmentId.toString() !== data.departmentId || !data.semesters.includes(subject.semester)) {
+            throw new BadRequestException('Subject does not belong to the selected department, or its semester is not one of the selected semesters');
         }
 
-        // Time-of-day is required for both AUTO and PROCTORING — always IST
-        // (see src/utils/date.util.ts). AUTO's own availability window
-        // (student-facing startAttemptAPI) is IST-aware for the same reason.
-        if (!data.startTime || !data.endTime) {
-            throw new BadRequestException('Start Time and End Time are required');
-        }
-        const startDateTime = combineDateTimeIST(data.startDate, data.startTime);
-        const endDateTime = combineDateTimeIST(data.endDate, data.endTime);
-        if (endDateTime.getTime() <= startDateTime.getTime()) {
-            throw new BadRequestException('End Date+Time must be after Start Date+Time');
-        }
-        if (endDateTime.getTime() - startDateTime.getTime() < data.durationMinutes * 60000) {
-            throw new BadRequestException('The Start-End window must be at least as long as the Duration');
+        if (data.mode === ExamMode.PROCTORING) {
+            // Precise time-of-day, always IST (see date.util.ts) — a proctored
+            // exam needs an exact window for room scheduling/invigilation.
+            if (!data.startTime || !data.endTime) {
+                throw new BadRequestException('Start Time and End Time are required for PROCTORING exams');
+            }
+            const startDateTime = combineDateTimeIST(data.startDate, data.startTime);
+            const endDateTime = combineDateTimeIST(data.endDate, data.endTime);
+            if (endDateTime.getTime() <= startDateTime.getTime()) {
+                throw new BadRequestException('End Date+Time must be after Start Date+Time');
+            }
+            if (endDateTime.getTime() - startDateTime.getTime() < data.durationMinutes * 60000) {
+                throw new BadRequestException('The Start-End window must be at least as long as the Duration');
+            }
+        } else {
+            // AUTO — date-only. A student may start at any time within
+            // [00:00 startDate, 23:59 endDate] IST (see startAttemptAPI, which
+            // uses the same sentinel-time window for its own gate check).
+            const windowStart = combineDateTimeIST(data.startDate, '00:00');
+            const windowEnd = combineDateTimeIST(data.endDate, '23:59');
+            if (windowEnd.getTime() <= windowStart.getTime()) {
+                throw new BadRequestException('End Date must be on or after Start Date');
+            }
+            if (windowEnd.getTime() - windowStart.getTime() < data.durationMinutes * 60000) {
+                throw new BadRequestException('The Start-End window must be at least as long as the Duration');
+            }
         }
 
-        return { batch, course, department, section, subject };
+        return { batch, course, department, sections, subject };
     }
 
     // minTimePerExamMinutes must leave room for a manual submit — otherwise
@@ -186,9 +210,9 @@ export class ExamManagementService {
             courseName: exam.courseId.courseName || undefined,
             departmentId: this.extractId(exam.departmentId),
             deptName: exam.departmentId.deptName || undefined,
-            sectionId: this.extractId(exam.sectionId),
-            sectionName: exam.sectionId.sectionName || undefined,
-            semester: exam.semester,
+            sectionIds: (exam.sectionIds || []).map((s: any) => this.extractId(s)),
+            sectionNames: (exam.sectionIds || []).map((s: any) => s.sectionName).filter(Boolean),
+            semesters: exam.semesters,
             subjectId: this.extractId(exam.subjectId),
             subjectName: exam.subjectId.subjectName || undefined,
             durationMinutes: exam.durationMinutes,
@@ -231,16 +255,18 @@ export class ExamManagementService {
             batchId: new Types.ObjectId(createExamData.batchId),
             courseId: new Types.ObjectId(createExamData.courseId),
             departmentId: new Types.ObjectId(createExamData.departmentId),
-            sectionId: new Types.ObjectId(createExamData.sectionId),
-            semester: createExamData.semester,
+            sectionIds: createExamData.sectionIds.map((id) => new Types.ObjectId(id)),
+            semesters: createExamData.semesters,
             subjectId: new Types.ObjectId(createExamData.subjectId),
             durationMinutes: createExamData.durationMinutes,
             totalMarks: createExamData.totalMarks,
             passingMarks: createExamData.passingMarks,
             startDate: new Date(createExamData.startDate),
             endDate: new Date(createExamData.endDate),
-            startTime: createExamData.startTime,
-            endTime: createExamData.endTime,
+            // PROCTORING-only — stripped for AUTO regardless of what was sent,
+            // so there's never stale/inconsistent time data on an AUTO exam.
+            startTime: createExamData.mode === ExamMode.PROCTORING ? createExamData.startTime : undefined,
+            endTime: createExamData.mode === ExamMode.PROCTORING ? createExamData.endTime : undefined,
             examSections: (createExamData.examSections || []).map((s) => ({ label: s.label, order: s.order })),
             securitySettings: createExamData.securitySettings as any,
             createdBy: userId ? new Types.ObjectId(userId) : undefined,
@@ -257,8 +283,8 @@ export class ExamManagementService {
             'academicDetail.batchId': new Types.ObjectId(this.extractId(exam.batchId)),
             'academicDetail.courseId': new Types.ObjectId(this.extractId(exam.courseId)),
             'academicDetail.departmentId': new Types.ObjectId(this.extractId(exam.departmentId)),
-            'academicDetail.sectionId': new Types.ObjectId(this.extractId(exam.sectionId)),
-            'academicDetail.currentSemester': exam.semester,
+            'academicDetail.sectionId': { $in: exam.sectionIds.map((id: any) => new Types.ObjectId(this.extractId(id))) },
+            'academicDetail.currentSemester': { $in: exam.semesters },
             'academicDetail.status': StudentStatus.ACTIVE,
         };
         return this.studentRepositoryService.countWithAcademicFilter(baseFilter, academicFilter);
@@ -272,8 +298,8 @@ export class ExamManagementService {
             'academicDetail.batchId': new Types.ObjectId(this.extractId(exam.batchId)),
             'academicDetail.courseId': new Types.ObjectId(this.extractId(exam.courseId)),
             'academicDetail.departmentId': new Types.ObjectId(this.extractId(exam.departmentId)),
-            'academicDetail.sectionId': new Types.ObjectId(this.extractId(exam.sectionId)),
-            'academicDetail.currentSemester': exam.semester,
+            'academicDetail.sectionId': { $in: exam.sectionIds.map((id: any) => new Types.ObjectId(this.extractId(id))) },
+            'academicDetail.currentSemester': { $in: exam.semesters },
             'academicDetail.status': StudentStatus.ACTIVE,
         };
         return this.studentRepositoryService.findAllIdsWithAcademicFilter(baseFilter, academicFilter);
@@ -808,19 +834,23 @@ export class ExamManagementService {
         if (!exam) throw new NotFoundException('Exam not found');
 
         if (exam.status === ExamStatus.DRAFT) {
+            const mergedMode = data.mode ?? exam.mode;
             const merged = {
                 batchId: data.batchId ?? this.extractId(exam.batchId),
                 courseId: data.courseId ?? this.extractId(exam.courseId),
                 departmentId: data.departmentId ?? this.extractId(exam.departmentId),
-                sectionId: data.sectionId ?? this.extractId(exam.sectionId),
-                semester: data.semester ?? exam.semester,
+                sectionIds: data.sectionIds ?? exam.sectionIds.map((id: any) => this.extractId(id)),
+                semesters: data.semesters ?? exam.semesters,
                 subjectId: data.subjectId ?? this.extractId(exam.subjectId),
-                mode: data.mode ?? exam.mode,
+                mode: mergedMode,
                 durationMinutes: data.durationMinutes ?? exam.durationMinutes,
                 startDate: data.startDate ?? exam.startDate.toISOString(),
                 endDate: data.endDate ?? exam.endDate.toISOString(),
-                startTime: data.startTime ?? exam.startTime,
-                endTime: data.endTime ?? exam.endTime,
+                // A mode switch must not carry over the other mode's stale
+                // time values — e.g. AUTO->PROCTORING shouldn't silently reuse
+                // an old startTime that was never actually validated for this exam.
+                startTime: data.mode ? data.startTime : (data.startTime ?? exam.startTime),
+                endTime: data.mode ? data.endTime : (data.endTime ?? exam.endTime),
             };
             await this.validateHierarchyAndSchedule(merged);
             this.validateMarks(data.totalMarks ?? exam.totalMarks, data.passingMarks ?? exam.passingMarks);
@@ -833,10 +863,18 @@ export class ExamManagementService {
             if (data.batchId) updatePayload.batchId = new Types.ObjectId(data.batchId);
             if (data.courseId) updatePayload.courseId = new Types.ObjectId(data.courseId);
             if (data.departmentId) updatePayload.departmentId = new Types.ObjectId(data.departmentId);
-            if (data.sectionId) updatePayload.sectionId = new Types.ObjectId(data.sectionId);
+            if (data.sectionIds) updatePayload.sectionIds = data.sectionIds.map((id) => new Types.ObjectId(id));
             if (data.subjectId) updatePayload.subjectId = new Types.ObjectId(data.subjectId);
             if (data.startDate) updatePayload.startDate = new Date(data.startDate);
             if (data.endDate) updatePayload.endDate = new Date(data.endDate);
+            // Mode switched to AUTO — clear any previously-stored PROCTORING
+            // times. Mongoose strips `undefined` values out of $set before it
+            // reaches Mongo (a no-op, leaving the old value in place), so this
+            // must be `null`, not `undefined`, to actually unset it.
+            if (mergedMode === ExamMode.AUTO) {
+                updatePayload.startTime = null;
+                updatePayload.endTime = null;
+            }
 
             await this.examRepositoryService.updateById(examId, updatePayload);
             return;
@@ -889,8 +927,8 @@ export class ExamManagementService {
             batchId: this.extractId(exam.batchId),
             courseId: this.extractId(exam.courseId),
             departmentId: this.extractId(exam.departmentId),
-            sectionId: this.extractId(exam.sectionId),
-            semester: exam.semester,
+            sectionIds: exam.sectionIds.map((id: any) => this.extractId(id)),
+            semesters: exam.semesters,
             subjectId: this.extractId(exam.subjectId),
             mode: exam.mode,
             durationMinutes: exam.durationMinutes,
@@ -1172,6 +1210,40 @@ export class ExamManagementService {
     // Resolves {name, email} for a batch of student documents, keyed by
     // student _id — batches the personal-detail/contact-info lookups instead
     // of one query per student
+    // Get Assigned Students API Endpoint — every student whose academic
+    // placement matches this exam's batch/course/department/section/semester
+    // hierarchy selection (the same eligibility rule formExamRoomsAPI uses via
+    // getMatchedStudentIds), enriched with their attempt status if they've
+    // started one. This is the full assigned cohort, not just the students
+    // who actually interacted with the exam (see getExamAttemptsAPI for that).
+    async getAssignedStudentsAPI(examId: string): Promise<AssignedStudentData[]> {
+        const exam = await this.examRepositoryService.findByIdRaw(examId);
+        if (!exam) throw new NotFoundException('Exam not found');
+
+        const studentIds = await this.getMatchedStudentIds(exam);
+        const students = await this.studentRepositoryService.findByIdsPreserveOrder(studentIds);
+        const studentCodeById = new Map(students.map((s) => [(s._id as Types.ObjectId).toString(), s.studentId]));
+        const studentDetailById = await this.resolveStudentDetails(students);
+
+        const attempts = await this.examAttemptRepositoryService.findAllByExamId(examId);
+        const attemptByStudentId = new Map(attempts.map((a) => [a.studentId.toString(), a]));
+
+        return students.map((student) => {
+            const studentIdStr = (student._id as Types.ObjectId).toString();
+            const detail = studentDetailById.get(studentIdStr);
+            const attempt = attemptByStudentId.get(studentIdStr);
+            return {
+                studentId: studentIdStr,
+                studentCode: studentCodeById.get(studentIdStr) || '',
+                studentName: detail?.name || '',
+                studentEmail: detail?.email || '',
+                attemptId: attempt ? (attempt._id as Types.ObjectId).toString() : null,
+                attemptStatus: attempt ? attempt.status : AttemptStatus.NOT_STARTED,
+            };
+        });
+    }
+
+
     private async resolveStudentDetails(
         students: { _id: any; personalDetailId: Types.ObjectId; contactInformationId: Types.ObjectId }[],
     ): Promise<Map<string, { name: string; email: string }>> {

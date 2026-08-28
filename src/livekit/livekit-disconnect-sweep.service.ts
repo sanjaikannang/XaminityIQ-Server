@@ -46,7 +46,10 @@ export class LiveKitDisconnectSweepService {
         const elapsedMs = Date.now() - new Date(assignment.disconnectedAt).getTime();
         if (elapsedMs < graceMinutes * 60000) return; // still within grace period
 
-        const windowEnd = combineDateTimeIST(exam.endDate, exam.endTime);
+        // This sweep only ever runs for PROCTORING assignments (LiveKit rooms
+        // don't exist for AUTO exams), so exam.endTime is always set here in
+        // practice — the fallback just satisfies the now-optional type.
+        const windowEnd = combineDateTimeIST(exam.endDate, exam.endTime || '23:59');
         if (Date.now() > windowEnd.getTime() && assignment.attemptId) {
             await this.examAttemptService.finalizeAttemptByFaculty(
                 (assignment.attemptId as Types.ObjectId).toString(),
