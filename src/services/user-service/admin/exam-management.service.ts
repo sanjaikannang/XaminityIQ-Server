@@ -46,6 +46,7 @@ import { ExamAttemptRepositoryService } from 'src/repositories/exam-attempt-repo
 import { ExamAnswerRepositoryService } from 'src/repositories/exam-answer-repository/exam-answer.repository';
 import { EvaluationProgressData } from 'src/api/user/admin/exam-management/get-evaluation-progress/get-evaluation-progress.response';
 import { ExamAttemptSummaryData } from 'src/api/user/admin/exam-management/get-exam-attempts/get-exam-attempts.response';
+import { AssignedStudentData } from 'src/api/user/admin/exam-management/get-assigned-students/get-assigned-students.response';
 import { GetAllExamRoomsRequest } from 'src/api/user/admin/exam-management/get-all-exam-rooms/get-all-exam-rooms.request';
 import { RoomOverviewData, PaginationMeta as RoomPaginationMeta } from 'src/api/user/admin/exam-management/get-all-exam-rooms/get-all-exam-rooms.response';
 import { AttemptRecordingData } from 'src/api/user/admin/exam-management/get-attempt-recording/get-attempt-recording.response';
@@ -1172,6 +1173,40 @@ export class ExamManagementService {
     // Resolves {name, email} for a batch of student documents, keyed by
     // student _id — batches the personal-detail/contact-info lookups instead
     // of one query per student
+    // Get Assigned Students API Endpoint — every student whose academic
+    // placement matches this exam's batch/course/department/section/semester
+    // hierarchy selection (the same eligibility rule formExamRoomsAPI uses via
+    // getMatchedStudentIds), enriched with their attempt status if they've
+    // started one. This is the full assigned cohort, not just the students
+    // who actually interacted with the exam (see getExamAttemptsAPI for that).
+    async getAssignedStudentsAPI(examId: string): Promise<AssignedStudentData[]> {
+        const exam = await this.examRepositoryService.findByIdRaw(examId);
+        if (!exam) throw new NotFoundException('Exam not found');
+
+        const studentIds = await this.getMatchedStudentIds(exam);
+        const students = await this.studentRepositoryService.findByIdsPreserveOrder(studentIds);
+        const studentCodeById = new Map(students.map((s) => [(s._id as Types.ObjectId).toString(), s.studentId]));
+        const studentDetailById = await this.resolveStudentDetails(students);
+
+        const attempts = await this.examAttemptRepositoryService.findAllByExamId(examId);
+        const attemptByStudentId = new Map(attempts.map((a) => [a.studentId.toString(), a]));
+
+        return students.map((student) => {
+            const studentIdStr = (student._id as Types.ObjectId).toString();
+            const detail = studentDetailById.get(studentIdStr);
+            const attempt = attemptByStudentId.get(studentIdStr);
+            return {
+                studentId: studentIdStr,
+                studentCode: studentCodeById.get(studentIdStr) || '',
+                studentName: detail?.name || '',
+                studentEmail: detail?.email || '',
+                attemptId: attempt ? (attempt._id as Types.ObjectId).toString() : null,
+                attemptStatus: attempt ? attempt.status : AttemptStatus.NOT_STARTED,
+            };
+        });
+    }
+
+
     private async resolveStudentDetails(
         students: { _id: any; personalDetailId: Types.ObjectId; contactInformationId: Types.ObjectId }[],
     ): Promise<Map<string, { name: string; email: string }>> {
