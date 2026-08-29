@@ -14,5 +14,8 @@ export class FormExamRoomsResponse {
     message: string;
     data?: {
         rooms: FormedRoomData[];
+        // Set when there were fewer active faculty than rooms formed, so the
+        // admin knows some faculty were double-booked across rooms
+        warning?: string;
     };
 }
