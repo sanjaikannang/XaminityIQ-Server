@@ -312,7 +312,7 @@ export class ExamManagementService {
     // exams sharing this exam's exact schedule window and pools each exam's small
     // leftover remainder together into shared "mixed" rooms, instead of leaving
     // every exam's remainder as its own sparse room.
-    async formExamRoomsAPI(examId: string): Promise<FormedRoomData[]> {
+    async formExamRoomsAPI(examId: string): Promise<{ rooms: FormedRoomData[]; warning?: string }> {
         const exam = await this.examRepositoryService.findById(examId);
         if (!exam) throw new NotFoundException('Exam not found');
 
@@ -412,7 +412,7 @@ export class ExamManagementService {
         const facultyCodeById = new Map(faculties.map((f) => [(f._id as Types.ObjectId).toString(), f.facultyId]));
         const examNameById = new Map(poolExams.map((e) => [(e._id as Types.ObjectId).toString(), e.name]));
 
-        return createdRooms.map((room, index) => ({
+        const rooms = createdRooms.map((room, index) => ({
             roomId: (room._id as Types.ObjectId).toString(),
             facultyId: room.facultyId.toString(),
             facultyCode: facultyCodeById.get(room.facultyId.toString()) || '',
@@ -420,6 +420,16 @@ export class ExamManagementService {
             studentCount: allGroups[index].length,
             pooledExamNames: [...new Set(allGroups[index].map((g) => examNameById.get(g.examId.toString()) || ''))],
         }));
+
+        // Round-robin (line ~388) wraps back to the start once every faculty has
+        // one room — with fewer active faculty than rooms, some faculty end up
+        // invigilating more than one room simultaneously. Not blocked (there may
+        // be no other choice), but the admin should know it happened.
+        const warning = facultyIds.length < allGroups.length
+            ? `Only ${facultyIds.length} active faculty available for ${allGroups.length} room(s) — some faculty were assigned to more than one room.`
+            : undefined;
+
+        return { rooms, warning };
     }
 
 
