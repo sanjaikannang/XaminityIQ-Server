@@ -14,12 +14,12 @@ export class FormExamRoomsController {
     @UseGuards(JwtAuthGuard, RoleGuard)
     @Roles(UserRole.ADMIN)
     async formExamRooms(@Param('id') id: string): Promise<FormExamRoomsResponse> {
-        const rooms = await this.examManagementService.formExamRoomsAPI(id);
+        const { rooms, warning } = await this.examManagementService.formExamRoomsAPI(id);
 
         return {
             success: true,
             message: 'Exam rooms formed successfully',
-            data: { rooms },
+            data: { rooms, warning },
         };
     }
 }
